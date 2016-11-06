@@ -29,4 +29,5 @@ object MathExpr {
   }
   val HelpersFix = new HelpersT[Fix]
   val HelpersMu = new HelpersT[Mu]
+  val HelpersNu = new HelpersT[Nu]
 }

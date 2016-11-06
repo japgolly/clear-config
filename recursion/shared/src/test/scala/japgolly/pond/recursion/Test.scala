@@ -20,5 +20,12 @@ object Test extends TestSuite {
       val r = MathExpr.eval.cata(eg1)
       assert(r == 16)
     }
+
+    'nu {
+      import MathExpr.HelpersNu._
+      val eg1: FM = add(2, add(3, 11))
+      val r = MathExpr.eval.cata(eg1)
+      assert(r == 16)
+    }
   }
 }

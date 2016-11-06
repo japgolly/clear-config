@@ -42,13 +42,43 @@ object Mu {
           override def apply[A](alg: Algebra[F, A]): A =
             alg(F.map(f)(_(alg)))
         }
-
     }
 }
 
 trait Nu[F[_]] {
   type A
-  def apply(coalgebra: Coalgebra[F, A], a: A): Nu[F]
+  val a: A
+  val coalgebra: Coalgebra[F, A]
+  def fa: F[A] = coalgebra(a)
+}
+
+object Nu {
+  def apply[F[_], A](c: Coalgebra[F, A])(a: A): Nu[F] = {
+    val aa = a
+    type AA = A
+    new Nu[F] {
+      override type A = AA
+      override val a = aa
+      override val coalgebra = c
+    }
+  }
+
+  def colambek[T[_[_]], F[_]](t: F[T[F]])(implicit r: Recursive[T], c: Corecursive[T], f: Functor[F]): T[F] =
+    c.ana[F, F[T[F]]](f.map(_)(r.unfix(_)))(t)
+
+  implicit val Recursive: Recursive[Nu] =
+    new Recursive[Nu] {
+      override def unfix[F[_]](t: Nu[F])(implicit F: Functor[F]): F[Nu[F]] =
+        F.map(t.fa)(Nu(t.coalgebra))
+    }
+
+  implicit val Corecursive: Corecursive[Nu] =
+    new Corecursive[Nu] {
+      override def fix[F[_]](f: F[Nu[F]])(implicit F: Functor[F]): Nu[F] =
+        colambek[Nu, F](f)
+      override def ana[F[_], A](alg: Coalgebra[F, A])(a: A)(implicit F: Functor[F]): Nu[F] =
+        Nu(alg)(a)
+    }
 }
 
 //trait Recursive[T[_[_]]] {
@@ -66,6 +96,9 @@ trait Recursive[T[_[_]]] {
 }
 trait Corecursive[T[_[_]]] {
   def fix[F[_]](f: F[T[F]])(implicit F: Functor[F]): T[F]
+
+  def ana[F[_], A](alg: Coalgebra[F, A])(a: A)(implicit F: Functor[F]): T[F] =
+    fix(F.map(alg(a))(ana(alg)(_)(F)))
 }
 
 final class RecursiveOps[T[_[_]], F[_]](private val self: T[F]) extends AnyVal {
@@ -77,4 +110,6 @@ final class RecursiveOps[T[_[_]], F[_]](private val self: T[F]) extends AnyVal {
 //final class CorecursiveOps[T[_[_]], F[_]](private val self: F[T[F]]) extends AnyVal {
 //  def fix(implicit F: Functor[F], T: Corecursive[T]): T[F] =
 //    T.fix(self)(F)
+//  def ana[F[_], A](alg: Coalgebra[F, A])(a: A)(implicit F: Functor[F], T: Corecursive[T]): T[F] =
+//    T.ana(alg)(a)
 //}
