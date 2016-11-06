@@ -2,6 +2,7 @@ import sbt._
 import Keys._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import ScalaJSPlugin.autoImport._
+import pl.project13.scala.sbt.JmhPlugin
 import Lib._
 
 object PondBuild {
@@ -12,6 +13,7 @@ object PondBuild {
     Lib.publicationSettings(ghProject)
 
   object Ver {
+    final val JAMM          = "0.3.1"
     final val KindProjector = "0.9.3"
     final val MacroParadise = "2.1.0"
     final val Monocle       = "1.3.2"
@@ -86,9 +88,8 @@ object PondBuild {
     Project("root", file("."))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        recursionJVM, recursionJS)
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        recursionJVM, recursionJS,
+        bench)
 
   lazy val recursionJVM = recursion.jvm
   lazy val recursionJS  = recursion.js
@@ -96,4 +97,25 @@ object PondBuild {
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
       libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
+
+  lazy val bench = project.in(file("bench"))
+    .dependsOn(recursionJVM % "compile->test")
+    .enablePlugins(JmhPlugin)
+    .configure(commonSettings.jvm, preventPublication)
+    .settings(
+      name := "bench",
+      libraryDependencies += "com.github.jbellis" % "jamm" % Ver.JAMM,
+      fork in run := true,
+
+      // Add the JAMM jar as an agent
+      javaOptions in run := {
+        val classPath = (dependencyClasspath in Compile).value
+        val jammJar = classPath.collectFirst {
+          case sbt.Attributed(f) if f.getName.matches("jamm-[0-9.]+\\.jar") => f.getAbsolutePath
+        }.get
+        val oldOptions = (javaOptions in run).value
+        val newOptions = oldOptions :+ s"-javaagent:$jammJar"
+        newOptions
+      }
+    )
 }
