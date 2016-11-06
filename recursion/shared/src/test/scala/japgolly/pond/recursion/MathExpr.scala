@@ -20,11 +20,13 @@ object MathExpr {
       }
     }
 
-  object Helpers {
-    type FM = Fix[MathExpr]
-    type MF = MathExpr[Fix[MathExpr]]
-    implicit def autoFix[A](a: A)(implicit f: A => MF): FM = Fix(f(a))
+  class HelpersT[T[_[_]]: Recursive: Corecursive] {
+    type FM = T[MathExpr]
+    type MF = MathExpr[T[MathExpr]]
+    implicit def autoFix[A](a: A)(implicit f: A => MF): FM = fix(f(a))
     implicit def num(i: Int): MF = Num(i)
     def add(a: FM, b: FM): FM = Add(a, b)
   }
+  val HelpersFix = new HelpersT[Fix]
+  val HelpersMu = new HelpersT[Mu]
 }
