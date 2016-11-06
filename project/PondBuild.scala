@@ -105,7 +105,8 @@ object PondBuild {
     .settings(
       name := "bench",
       libraryDependencies += "com.github.jbellis" % "jamm" % Ver.JAMM,
-      fork in run := true,
+      fork := true,
+      javaOptions ++= Seq("-server", "-Xss8M"),
 
       // Add the JAMM jar as an agent
       javaOptions in run := {
