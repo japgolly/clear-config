@@ -1,6 +1,6 @@
 package japgolly.pond.recursion
 
-import scalaz.{Functor, Monad, Traverse}
+import scalaz.{Functor, Monad, Traverse, ~>}
 
 object Recursion {
 
@@ -37,6 +37,22 @@ object Recursion {
   def hyloM[M[_], F[_], A, B](coalg: CoalgebraM[M, F, A], alg: AlgebraM[M, F, B])(a: A)(implicit M: Monad[M], F: Traverse[F]): M[B] = {
     var self: A => M[B] = null
     self = a => M.bind(coalg(a))(fa => M.bind(F.traverse(fa)(self))(alg))
+    self(a)
+  }
+
+  def prepro[F[_], A](pro: F ~> F)(alg: Algebra[F, A])(f: Fix[F])(implicit F: Functor[F]): A = {
+    var self: Fix[F] => A = null
+    val algF: Algebra[F, Fix[F]] = f => Fix[F](pro(f))
+    val inner: Fix[F] => A = f => self(cata(algF)(f))
+    self = f => alg(F.map(f.unfix)(inner))
+    self(f)
+  }
+
+  def postpro[F[_], A](pro: F ~> F)(coalg: Coalgebra[F, A])(a: A)(implicit F: Functor[F]): Fix[F] = {
+    var self: A => Fix[F] = null
+    val algF: Coalgebra[F, Fix[F]] = f => pro(f.unfix)
+    val inner: A => Fix[F] = a => ana(algF)(self(a))
+    self = a => Fix[F](F.map(coalg(a))(inner))
     self(a)
   }
 }

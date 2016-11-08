@@ -17,17 +17,10 @@ class RecursionBM {
   var s: Fix[MathExpr] = _
 
   @Setup def setup = {
-    s = SampleData.sized(size)
+    s = Recursion.ana(MathExpr.plusOnes)(size)
   }
 
   @Benchmark def cata: Int = Recursion.cata(MathExpr.eval)(s)
-  @Benchmark def ana: Fix[MathExpr] = Recursion.ana(SampleData.factors)(size)
-  @Benchmark def hylo: Int = Recursion.hylo(SampleData.factors, MathExpr.eval)(size)
-}
-
-object SampleData {
-  val factors: Coalgebra[MathExpr, Int] =
-    i => if (i < 2) MathExpr.Num(i) else MathExpr.Add(1, i - 1)
-
-  def sized(i: Int) = Recursion.ana(factors)(i)
+  @Benchmark def ana: Fix[MathExpr] = Recursion.ana(MathExpr.plusOnes)(size)
+  @Benchmark def hylo: Int = Recursion.hylo(MathExpr.plusOnes, MathExpr.eval)(size)
 }
