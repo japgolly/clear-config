@@ -55,4 +55,22 @@ object Recursion {
     self = a => Fix[F](F.map(coalg(a))(inner))
     self(a)
   }
+
+  /** hylo that can short-circuit on construction */
+  def elgot[F[_], A, B](alg: Algebra[F, B], elcoalg: A => B Either F[A])(a: A)(implicit F: Functor[F]): B = {
+    var self: A => B = null
+    self = a => elcoalg(a) match {
+      case Right(fa) => alg(F.map(fa)(self))
+      case Left(b) => b
+    }
+    self(a)
+  }
+
+  /** hylo that can short-circuit on reduction */
+  def coelgot[F[_], A, B](coalg: Coalgebra[F, A], elalg: (A, F[B]) => B)(a: A)(implicit F: Functor[F]): B = {
+    var self: A => B = null
+    self = a => elalg(a, F.map(coalg(a))(self))
+    self(a)
+  }
+
 }
