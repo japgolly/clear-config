@@ -12,6 +12,11 @@ object MathExpr {
     case Add(a, b) => a + b
   }
 
+  val print: Algebra[MathExpr, String] = {
+    case Num(i)    => i.toString
+    case Add(a, b) => s"($a + $b)"
+  }
+
   val plusOnes: Coalgebra[MathExpr, Int] =
     i => if (i < 2) MathExpr.Num(i) else MathExpr.Add(1, i - 1)
 
