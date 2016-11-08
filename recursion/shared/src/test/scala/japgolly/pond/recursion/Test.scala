@@ -7,25 +7,11 @@ object Test extends TestSuite {
   override def tests = TestSuite {
 
     'cata {
-      import MathExpr.HelpersFix._
-      val eg1: FM = add(2, add(3, 11))
-
-      val r = MathExpr.eval.cata(eg1)
-      assert(r == 16)
-    }
-
-    'mu {
-      import MathExpr.HelpersMu._
+      import MathExpr.Helpers._
       val eg1: FM = add(2, add(3, 11))
       val r = MathExpr.eval.cata(eg1)
       assert(r == 16)
     }
 
-    'nu {
-      import MathExpr.HelpersNu._
-      val eg1: FM = add(2, add(3, 11))
-      val r = MathExpr.eval.cata(eg1)
-      assert(r == 16)
-    }
   }
 }
