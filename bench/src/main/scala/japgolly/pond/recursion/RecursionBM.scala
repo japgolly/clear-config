@@ -22,6 +22,7 @@ class RecursionBM {
 
   @Benchmark def cata: Int = Recursion.cata(MathExpr.eval)(s)
   @Benchmark def ana: Fix[MathExpr] = Recursion.ana(SampleData.factors)(size)
+  @Benchmark def hylo: Int = Recursion.hylo(SampleData.factors, MathExpr.eval)(size)
 }
 
 object SampleData {
