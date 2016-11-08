@@ -21,12 +21,12 @@ class RecursionBM {
   }
 
   @Benchmark def cataFix = Recursion.cata(MathExpr.eval)(s.fix)
-//  @Benchmark def cataMu = Recursion.cata(MathExpr.eval)(s.mu)
-//  @Benchmark def cataNu = Recursion.cata(MathExpr.eval)(s.nu)
+  @Benchmark def cataMu = Recursion.cata(MathExpr.eval)(s.mu)
+  @Benchmark def cataNu = Recursion.cata(MathExpr.eval)(s.nu)
 
   @Benchmark def anaFix = Recursion.ana[Fix, MathExpr, Int](SampleData.factors)(size)
-//  @Benchmark def anaMu = Recursion.ana[Mu, MathExpr, Int](SampleData.factors)(size)
-//  @Benchmark def anaNu = Recursion.ana[Nu, MathExpr, Int](SampleData.factors)(size)
+  @Benchmark def anaMu = Recursion.ana[Mu, MathExpr, Int](SampleData.factors)(size)
+  @Benchmark def anaNu = Recursion.ana[Nu, MathExpr, Int](SampleData.factors)(size)
 }
 
 object SampleData {

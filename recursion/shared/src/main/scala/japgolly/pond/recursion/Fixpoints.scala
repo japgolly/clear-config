@@ -91,21 +91,31 @@ object Nu {
 trait Recursive[T[_[_]]] {
   def unfix[F[_]](t: T[F])(implicit F: Functor[F]): F[T[F]]
 
-  def cata[F[_], A](alg: Algebra[F, A])(t: T[F])(implicit F: Functor[F]): A =
-    alg(F.map(unfix(t))(cata(alg)(_)(F)))
+  def cata[F[_], A](alg: Algebra[F, A])(t: T[F])(implicit F: Functor[F]): A = {
+    var self: T[F] => A = null
+    self = t => alg(F.map(unfix(t))(self))
+    self(t)
+    // alg(F.map(unfix(t))(cata(alg)(_)(F)))
+  }
 }
 trait Corecursive[T[_[_]]] {
   def fix[F[_]](f: F[T[F]])(implicit F: Functor[F]): T[F]
 
-  def ana[F[_], A](alg: Coalgebra[F, A])(a: A)(implicit F: Functor[F]): T[F] =
-    fix(F.map(alg(a))(ana(alg)(_)(F)))
+  def ana[F[_], A](alg: Coalgebra[F, A])(a: A)(implicit F: Functor[F]): T[F] = {
+    var self: A => T[F] = null
+    self = a => fix[F](F.map(alg(a))(self))
+    self(a)
+    //fix(F.map(alg(a))(ana(alg)(_)(F)))
+  }
 }
 
 final class RecursiveOps[T[_[_]], F[_]](private val self: T[F]) extends AnyVal {
   def unfix(implicit F: Functor[F], T: Recursive[T]): F[T[F]] =
     T.unfix(self)(F)
-  def cataX[A](alg: Algebra[F, A])(implicit F: Functor[F], T: Recursive[T]): A =
-    Recursion.cata(alg)(self)(F, T)
+//  def cata[A](alg: Algebra[F, A])(implicit F: Functor[F], T: Recursive[T]): A =
+//    T.cata(alg)(self)(F)
+//  def cataX[A](alg: Algebra[F, A])(implicit F: Functor[F], T: Recursive[T]): A =
+//    Recursion.cata(alg)(self)(F, T)
 }
 //final class CorecursiveOps[T[_[_]], F[_]](private val self: F[T[F]]) extends AnyVal {
 //  def fix(implicit F: Functor[F], T: Corecursive[T]): T[F] =
