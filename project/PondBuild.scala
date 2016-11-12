@@ -90,17 +90,17 @@ object PondBuild {
     Project("root", file("."))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        nonEmptinessJVM, nonEmptinessJS,
+        nonEmptyJVM, nonEmptyJS,
         recursionJVM, recursionJS,
         bench)
 
-  lazy val nonEmptinessJVM = nonEmptiness.jvm
-  lazy val nonEmptinessJS  = nonEmptiness.js
-  lazy val nonEmptiness = crossProject
+  lazy val nonEmptyJVM = nonEmpty.jvm
+  lazy val nonEmptyJS  = nonEmpty.js
+  lazy val nonEmpty = crossProject
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
       version := "1.0.0-SNAPSHOT",
-      moduleName := "non-emptyness",
+      moduleName := "non-empty",
       libraryDependencies ++= Seq(
         "org.scalaz"                 %%% "scalaz-core"   % Ver.Scalaz,
         "com.github.japgolly.univeq" %%% "univeq-scalaz" % Ver.UnivEq))

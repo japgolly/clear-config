@@ -1,4 +1,4 @@
-package japgolly.pond.nonemptiness
+package japgolly.pond.nonempty
 
 import japgolly.univeq.UnivEq
 import scala.collection.GenTraversableOnce
@@ -8,7 +8,7 @@ import scalaz.Semigroup
 /**
  * @param tail Does NOT contain head.
  */
-final class NonEmptySet[A] private[nonemptiness] (val head: A, val tail: Set[A]) {
+final class NonEmptySet[A] private[nonempty] (val head: A, val tail: Set[A]) {
   private[this] implicit def univEq: UnivEq[A] = UnivEq.force
 
   override def toString = "NonEmpty" + whole.toString

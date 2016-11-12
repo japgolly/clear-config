@@ -1,4 +1,4 @@
-package japgolly.pond.nonemptiness
+package japgolly.pond.nonempty
 
 import japgolly.univeq.UnivEq
 import scala.collection.{AbstractIterator, GenTraversableOnce}

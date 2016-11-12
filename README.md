@@ -3,7 +3,7 @@ Microlibraries!
 
 | Module | Version | Deps |
 |--------|---------|------|
-| nonEmptyness | unreleased | Scalaz, UnivEq |
+| nonEmpty | unreleased | Scalaz, UnivEq |
 | recursion | unreleased | Scalaz |
 
 # Module: Recursion

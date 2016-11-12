@@ -1,4 +1,4 @@
-package japgolly.pond.nonemptiness
+package japgolly.pond.nonempty
 
 import utest._
 
