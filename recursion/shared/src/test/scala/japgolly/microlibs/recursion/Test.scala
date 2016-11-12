@@ -1,4 +1,4 @@
-package japgolly.pond.recursion
+package japgolly.microlibs.recursion
 
 import utest._
 import MathExpr.Helpers._

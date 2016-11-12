@@ -1,4 +1,3 @@
-Tiny little ponds of code.
 Microlibraries!
 
 | Module | Version | Deps |

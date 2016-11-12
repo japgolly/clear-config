@@ -1,4 +1,4 @@
-package japgolly.pond.recursion
+package japgolly.microlibs.recursion
 
 import scalaz.{Functor, Monad, Traverse, ~>}
 

@@ -1,4 +1,4 @@
-package japgolly.pond
+package japgolly.microlibs
 
 package object recursion {
 

@@ -1,8 +1,9 @@
-val nonEmptyJVM  = PondBuild.nonEmptyJVM
-val nonEmptyJS   = PondBuild.nonEmptyJS
-val recursionJVM = PondBuild.recursionJVM
-val recursionJS  = PondBuild.recursionJS
+val nonEmptyJVM  = Microlibs.nonEmptyJVM
+val nonEmptyJS   = Microlibs.nonEmptyJS
+val recursionJVM = Microlibs.recursionJVM
+val recursionJS  = Microlibs.recursionJS
 
 // Not published
-val root         = PondBuild.root
-val bench        = PondBuild.bench
+val root         = Microlibs.root
+val bench        = Microlibs.bench
+

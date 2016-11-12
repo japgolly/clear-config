@@ -1,4 +1,4 @@
-package japgolly.pond.recursion
+package japgolly.microlibs.recursion
 
 final case class Fix[F[_]](unfix: F[Fix[F]])
 

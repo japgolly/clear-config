@@ -1,4 +1,4 @@
-package japgolly.pond.recursion
+package japgolly.microlibs.recursion
 
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations._

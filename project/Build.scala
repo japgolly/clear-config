@@ -5,9 +5,9 @@ import ScalaJSPlugin.autoImport._
 import pl.project13.scala.sbt.JmhPlugin
 import Lib._
 
-object PondBuild {
+object Microlibs {
 
-  private val ghProject = "pond-scala"
+  private val ghProject = "microlibs-scala"
 
   private val publicationSettings =
     Lib.publicationSettings(ghProject)
@@ -39,7 +39,7 @@ object PondBuild {
   val commonSettings = ConfigureBoth(
     _.settings(
       version                  := "unspecified-SNAPSHOT",
-      organization             := "com.github.japgolly.pond",
+      organization             := "com.github.japgolly.microlibs",
       homepage                 := Some(url("https://github.com/japgolly/" + ghProject)),
       licenses                 += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
       scalaVersion             := Ver.Scala211,
