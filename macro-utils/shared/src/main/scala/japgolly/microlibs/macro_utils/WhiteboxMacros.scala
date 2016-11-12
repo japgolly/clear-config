@@ -1,4 +1,4 @@
-package japgolly.microlibs.macroutils
+package japgolly.microlibs.macro_utils
 
 abstract class WhiteboxMacroUtils extends MacroUtils {
   val c: scala.reflect.macros.whitebox.Context

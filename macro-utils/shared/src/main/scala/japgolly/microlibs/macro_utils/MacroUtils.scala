@@ -1,4 +1,4 @@
-package japgolly.microlibs.macroutils
+package japgolly.microlibs.macro_utils
 
 import scala.annotation.tailrec
 

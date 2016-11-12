@@ -84,33 +84,33 @@ object Microlibs {
       // Not mandatory; just faster.
       _.settings(jsEnv in Test := PhantomJSEnv().value))
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ===================================================================================================================
 
   lazy val root =
     Project("root", file("."))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
         macroUtilsJVM, macroUtilsJS,
-        nonEmptyJVM, nonEmptyJS,
+        nonemptyJVM, nonemptyJS,
         recursionJVM, recursionJS,
         scalazExtJVM, scalazExtJS,
         bench)
 
+  // ===================================================================================================================
+
   lazy val macroUtilsJVM = macroUtils.jvm
   lazy val macroUtilsJS  = macroUtils.js
   lazy val macroUtils = crossProject
+    .in(file("macro-utils"))
     .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
     .settings(
-      version := "1.0.0-SNAPSHOT",
       moduleName := "macro-utils")
 
-  lazy val nonEmptyJVM = nonEmpty.jvm
-  lazy val nonEmptyJS  = nonEmpty.js
-  lazy val nonEmpty = crossProject
+  lazy val nonemptyJVM = nonempty.jvm
+  lazy val nonemptyJS  = nonempty.js
+  lazy val nonempty = crossProject
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
-      version := "1.0.0-SNAPSHOT",
-      moduleName := "non-empty",
       libraryDependencies ++= Seq(
         "org.scalaz"                 %%% "scalaz-core"   % Ver.Scalaz,
         "com.github.japgolly.univeq" %%% "univeq-scalaz" % Ver.UnivEq))
@@ -120,17 +120,19 @@ object Microlibs {
   lazy val recursion = crossProject
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
-      version := "1.0.0-SNAPSHOT",
       libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
   lazy val scalazExtJVM = scalazExt.jvm
   lazy val scalazExtJS  = scalazExt.js
   lazy val scalazExt = crossProject
+    .in(file("scalaz-ext"))
     .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
     .dependsOn(macroUtils)
     .settings(
-      version := "1.0.0-SNAPSHOT",
+      moduleName := "scalaz-ext",
       libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
+
+  // ===================================================================================================================
 
   lazy val bench = project.in(file("bench"))
     .dependsOn(recursionJVM % "compile->test")

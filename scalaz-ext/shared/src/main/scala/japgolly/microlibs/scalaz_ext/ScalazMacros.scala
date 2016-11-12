@@ -2,7 +2,7 @@ package japgolly.microlibs.scalaz_ext
 
 import scalaz.Equal
 import scala.reflect.macros.blackbox
-import japgolly.microlibs.macroutils.MacroUtils
+import japgolly.microlibs.macro_utils.MacroUtils
 
 object ScalazMacros {
   def deriveEqual[A]: Equal[A] = macro ScalazMacros.quietDeriveEqual[A]
