@@ -1,5 +1,7 @@
-Microlibraries!
+# Microlibraries!
 [![Build Status](https://travis-ci.org/japgolly/microlibs-scala.svg?branch=master)](https://travis-ci.org/japgolly/microlibs-scala)
+
+Contents:
 
 | Module | Version | Deps |
 |--------|---------|------|
