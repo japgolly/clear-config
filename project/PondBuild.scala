@@ -37,6 +37,7 @@ object PondBuild {
 
   val commonSettings = ConfigureBoth(
     _.settings(
+      version                  := "unspecified-SNAPSHOT",
       organization             := "com.github.japgolly.pond",
       homepage                 := Some(url("https://github.com/japgolly/" + ghProject)),
       licenses                 += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
@@ -96,6 +97,7 @@ object PondBuild {
   lazy val recursion = crossProject
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
+      version := "1.0.0-SNAPSHOT",
       libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
   lazy val bench = project.in(file("bench"))
