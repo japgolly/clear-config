@@ -21,6 +21,7 @@ object PondBuild {
     final val Scala211      = "2.11.8"
     final val Scala212      = "2.12.0"
     final val Scalaz        = "7.2.7"
+    final val UnivEq        = "1.0.2"
   }
 
   def scalacFlags = Seq(
@@ -89,8 +90,20 @@ object PondBuild {
     Project("root", file("."))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
+        nonEmptinessJVM, nonEmptinessJS,
         recursionJVM, recursionJS,
         bench)
+
+  lazy val nonEmptinessJVM = nonEmptiness.jvm
+  lazy val nonEmptinessJS  = nonEmptiness.js
+  lazy val nonEmptiness = crossProject
+    .configureCross(commonSettings, publicationSettings, utestSettings)
+    .settings(
+      version := "1.0.0-SNAPSHOT",
+      moduleName := "non-emptyness",
+      libraryDependencies ++= Seq(
+        "org.scalaz"                 %%% "scalaz-core"   % Ver.Scalaz,
+        "com.github.japgolly.univeq" %%% "univeq-scalaz" % Ver.UnivEq))
 
   lazy val recursionJVM = recursion.jvm
   lazy val recursionJS  = recursion.js
