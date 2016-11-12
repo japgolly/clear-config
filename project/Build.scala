@@ -90,9 +90,19 @@ object Microlibs {
     Project("root", file("."))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
+        macroUtilsJVM, macroUtilsJS,
         nonEmptyJVM, nonEmptyJS,
         recursionJVM, recursionJS,
         bench)
+
+  lazy val macroUtilsJVM = macroUtils.jvm
+  lazy val macroUtilsJS  = macroUtils.js
+  lazy val macroUtils = crossProject
+    .configureCross(commonSettings, publicationSettings, utestSettings)
+    .bothConfigure(definesMacros)
+    .settings(
+      version := "1.0.0-SNAPSHOT",
+      moduleName := "macro-utils")
 
   lazy val nonEmptyJVM = nonEmpty.jvm
   lazy val nonEmptyJS  = nonEmpty.js

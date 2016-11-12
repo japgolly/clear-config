@@ -5,8 +5,13 @@ Contents:
 
 | Module | Version | Deps |
 |--------|---------|------|
+| MacroUtils | unreleased | - |
 | NonEmpty | unreleased | Scalaz, UnivEq |
 | Recursion | unreleased | Scalaz |
+
+# Module: MacroUtils
+
+TODO
 
 # Module: NonEmpty
 

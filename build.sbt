@@ -1,9 +1,10 @@
-val nonEmptyJVM  = Microlibs.nonEmptyJVM
-val nonEmptyJS   = Microlibs.nonEmptyJS
-val recursionJVM = Microlibs.recursionJVM
-val recursionJS  = Microlibs.recursionJS
+val macroUtilsJVM = Microlibs.macroUtilsJVM
+val macroUtilsJS  = Microlibs.macroUtilsJS
+val nonEmptyJVM   = Microlibs.nonEmptyJVM
+val nonEmptyJS    = Microlibs.nonEmptyJS
+val recursionJVM  = Microlibs.recursionJVM
+val recursionJS   = Microlibs.recursionJS
 
 // Not published
-val root         = Microlibs.root
-val bench        = Microlibs.bench
-
+val root          = Microlibs.root
+val bench         = Microlibs.bench
