@@ -89,12 +89,19 @@ object Microlibs {
   lazy val root =
     Project("root", file("."))
       .configure(commonSettings.jvm, preventPublication)
+      .aggregate(rootJVM, rootJS, bench)
+
+  lazy val rootJVM =
+    Project("JVM", file(".rootJVM"))
+      .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        macroUtilsJVM, macroUtilsJS,
-        nonemptyJVM, nonemptyJS,
-        recursionJVM, recursionJS,
-        scalazExtJVM, scalazExtJS,
-        bench)
+        macroUtilsJVM, nonemptyJVM, recursionJVM, scalazExtJVM)
+
+  lazy val rootJS =
+    Project("JS", file(".rootJS"))
+      .configure(commonSettings.jvm, preventPublication)
+      .aggregate(
+        macroUtilsJS, nonemptyJS, recursionJS, scalazExtJS)
 
   // ===================================================================================================================
 

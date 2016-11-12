@@ -1,7 +1,8 @@
 version in ThisBuild := "1.0-SNAPSHOT"
 
 val root          = Microlibs.root
-val bench         = Microlibs.bench
+val rootJVM       = Microlibs.rootJVM
+val rootJS        = Microlibs.rootJS
 
 val macroUtilsJVM = Microlibs.macroUtilsJVM
 val macroUtilsJS  = Microlibs.macroUtilsJS
@@ -11,3 +12,5 @@ val recursionJVM  = Microlibs.recursionJVM
 val recursionJS   = Microlibs.recursionJS
 val scalazExtJVM  = Microlibs.scalazExtJVM
 val scalazExtJS   = Microlibs.scalazExtJS
+
+val bench         = Microlibs.bench
