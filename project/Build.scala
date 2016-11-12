@@ -67,11 +67,11 @@ object Microlibs {
         "ctc" -> ";clean;test:compile",
         "ct"  -> ";clean;test")))
 
-  def definesMacros: Project => Project =
+  def definesMacros = ConfigureBoth(
     _.settings(
       scalacOptions += "-language:experimental.macros",
       libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided"))
+        "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided")))
 
   def macroParadisePlugin =
     compilerPlugin("org.scalamacros" % "paradise" % Ver.MacroParadise cross CrossVersion.full)
@@ -93,13 +93,13 @@ object Microlibs {
         macroUtilsJVM, macroUtilsJS,
         nonEmptyJVM, nonEmptyJS,
         recursionJVM, recursionJS,
+        scalazExtJVM, scalazExtJS,
         bench)
 
   lazy val macroUtilsJVM = macroUtils.jvm
   lazy val macroUtilsJS  = macroUtils.js
   lazy val macroUtils = crossProject
-    .configureCross(commonSettings, publicationSettings, utestSettings)
-    .bothConfigure(definesMacros)
+    .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
     .settings(
       version := "1.0.0-SNAPSHOT",
       moduleName := "macro-utils")
@@ -119,6 +119,15 @@ object Microlibs {
   lazy val recursionJS  = recursion.js
   lazy val recursion = crossProject
     .configureCross(commonSettings, publicationSettings, utestSettings)
+    .settings(
+      version := "1.0.0-SNAPSHOT",
+      libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
+
+  lazy val scalazExtJVM = scalazExt.jvm
+  lazy val scalazExtJS  = scalazExt.js
+  lazy val scalazExt = crossProject
+    .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
+    .dependsOn(macroUtils)
     .settings(
       version := "1.0.0-SNAPSHOT",
       libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
