@@ -105,7 +105,7 @@ abstract class MacroUtils {
       fail(s"${sym.name} must be abstract or a trait.")
 
     if (sym.knownDirectSubclasses.isEmpty)
-      fail(s"${sym.name} does not have any sub-classes. This may happen due to a limitation of scalac (SI-7046).")
+      fail(s"${sym.name} does not have any sub-classes. This may happen due to a limitation of scalac (SI-7046). 95% fix expected in Scala 2.11.9 & 2.12.1.")
 
     sym
   }
@@ -299,10 +299,10 @@ abstract class MacroUtils {
             (Left(s), tree)
 
           case x =>
-            fail(s"Expecting a case like: {case Type => ?}\n    Got: ${showRaw(x)}")
+            fail(s"Expecting a case like: {case _: Type => ?}\n    Got: ${showRaw(x)}")
         }
       case _ =>
-        fail(s"Expecting a function like: {case Type => ?}\n    Got: ${showRaw(e)}")
+        fail(s"Expecting a function like: {case _: Type => ?}\n    Got: ${showRaw(e)}")
     }
 
   /**

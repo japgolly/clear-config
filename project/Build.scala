@@ -95,15 +95,24 @@ object Microlibs {
     Project("JVM", file(".rootJVM"))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        macroUtilsJVM, nonemptyJVM, recursionJVM, scalazExtJVM)
+        adtMacrosJVM, macroUtilsJVM, nonemptyJVM, recursionJVM, scalazExtJVM)
 
   lazy val rootJS =
     Project("JS", file(".rootJS"))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        macroUtilsJS, nonemptyJS, recursionJS, scalazExtJS)
+        adtMacrosJS, macroUtilsJS, nonemptyJS, recursionJS, scalazExtJS)
 
   // ===================================================================================================================
+
+  lazy val adtMacrosJVM = adtMacros.jvm
+  lazy val adtMacrosJS  = adtMacros.js
+  lazy val adtMacros = crossProject
+    .in(file("adt-macros"))
+    .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
+    .dependsOn(macroUtils, nonempty)
+    .settings(
+      moduleName := "adt-macros")
 
   lazy val macroUtilsJVM = macroUtils.jvm
   lazy val macroUtilsJS  = macroUtils.js

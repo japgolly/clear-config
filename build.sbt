@@ -4,6 +4,8 @@ val root          = Microlibs.root
 val rootJVM       = Microlibs.rootJVM
 val rootJS        = Microlibs.rootJS
 
+val adtMacrosJVM  = Microlibs.adtMacrosJVM
+val adtMacrosJS   = Microlibs.adtMacrosJS
 val macroUtilsJVM = Microlibs.macroUtilsJVM
 val macroUtilsJS  = Microlibs.macroUtilsJS
 val nonemptyJVM   = Microlibs.nonemptyJVM
