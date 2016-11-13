@@ -38,7 +38,6 @@ object Microlibs {
 
   val commonSettings = ConfigureBoth(
     _.settings(
-      version                  := "unspecified-SNAPSHOT",
       organization             := "com.github.japgolly.microlibs",
       homepage                 := Some(url("https://github.com/japgolly/" + ghProject)),
       licenses                 += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
@@ -95,13 +94,13 @@ object Microlibs {
     Project("JVM", file(".rootJVM"))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        adtMacrosJVM, macroUtilsJVM, nonemptyJVM, recursionJVM, scalazExtJVM)
+        adtMacrosJVM, macroUtilsJVM, nonemptyJVM, recursionJVM, scalazExtJVM, stdlibExtJVM)
 
   lazy val rootJS =
     Project("JS", file(".rootJS"))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        adtMacrosJS, macroUtilsJS, nonemptyJS, recursionJS, scalazExtJS)
+        adtMacrosJS, macroUtilsJS, nonemptyJS, recursionJS, scalazExtJS, stdlibExtJS)
 
   // ===================================================================================================================
 
@@ -147,6 +146,14 @@ object Microlibs {
     .settings(
       moduleName := "scalaz-ext",
       libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
+
+  lazy val stdlibExtJVM = stdlibExt.jvm
+  lazy val stdlibExtJS  = stdlibExt.js
+  lazy val stdlibExt = crossProject
+    .in(file("stdlib-ext"))
+    .configureCross(commonSettings, publicationSettings, utestSettings)
+    .settings(
+      moduleName := "stdlib-ext")
 
   // ===================================================================================================================
 

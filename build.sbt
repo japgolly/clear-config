@@ -14,5 +14,7 @@ val recursionJVM  = Microlibs.recursionJVM
 val recursionJS   = Microlibs.recursionJS
 val scalazExtJVM  = Microlibs.scalazExtJVM
 val scalazExtJS   = Microlibs.scalazExtJS
+val stdlibExtJVM  = Microlibs.stdlibExtJVM
+val stdlibExtJS   = Microlibs.stdlibExtJS
 
 val bench         = Microlibs.bench
