@@ -94,13 +94,13 @@ object Microlibs {
     Project("JVM", file(".rootJVM"))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        adtMacrosJVM, macroUtilsJVM, nonemptyJVM, recursionJVM, scalazExtJVM, stdlibExtJVM)
+        adtMacrosJVM, macroUtilsJVM, nameFnJVM, nonemptyJVM, recursionJVM, scalazExtJVM, stdlibExtJVM)
 
   lazy val rootJS =
     Project("JS", file(".rootJS"))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        adtMacrosJS, macroUtilsJS, nonemptyJS, recursionJS, scalazExtJS, stdlibExtJS)
+        adtMacrosJS, macroUtilsJS, nameFnJS, nonemptyJS, recursionJS, scalazExtJS, stdlibExtJS)
 
   // ===================================================================================================================
 
@@ -110,16 +110,21 @@ object Microlibs {
     .in(file("adt-macros"))
     .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
     .dependsOn(macroUtils, nonempty)
-    .settings(
-      moduleName := "adt-macros")
+    .settings(moduleName := "adt-macros")
 
   lazy val macroUtilsJVM = macroUtils.jvm
   lazy val macroUtilsJS  = macroUtils.js
   lazy val macroUtils = crossProject
     .in(file("macro-utils"))
     .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
-    .settings(
-      moduleName := "macro-utils")
+    .settings(moduleName := "macro-utils")
+
+  lazy val nameFnJVM = nameFn.jvm
+  lazy val nameFnJS  = nameFn.js
+  lazy val nameFn = crossProject
+    .in(file("name-fn"))
+    .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
+    .settings(moduleName := "name-fn")
 
   lazy val nonemptyJVM = nonempty.jvm
   lazy val nonemptyJS  = nonempty.js
@@ -134,8 +139,7 @@ object Microlibs {
   lazy val recursionJS  = recursion.js
   lazy val recursion = crossProject
     .configureCross(commonSettings, publicationSettings, utestSettings)
-    .settings(
-      libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
+    .settings(libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
   lazy val scalazExtJVM = scalazExt.jvm
   lazy val scalazExtJS  = scalazExt.js
@@ -152,8 +156,7 @@ object Microlibs {
   lazy val stdlibExt = crossProject
     .in(file("stdlib-ext"))
     .configureCross(commonSettings, publicationSettings, utestSettings)
-    .settings(
-      moduleName := "stdlib-ext")
+    .settings(moduleName := "stdlib-ext")
 
   // ===================================================================================================================
 
