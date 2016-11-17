@@ -10,7 +10,7 @@ object Recursion {
     self(f)
   }
 
-  def cataM[F[_], M[_], A](alg: AlgebraM[M, F, A])(f: Fix[F])(implicit M: Monad[M], F: Traverse[F]): M[A] = {
+  def cataM[M[_], F[_], A](alg: AlgebraM[M, F, A])(f: Fix[F])(implicit M: Monad[M], F: Traverse[F]): M[A] = {
     var self: Fix[F] => M[A] = null
     self = f => M.bind(F.traverse(f.unfix)(self))(alg)
     self(f)

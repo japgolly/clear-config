@@ -15,12 +15,12 @@ object Test extends TestSuite {
   override def tests = TestSuite {
 
     'cata {
-      val r = MathExpr.eval.cata(eg1)
+      val r = Recursion.cata(MathExpr.eval)(eg1)
       assert(r == 16)
     }
 
     'ana {
-      val expr = MathExpr.plusOnes.ana(5)
+      val expr = Recursion.ana(MathExpr.plusOnes)(5)
       assert(expr == add(1, add(1, add(1, add(1, 1)))))
     }
 
@@ -33,9 +33,9 @@ object Test extends TestSuite {
     'prepro {
       println("\nprepro")
       for (i <- 1 to 8) {
-        val t = MathExpr.plusOnes.ana(i)
+        val t = Recursion.ana(MathExpr.plusOnes)(i)
         val a = Recursion.prepro(add10)(MathExpr.eval)(t)
-        println(s"$i: $a ← ${MathExpr.print cata t}")
+        println(s"$i: $a ← ${Recursion.cata(MathExpr.print)(t)}")
       }
       println()
 //      val r = Recursion.prepro(add10)(MathExpr.eval)(eg1)
@@ -46,7 +46,7 @@ object Test extends TestSuite {
       println("\npostpro")
       for (i <- 1 to 8) {
         val t = Recursion.postpro(add10)(MathExpr.plusOnes)(i)
-        println(s"$i: ${MathExpr.print cata t}")
+        println(s"$i: ${Recursion.cata(MathExpr.print)(t)}")
       }
       println()
 //      val expr = Recursion.postpro(add10)(MathExpr.plusOnes)(5)

@@ -4,9 +4,6 @@ import scalaz.{-\/, Functor, Monad, \/, \/-}
 
 final class AlgebraOps[F[_], A](private val self: Algebra[F, A]) extends AnyVal {
 
-  def cata(f: Fix[F])(implicit F: Functor[F]): A =
-    Recursion.cata(self)(f)(F)
-
   def toAlgebraM[M[_]](implicit M: Monad[M]): AlgebraM[M, F, A] =
     fa => M.point(self(fa))
 
@@ -20,9 +17,6 @@ final class AlgebraOps[F[_], A](private val self: Algebra[F, A]) extends AnyVal 
 }
 
 final class CoalgebraOps[F[_], A](private val self: Coalgebra[F, A]) extends AnyVal {
-
-  def ana(a: A)(implicit F: Functor[F]): Fix[F] =
-    Recursion.ana(self)(a)(F)
 
   def toCoalgebraM[M[_]](implicit M: Monad[M]): CoalgebraM[M, F, A] =
     a => M.point(self(a))
