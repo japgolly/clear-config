@@ -1,4 +1,4 @@
-version in ThisBuild := "1.0"
+version in ThisBuild := "1.1-SNAPSHOT"
 
 val root          = Microlibs.root
 val rootJVM       = Microlibs.rootJVM
