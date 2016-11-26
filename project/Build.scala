@@ -3,6 +3,7 @@ import Keys._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import ScalaJSPlugin.autoImport._
 import pl.project13.scala.sbt.JmhPlugin
+import com.timushev.sbt.updates.UpdatesKeys._
 import Lib._
 
 object Microlibs {
@@ -38,17 +39,19 @@ object Microlibs {
 
   val commonSettings = ConfigureBoth(
     _.settings(
-      organization             := "com.github.japgolly.microlibs",
-      homepage                 := Some(url("https://github.com/japgolly/" + ghProject)),
-      licenses                 += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
-      scalaVersion             := Ver.Scala211,
-      crossScalaVersions       := Seq(Ver.Scala211, Ver.Scala212),
-      scalacOptions           ++= scalacFlags,
-      scalacOptions in Test   --= Seq("-Ywarn-dead-code"),
-      shellPrompt in ThisBuild := ((s: State) => Project.extract(s).currentRef.project + "> "),
-      triggeredMessage         := Watched.clearWhenTriggered,
-      incOptions               := incOptions.value.withNameHashing(true),
-      updateOptions            := updateOptions.value.withCachedResolution(true),
+      organization                := "com.github.japgolly.microlibs",
+      homepage                    := Some(url("https://github.com/japgolly/" + ghProject)),
+      licenses                    += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
+      scalaVersion                := Ver.Scala211,
+      crossScalaVersions          := Seq(Ver.Scala211, Ver.Scala212),
+      scalacOptions              ++= scalacFlags,
+      scalacOptions in Test      --= Seq("-Ywarn-dead-code"),
+      shellPrompt in ThisBuild    := ((s: State) => Project.extract(s).currentRef.project + "> "),
+      triggeredMessage            := Watched.clearWhenTriggered,
+      incOptions                  := incOptions.value.withNameHashing(true),
+      updateOptions               := updateOptions.value.withCachedResolution(true),
+      dependencyUpdatesExclusions := moduleFilter(organization = "org.scala-lang")
+                                   | moduleFilter(organization = "org.eclipse.jetty"),
       addCompilerPlugin("org.spire-math" %% "kind-projector" % Ver.KindProjector))
     .configure(
       addCommandAliases(
