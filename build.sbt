@@ -18,5 +18,7 @@ val scalazExtJVM  = Microlibs.scalazExtJVM
 val scalazExtJS   = Microlibs.scalazExtJS
 val stdlibExtJVM  = Microlibs.stdlibExtJVM
 val stdlibExtJS   = Microlibs.stdlibExtJS
+val testUtilJVM   = Microlibs.testUtilJVM
+val testUtilJS    = Microlibs.testUtilJS
 
 val bench         = Microlibs.bench
