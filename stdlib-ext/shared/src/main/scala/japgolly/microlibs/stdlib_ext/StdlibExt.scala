@@ -123,6 +123,19 @@ object StdlibExt {
   }
 
   implicit class JSLE_Map[K, V](private val m: Map[K, V]) extends AnyVal {
+    def modifyValue(k: K, f: Option[V] => V): Map[K, V] =
+      m.updated(k, f(m.get(k)))
+
+    def modifyEntry(k: K, f: Option[V] => Option[V]): Map[K, V] = {
+      val before = m.get(k)
+      val after = f(before)
+      (before, after) match {
+        case (_, Some(v)) => m.updated(k, v)
+        case (Some(_), None) => m - k
+        case (None, None) => m
+      }
+    }
+
     def mapValuesNow[X](f: V => X): Map[K, X] = {
       val b = Map.newBuilder[K, X]
       for (t <- m)
