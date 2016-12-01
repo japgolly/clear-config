@@ -6,34 +6,13 @@
 val VerMicrolibs = "1.0"
 
 "com.github.japgolly.microlibs" %% "adt-macros"  % VerMicrolibs
+"com.github.japgolly.microlibs" %% "config"      % VerMicrolibs
 "com.github.japgolly.microlibs" %% "macro-utils" % VerMicrolibs
 "com.github.japgolly.microlibs" %% "name-fn"     % VerMicrolibs
 "com.github.japgolly.microlibs" %% "nonempty"    % VerMicrolibs
 "com.github.japgolly.microlibs" %% "recursion"   % VerMicrolibs
 "com.github.japgolly.microlibs" %% "scalaz-ext"  % VerMicrolibs
 "com.github.japgolly.microlibs" %% "stdlib-ext"  % VerMicrolibs
+"com.github.japgolly.microlibs" %% "test-util"   % VerMicrolibs % "test"
 ```
 
-Contents:
-
-| Module | Version | Deps |
-|--------|---------|------|
-| MacroUtils | unreleased | - |
-| NonEmpty | unreleased | Scalaz, UnivEq |
-| Recursion | unreleased | Scalaz |
-
-# Module: MacroUtils
-
-TODO
-
-# Module: NonEmpty
-
-* NonEmpty (arbitrary)
-* NonEmptySet
-* NonEmptyVector
-
-# Module: Recursion
-
-A simple performant version of recursion schemes.
-
-Uses `Fix` only; no `Mu`, `Nu`, or `{Cor,R}ecursion` typeclasses.
