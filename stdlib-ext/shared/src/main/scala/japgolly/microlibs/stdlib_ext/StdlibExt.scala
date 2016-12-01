@@ -6,6 +6,11 @@ object StdlibExt {
 
   // JSLE prefix = Japgolly StdLib Ext
 
+  implicit class JSLE_String(private val s: String) extends AnyVal {
+    def removeAnsiEscapeCodes: String =
+      s.replaceAll("[\u001b\u009b][\\[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]", "")
+  }
+
   implicit class JSLE_Some[A](private val s: Some[A]) extends AnyVal {
     @inline def asOption: Option[A] = s.asInstanceOf[Option[A]]
   }
