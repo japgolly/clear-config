@@ -34,8 +34,7 @@ object Report {
       exclude((k, _) => f(k))
 
     def defaultUnused: Filter =
-      ignoreUnusedBySoleSource(Source.systemName) &&
-      ignoreUnusedByKey(_.value startsWith "LESS_TERMCAP") &&
+      ignoreUnusedByKey(_.value contains "TERMCAP") &&
       ignoreUnusedKeys("PROMPT", "PS1")
   }
 
