@@ -14,8 +14,11 @@ final class ValueReader[A](val read: ConfigValue.Found => String \/ A) extends A
   def flatMap[B](f: A => ValueReader[B]): ValueReader[B] =
     new ValueReader(v => read(v).flatMap(f(_) read v))
 
-  def ensure(test: A => Boolean, errorMsg: A => String): ValueReader[A] =
-    new ValueReader(read(_).flatMap(a => if (test(a)) \/-(a) else -\/(errorMsg(a))))
+  def test(errorMsg: A => Option[String]): ValueReader[A] =
+    new ValueReader(read(_).flatMap(a => errorMsg(a).fold[String \/ A](\/-(a))(-\/.apply)))
+
+  def ensure(test: A => Boolean, errorMsg: => String): ValueReader[A] =
+    this.test(a => if (test(a)) None else Some(errorMsg))
 }
 
 object ValueReader {

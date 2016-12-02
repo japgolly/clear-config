@@ -81,19 +81,19 @@ object ConfigTest extends TestSuite {
         assertEq(c.run(srcs > srcE).toDisjunction, -\/(
           """
             |2 errors:
-            |  - Error reading key [s] from source [S1] with value [hey]: Int expected.
             |  - Error reading key [X] from source [SE]: This source is fake!
+            |  - Error reading key [s] from source [S1] with value [hey]: Int expected.
           """.stripMargin.trim))
       }
     }
 
     'ensure {
       'ok - assertEq(
-        Config.need("in")(ValueReader[Int].ensure(_ < 150, _ => "Must be < 150.")).run(srcs),
+        Config.need("in")(ValueReader[Int].ensure(_ < 150, "Must be < 150.")).run(srcs),
         ConfigResult.Success(100))
 
       'ko - assertEq(
-        Config.need("in")(ValueReader[Int].ensure(_ > 150, _ => "Must be > 150.")).run(srcs),
+        Config.need("in")(ValueReader[Int].ensure(_ > 150, "Must be > 150.")).run(srcs),
         ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, ConfigValue.Error("Must be > 150.", Some("100")))))))
     }
 
