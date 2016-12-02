@@ -14,15 +14,17 @@ object Microlibs {
     Lib.publicationSettings(ghProject)
 
   object Ver {
-    final val JAMM          = "0.3.1"
-    final val KindProjector = "0.9.3"
-    final val MacroParadise = "2.1.0"
-    final val Monocle       = "1.3.2"
-    final val MTest         = "0.4.4"
-    final val Scala211      = "2.11.8"
-    final val Scala212      = "2.12.0"
-    final val Scalaz        = "7.2.7"
-    final val UnivEq        = "1.0.2"
+    val JAMM            = "0.3.1"
+    val JavaTimeScalaJs = "0.2.0"
+    val KindProjector   = "0.9.3"
+    val MacroParadise   = "2.1.0"
+    val Monocle         = "1.3.2"
+    val MTest           = "0.4.4"
+    val Scala211        = "2.11.8"
+    val Scala212        = "2.12.0"
+    val Scalaz          = "7.2.7"
+    val UnivEq          = "1.0.2"
+
   }
 
   def scalacFlags = Seq(
@@ -86,6 +88,9 @@ object Microlibs {
       // Not mandatory; just faster.
       _.settings(jsEnv in Test := PhantomJSEnv().value))
 
+  def useTestUtil: CPE =
+    _.dependsOn(testUtil % "test->compile")
+
   // ===================================================================================================================
 
   lazy val root =
@@ -118,8 +123,8 @@ object Microlibs {
   lazy val configJVM = config.jvm
   lazy val configJS  = config.js
   lazy val config = crossProject
-    .configureCross(commonSettings, publicationSettings, utestSettings)
-    .dependsOn(stdlibExt, testUtil % "test->compile")
+    .configureCross(commonSettings, publicationSettings, utestSettings, useTestUtil)
+    .dependsOn(stdlibExt)
     .settings(libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
   lazy val macroUtilsJVM = macroUtils.jvm
@@ -165,8 +170,9 @@ object Microlibs {
   lazy val stdlibExtJS  = stdlibExt.js
   lazy val stdlibExt = crossProject
     .in(file("stdlib-ext"))
-    .configureCross(commonSettings, publicationSettings, utestSettings)
+    .configureCross(commonSettings, publicationSettings, utestSettings, useTestUtil)
     .settings(moduleName := "stdlib-ext")
+    .jsSettings(libraryDependencies += "org.scala-js" %%% "scalajs-java-time" % Ver.JavaTimeScalaJs % "test")
 
   lazy val testUtilJVM = testUtil.jvm
   lazy val testUtilJS  = testUtil.js
