@@ -162,7 +162,12 @@ object ConfigTest extends TestSuite {
         * - assertEq((one.withPrefix("b.") tuple two).run(s).get_!, ("B!", "II"))
         * - assertEq((one tuple two).withPrefix("b.").run(s).get_!, ("B!", "B@"))
         * - assertEq((one tuple two.withPrefix("b.")).withPrefix("a.").run(s).get_!, ("A!", "AB-2"))
+
+        'missing - assertEq(
+          one.withPrefix("omg.").run(s),
+          ConfigResult.QueryFailure(Map(Key("omg.1") -> None)))
       }
+
       'caseInsensitive {
         val c = Config.get[String]("S2")
         assertEq((c tuple c.withCaseInsensitiveKeys).run(srcs).get_!, (None, Some("ah")))

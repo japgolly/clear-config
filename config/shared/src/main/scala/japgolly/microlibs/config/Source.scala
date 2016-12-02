@@ -5,7 +5,9 @@ import scalaz.{Applicative, -\/, \/, \/-}
 
 final case class SourceName(value: String) extends AnyVal
 
-final case class Source[F[_]](name: SourceName, prepare: F[String \/ ConfigStore[F]])
+final case class Source[F[_]](name: SourceName, prepare: F[String \/ ConfigStore[F]]) {
+  override def toString: String = s"Source(${name.value})"
+}
 
 object Source {
   implicit def toSources[F[_]](s: Source[F]): Sources[F] =
