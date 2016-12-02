@@ -54,6 +54,8 @@ object Source {
 }
 
 final case class Sources[F[_]](highToLowPri: Vector[Source[F]]) extends AnyVal {
+  override def toString: String = s"Sources(${highToLowPri.map(_.name.value) mkString " > "})"
+
   def >(lowerPri: Sources[F]): Sources[F] =
     Sources(highToLowPri ++ lowerPri.highToLowPri)
 

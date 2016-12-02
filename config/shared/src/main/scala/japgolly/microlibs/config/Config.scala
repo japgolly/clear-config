@@ -271,7 +271,7 @@ object ConfigResult {
       }
       var errors = "error"
       if (each.length != 1) errors += "s"
-      s"${each.length} $errors:${each.map("\n  - " + _).mkString}"
+      s"${each.length} $errors:${each.map("\n  - " + _).sorted.mkString}"
     }
     override def toDisjunction = -\/(errorMsg)
   }

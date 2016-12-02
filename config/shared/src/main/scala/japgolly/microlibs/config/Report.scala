@@ -90,6 +90,7 @@ final case class Report(sourcesHighToLowPri: Vector[SourceName],
                         display            : ValueDisplay,
                         unusedFilter       : Filter,
                         maxValueLen        : Option[Int]) {
+  override def toString = "Report"
 
   private val display2 =
     maxValueLen.fold(display)(ValueDisplay.limitWidth(_) + display)
