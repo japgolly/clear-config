@@ -15,10 +15,19 @@ final class ValueReader[A](val read: ConfigValue.Found => String \/ A) extends A
     new ValueReader(v => read(v).flatMap(f(_) read v))
 
   def test(errorMsg: A => Option[String]): ValueReader[A] =
-    new ValueReader(read(_).flatMap(a => errorMsg(a).fold[String \/ A](\/-(a))(-\/.apply)))
+    mapAttempt(a => errorMsg(a).fold[String \/ A](\/-(a))(-\/.apply))
 
   def ensure(test: A => Boolean, errorMsg: => String): ValueReader[A] =
     this.test(a => if (test(a)) None else Some(errorMsg))
+
+  def mapCatch[B](f: A => B, e: Throwable => String = _.toString): ValueReader[B] =
+    mapAttempt(a => \/.fromTryCatchNonFatal(f(a)).leftMap(e))
+
+  def mapOption[B](f: A => Option[B], errorMsg: => String = "Not a recognised value."): ValueReader[B] =
+    mapAttempt(f(_).fold[String \/ B](-\/(errorMsg))(\/-.apply))
+
+  def orElse(other: => ValueReader[A]): ValueReader[A] =
+    new ValueReader(v => read(v) orElse other.read(v))
 }
 
 object ValueReader {
@@ -42,6 +51,7 @@ object ValueReader {
         StringAsIs.readString.map(_.trim.replaceFirst("\\s*#.*$", ""))
     }
 
+    object Primitives extends Primitives
     trait Primitives {
       implicit def readInt(implicit s: ValueReader[String]): ValueReader[Int] =
         s.mapAttempt {

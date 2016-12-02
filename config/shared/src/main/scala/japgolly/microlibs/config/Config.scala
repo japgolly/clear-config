@@ -1,16 +1,6 @@
 package japgolly.microlibs.config
 
 import japgolly.microlibs.stdlib_ext._, StdlibExt._
-import java.util.Properties
-import java.util.regex.Pattern
-/*
-import scalaz.{-\/, \/, \/-}
-import scalaz.{Applicative, Apply, Bind, Monad, RWS}
-import scalaz.Scalaz.Id
-import scalaz.syntax.applicative._
-import scalaz.syntax.traverse._
-import scalaz.std.vector.vectorInstance
-*/
 import scalaz._, Scalaz._
 
 case class Key(value: String) extends AnyVal
@@ -20,7 +10,7 @@ case class Key(value: String) extends AnyVal
 /**
   * Representation the desire to read `A` from some as-of-yet-unspecified config.
   */
-trait Config[A] {
+sealed trait Config[A] {
   import Config.{R, S, Step, StepResult}
 
   private[config] def step[F[_]](implicit F: Applicative[F]): Step[F, StepResult[A]]
@@ -42,9 +32,6 @@ trait Config[A] {
     }
   }
 
-  final def withReport: Config[(A, Report)] =
-    this tuple Config.keyReport
-
   final def map[B](f: A => B): Config[B] =
     mapAttempt(a => StepResult.Success(f(a)))
 
@@ -64,6 +51,9 @@ trait Config[A] {
 
   final def withPrefix(prefix: String): Config[A] =
     withKeyMod(prefix + _)
+
+  final def withReport: Config[(A, Report)] =
+    this tuple Config.keyReport
 }
 
 object Config {
