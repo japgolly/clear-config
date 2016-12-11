@@ -3,7 +3,7 @@
 
 
 ```scala
-val VerMicrolibs = "1.0"
+val VerMicrolibs = "1.1"
 
 "com.github.japgolly.microlibs" %% "adt-macros"  % VerMicrolibs
 "com.github.japgolly.microlibs" %% "config"      % VerMicrolibs
