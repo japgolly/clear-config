@@ -35,7 +35,7 @@ sealed trait Config[A] {
   final def map[B](f: A => B): Config[B] =
     mapAttempt(a => StepResult.Success(f(a)))
 
-  final def mapAttempt[B](f: A => StepResult[B]): Config[B] = {
+  private[config] final def mapAttempt[B](f: A => StepResult[B]): Config[B] = {
     val self = this
     new Config[B] {
       private[config] override def step[F[_]](implicit F: Applicative[F]) =
