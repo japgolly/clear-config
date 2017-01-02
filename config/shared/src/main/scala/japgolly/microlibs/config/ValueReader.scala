@@ -53,19 +53,19 @@ object ValueReader {
 
     object Primitives extends Primitives
     trait Primitives {
-      implicit def readInt(implicit s: ValueReader[String]): ValueReader[Int] =
+      implicit def configReadInt(implicit s: ValueReader[String]): ValueReader[Int] =
         s.mapAttempt {
           case ParseInt(i) => \/-(i)
           case _ => -\/("Int expected.")
         }
 
-      implicit def readLong(s: ValueReader[String]): ValueReader[Long] =
+      implicit def configReadLong(implicit s: ValueReader[String]): ValueReader[Long] =
         s.mapAttempt {
           case ParseLong(l) => \/-(l)
           case _ => -\/("Long expected.")
         }
 
-      implicit def readBoolean(s: ValueReader[String]): ValueReader[Boolean] =
+      implicit def configReadBoolean(implicit s: ValueReader[String]): ValueReader[Boolean] =
         s.mapAttempt(s =>
           if (RegexTrue.matcher(s).matches)
             \/-(true)
