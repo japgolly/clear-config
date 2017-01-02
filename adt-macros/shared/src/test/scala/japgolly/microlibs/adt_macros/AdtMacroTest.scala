@@ -48,8 +48,8 @@ object AdtMacroTest extends TestSuite {
 //    }
 
     'valuesForAdt {
-      import MonoD._
       'ok {
+        import MonoD._
         assertUnorderedNEV(valuesForAdt[MonoD, String] {
           case _: A => "A"
           case _: B => "B"
@@ -57,10 +57,19 @@ object AdtMacroTest extends TestSuite {
           case _: D => "D"
         })("A", "B", "C", "D")
       }
+      'sub {
+        import MonoSub._
+        assertUnorderedNEV(valuesForAdt[MonoSub, String] {
+          case A => "A"
+          case _: B => "B"
+        })("A", "B")
+      }
       'missing {
+        import MonoD._
         assertFail(compileError("valuesForAdt[MonoD, String] {case _: A => \"A\"}"))
       }
       'dup {
+        import MonoD._
         assertFail(compileError(
           """
             valuesForAdt[MonoD, String] {
@@ -73,6 +82,7 @@ object AdtMacroTest extends TestSuite {
           """))
       }
       'extra {
+        import MonoD._
         assertFail(compileError(
           """
             valuesForAdt[MonoD, String] {

@@ -180,17 +180,21 @@ class AdtMacros(val c: blackbox.Context) extends MacroUtils with JapgollyAccess 
     if (types.isEmpty)
       fail(s"At least one concrete subtype of $T required.")
 
-    val unseen = types.filterNot(t => valueFn.exists(t <:< _._1.fold(_.tpe, identity)))
+    var unseen = types
+    for ((_case, ind) <- valueFn.iterator.map(_._1).zipWithIndex) {
+      val _type = _case.fold(_.tpe, identity)
+      val matches = unseen.filter(_ <:< _type)
+      if (matches.isEmpty)
+        fail(s"Case ${ind + 1} (${_type}) doesn't match any remaining cases (${showUnorderedTypes(unseen)}).")
+      else
+        unseen --= matches
+    }
     if (unseen.nonEmpty)
-      fail(s"The following types are unaccounted for: ${unseen.mkString(", ")}")
+      fail(s"The following types are unaccounted for: ${showUnorderedTypes(unseen)}")
 
     val impl = q"$SelectNonEmptyVector.varargs[$V](..$values)"
 
     if (debug) println("\n" + showCode(impl) + "\n")
-
-    if (values.size != types.size)
-      fail(s"Expected ${types.size} values, got ${values.size}.")
-
     c.Expr[NonEmptyVector[V]](impl)
   }
 

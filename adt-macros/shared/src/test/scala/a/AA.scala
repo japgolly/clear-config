@@ -35,3 +35,11 @@ object MonoD {
   case object C extends MonoD
   case class D(a: MonoD, b: MonoD) extends MonoD
 }
+
+sealed trait MonoSub
+object MonoSub {
+  case object A extends MonoSub
+  sealed abstract class B extends MonoSub
+  case object B1 extends B
+  case object B2 extends B
+}

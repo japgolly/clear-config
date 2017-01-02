@@ -468,4 +468,7 @@ abstract class MacroUtils {
       exclusions.map(readMacroArg_symbol),
       primaryConstructorParams(t).map(nameAndType(t, _)))
 
+  def showUnorderedTypes(ts: Set[Type]): String =
+    ts.toList.map(_.toString).sorted.mkString(", ")
+
 }
