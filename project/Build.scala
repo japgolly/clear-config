@@ -19,7 +19,7 @@ object Microlibs {
     val KindProjector   = "0.9.3"
     val MacroParadise   = "2.1.0"
     val Monocle         = "1.3.2"
-    val MTest           = "0.4.4"
+    val MTest           = "0.4.5"
     val Scala211        = "2.11.8"
     val Scala212        = "2.12.1"
     val Scalaz          = "7.2.8"
