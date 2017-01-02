@@ -6,7 +6,7 @@ import scalaz.std.AllInstances._
 import scalaz.syntax.applicative._
 import scalaz.Scalaz.Id
 import utest._
-import ValueReader.Implicits.Defaults._
+import ConfigParser.Implicits.Defaults._
 
 object ConfigTest extends TestSuite {
 
@@ -89,11 +89,11 @@ object ConfigTest extends TestSuite {
 
     'ensure {
       'ok - assertEq(
-        Config.need("in")(ValueReader[Int].ensure(_ < 150, "Must be < 150.")).run(srcs),
+        Config.need("in")(ConfigParser[Int].ensure(_ < 150, "Must be < 150.")).run(srcs),
         ConfigResult.Success(100))
 
       'ko - assertEq(
-        Config.need("in")(ValueReader[Int].ensure(_ > 150, "Must be > 150.")).run(srcs),
+        Config.need("in")(ConfigParser[Int].ensure(_ > 150, "Must be > 150.")).run(srcs),
         ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, ConfigValue.Error("Must be > 150.", Some("100")))))))
     }
 

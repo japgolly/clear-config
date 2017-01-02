@@ -4,7 +4,7 @@ import japgolly.microlibs.testutil.TestUtil._
 import scalaz.Equal
 import scalaz.Scalaz.Id
 import utest._
-import ValueReader.Implicits.Defaults._
+import ConfigParser.Implicits.Defaults._
 
 object ConfigJvmTest extends TestSuite {
 

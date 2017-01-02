@@ -134,7 +134,7 @@ object Config {
       }
     }
 
-  private def baseGet[A, B](key: String, doIt: (Key, Option[A]) => StepResult[B])(implicit v: ValueReader[A]): Config[B] =
+  private def baseGet[A, B](key: String, doIt: (Key, Option[A]) => StepResult[B])(implicit v: ConfigParser[A]): Config[B] =
     new Config[B] {
       private[config] override def step[F[_]](implicit F: Applicative[F]) =
         RWS { (r, s1) =>
@@ -165,7 +165,7 @@ object Config {
             vo.selected.map {
               case None => doIt(k, None)
               case Some(SV(name, found: ConfigValue.Found)) =>
-                v.read(found) match {
+                v.parse(found) match {
                   case \/-(a) => doIt(k, Some(a))
                   case -\/(e) => StepResult.Failure(Map(k -> Some((name, ConfigValue.Error(e, Some(found.value))))))
                 }
@@ -177,13 +177,13 @@ object Config {
         }
     }
 
-  def get[A: ValueReader](key: String): Config[Option[A]] =
+  def get[A: ConfigParser](key: String): Config[Option[A]] =
     baseGet[A, Option[A]](key, (_, oa) => StepResult.Success(oa))
 
-  def get[A: ValueReader](key: String, default: => A): Config[A] =
+  def get[A: ConfigParser](key: String, default: => A): Config[A] =
     get[A](key).map(_ getOrElse default)
 
-  def need[A: ValueReader](key: String): Config[A] =
+  def need[A: ConfigParser](key: String): Config[A] =
     baseGet[A, A](key, (k, oa) => oa match {
       case Some(a) => StepResult.Success(a)
       case None    => StepResult.Failure(Map(k -> None))

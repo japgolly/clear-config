@@ -5,20 +5,20 @@ import japgolly.microlibs.testutil.TestUtil._
 import scalaz.{-\/, Equal, \/-}
 import scalaz.std.AllInstances._
 
-object ValueReaderTest extends TestSuite {
+object ConfigParserTest extends TestSuite {
 
-  def testOk[A: ValueReader: Equal](origValue: String, expect: A): Unit =
-    assertEq(ValueReader[A].read(ConfigValue.Found(origValue)), \/-(expect))
+  def testOk[A: ConfigParser: Equal](origValue: String, expect: A): Unit =
+    assertEq(ConfigParser[A].parse(ConfigValue.Found(origValue)), \/-(expect))
 
-  def testBad[A: ValueReader : Equal](origValue: String, errorFrag: String = ""): Unit =
-    ValueReader[A].read(ConfigValue.Found(origValue)) match {
+  def testBad[A: ConfigParser : Equal](origValue: String, errorFrag: String = ""): Unit =
+    ConfigParser[A].parse(ConfigValue.Found(origValue)) match {
       case -\/(e) => assertContainsCI(e, errorFrag)
       case \/-(a) => fail(s"Error expected containing '$errorFrag', instead it passed with $a.")
     }
 
   override def tests = TestSuite {
     'defaults {
-      import ValueReader.Implicits.Defaults._
+      import ConfigParser.Implicits.Defaults._
       'string {
         testOk("qWe", "qWe")
       }
