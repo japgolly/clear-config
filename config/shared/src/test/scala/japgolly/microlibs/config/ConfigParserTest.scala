@@ -1,9 +1,10 @@
 package japgolly.microlibs.config
 
-import utest._
 import japgolly.microlibs.testutil.TestUtil._
-import scalaz.{-\/, Equal, \/-}
 import scalaz.std.AllInstances._
+import scalaz.{-\/, Equal, \/-}
+import utest._
+import Helpers._
 
 object ConfigParserTest extends TestSuite {
 
@@ -17,8 +18,10 @@ object ConfigParserTest extends TestSuite {
     }
 
   override def tests = TestSuite {
+
     'defaults {
       import ConfigParser.Implicits.Defaults._
+
       'string {
         testOk("qWe", "qWe")
       }
@@ -64,5 +67,18 @@ object ConfigParserTest extends TestSuite {
         testOk("136 #", 136)
       }
     }
+
+    'ensure {
+      import ConfigParser.Implicits.Defaults._
+
+      'ok - assertEq(
+        Config.need("in")(ConfigParser[Int].ensure(_ < 150, "Must be < 150.")).run(srcs),
+        ConfigResult.Success(100))
+
+      'ko - assertEq(
+        Config.need("in")(ConfigParser[Int].ensure(_ > 150, "Must be > 150.")).run(srcs),
+        ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, ConfigValue.Error("Must be > 150.", Some("100"))))), Set.empty))
+    }
+
   }
 }

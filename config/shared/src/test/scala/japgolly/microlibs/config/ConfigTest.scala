@@ -2,33 +2,14 @@ package japgolly.microlibs.config
 
 import japgolly.microlibs.testutil.TestUtil._
 import scalaz.{-\/, \/-}
+import scalaz.Scalaz.Id
 import scalaz.std.AllInstances._
 import scalaz.syntax.applicative._
-import scalaz.Scalaz.Id
 import utest._
 import ConfigParser.Implicits.Defaults._
+import Helpers._
 
 object ConfigTest extends TestSuite {
-
-  implicit def equalResultX[A] = scalaz.Equal.equalA[ConfigResult[A]]
-
-  val src1 = Source.manual[Id]("S1")("in" -> "100", "i" -> "3", "s" -> "hey", "dur3m" -> "3 min")
-  val src2 = Source.manual[Id]("S2")("in" -> "200", "i" -> "X300", "i2" -> "22", "s2" -> "ah")
-
-  val srcs: Sources[Id] =
-     src1 > src2
-
-  val srcE = Source.point[Id]("SE", new ConfigStore[Id] {
-    override def apply(key: Key) = ConfigValue.Error("This source is fake!", None)
-    override def getBulk(f: Key => Boolean) = Map.empty
-  })
-
-  implicit class ResultXExt[A](private val self: ConfigResult[A]) extends AnyVal {
-    def get_! : A = self match {
-      case ConfigResult.Success(a) => a
-      case x => fail(s"Expected success, got: $x")
-    }
-  }
 
   override def tests = TestSuite {
 
@@ -42,22 +23,22 @@ object ConfigTest extends TestSuite {
       assertEq(Config.get[Int]("notfound").run(srcs), ConfigResult.Success(Option.empty[Int]))
 
     'missing1 -
-      assertEq(Config.need[Int]("missing").run(srcs), ConfigResult.QueryFailure(Map(Key("missing") -> None)))
+      assertEq(Config.need[Int]("missing").run(srcs), ConfigResult.QueryFailure(Map(Key("missing") -> None), Set.empty))
 
     'missing2 -
       assertEq(
         (Config.need[Int]("no1") tuple Config.need[Int]("no2")).run(srcs),
-        ConfigResult.QueryFailure(Map(Key("no1") -> None, Key("no2") -> None)))
+        ConfigResult.QueryFailure(Map(Key("no1") -> None, Key("no2") -> None), Set.empty))
 
     'valueFail1 -
       assertEq(
         Config.need[Int]("s").run(srcs),
-        ConfigResult.QueryFailure(Map(Key("s") -> Some((src1.name, ConfigValue.Error("Int expected.", Some("hey")))))))
+        ConfigResult.QueryFailure(Map(Key("s") -> Some((src1.name, ConfigValue.Error("Int expected.", Some("hey"))))), Set.empty))
 
     'valueFail2 -
       assertEq(
         Config.need[Int]("s2").run(srcs),
-        ConfigResult.QueryFailure(Map(Key("s2") -> Some((src2.name, ConfigValue.Error("Int expected.", Some("ah")))))))
+        ConfigResult.QueryFailure(Map(Key("s2") -> Some((src2.name, ConfigValue.Error("Int expected.", Some("ah"))))), Set.empty))
 
     'errorMsg {
       'notFound - assertEq(Config.need[Int]("QQ").run(srcs).toDisjunction, -\/(
@@ -85,16 +66,52 @@ object ConfigTest extends TestSuite {
             |  - Error reading key [s] from source [S1] with value [hey]: Int expected.
           """.stripMargin.trim))
       }
+
+      'unkeyedErrors {
+        val c1 = Config.need[Int]("in").map(_ + 1000).ensure(_ > 1150, "Must be > 1150.")
+        val c2 = 7.point[Config].ensure(_ > 10, "Must be > 10.")
+        val c3 = (Config.need[Int]("in") |@| Config.need[Int]("i2"))(_ + _).ensure(_ > 150, "Must be > 150.")
+        val c = c1 tuple c2 tuple c3
+        assertEq(c.run(srcs > srcE).toDisjunction, -\/(
+          """
+            |3 errors:
+            |  - Error using <function>, key [i2], key [in]: Must be > 150.
+            |  - Error using <function>, key [in]: Must be > 1150.
+            |  - Error using runtime value [7]: Must be > 10.
+          """.stripMargin.trim))
+      }
     }
 
     'ensure {
-      'ok - assertEq(
-        Config.need("in")(ConfigParser[Int].ensure(_ < 150, "Must be < 150.")).run(srcs),
-        ConfigResult.Success(100))
+      'read1 {
+        val c = Config.need[Int]("in")
+        'ok - assertEq(
+          c.ensure(_ < 150, "Must be < 150.").run(srcs),
+          ConfigResult.Success(100))
+        'ko - assertEq(
+          c.ensure(_ > 150, "Must be > 150.").run(srcs),
+          ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, ConfigValue.Error("Must be > 150.", Some("100"))))), Set.empty))
+      }
 
-      'ko - assertEq(
-        Config.need("in")(ConfigParser[Int].ensure(_ > 150, "Must be > 150.")).run(srcs),
-        ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, ConfigValue.Error("Must be > 150.", Some("100")))))))
+      'readMap1 {
+        val c = Config.need[Int]("in").map(_ + 1000)
+        'ok - assertEq(
+          c.ensure(_ > 1050, "Must be > 1050.").run(srcs),
+          ConfigResult.Success(1100))
+        'ko - assertEq(
+          c.ensure(_ > 1150, "Must be > 1150.").run(srcs),
+          ConfigResult.QueryFailure(Map.empty, Set("Must be > 1150." -> Set(\/-(Key("in")), -\/("<function>")))))
+      }
+
+      'read2 {
+        val c = (Config.need[Int]("in") |@| Config.need[Int]("i2"))(_ + _)
+        'ok - assertEq(
+          c.ensure(_ < 150, "Must be < 150.").run(srcs),
+          ConfigResult.Success(122))
+        'ko - assertEq(
+          c.ensure(_ > 150, "Must be > 150.").run(srcs),
+          ConfigResult.QueryFailure(Map.empty, Set("Must be > 150." -> Set(\/-(Key("in")), \/-(Key("i2")), -\/("<function>")))))
+      }
     }
 
     'report {
@@ -165,7 +182,7 @@ object ConfigTest extends TestSuite {
 
         'missing - assertEq(
           one.withPrefix("omg.").run(s),
-          ConfigResult.QueryFailure(Map(Key("omg.1") -> None)))
+          ConfigResult.QueryFailure(Map(Key("omg.1") -> None), Set.empty))
       }
 
       'caseInsensitive {

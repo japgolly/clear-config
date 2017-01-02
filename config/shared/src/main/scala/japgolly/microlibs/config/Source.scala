@@ -26,6 +26,9 @@ object Source {
 
   def systemName = SourceName("System")
 
+  // TODO move names to SourceName.xxx
+  def applicativePointName = SourceName("Manual")
+
   def system[F[_]](implicit F: Applicative[F]): Source[F] =
     Source[F](systemName, F.point {
       def cfg() = ConfigStore.javaProps[F](System.getProperties())

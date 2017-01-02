@@ -4,27 +4,15 @@ import japgolly.microlibs.stdlib_ext._
 import java.util.regex.Pattern
 import scalaz.{-\/, \/, \/-}
 
-final class ConfigParser[A](val parse: ConfigValue.Found => String \/ A) extends AnyVal {
+final class ConfigParser[A](val parse: ConfigValue.Found => String \/ A) extends Ass[ConfigParser, A] {
   def map[B](f: A => B): ConfigParser[B] =
     new ConfigParser(parse(_) map f)
-
-  def mapAttempt[B](f: A => String \/ B): ConfigParser[B] =
-    new ConfigParser(parse(_) flatMap f)
 
   def flatMap[B](f: A => ConfigParser[B]): ConfigParser[B] =
     new ConfigParser(v => parse(v).flatMap(f(_) parse v))
 
-  def test(errorMsg: A => Option[String]): ConfigParser[A] =
-    mapAttempt(a => errorMsg(a).fold[String \/ A](\/-(a))(-\/.apply))
-
-  def ensure(test: A => Boolean, errorMsg: => String): ConfigParser[A] =
-    this.test(a => if (test(a)) None else Some(errorMsg))
-
-  def mapCatch[B](f: A => B, e: Throwable => String = _.toString): ConfigParser[B] =
-    mapAttempt(a => \/.fromTryCatchNonFatal(f(a)).leftMap(e))
-
-  def mapOption[B](f: A => Option[B], errorMsg: => String = "Not a recognised value."): ConfigParser[B] =
-    mapAttempt(f(_).fold[String \/ B](-\/(errorMsg))(\/-.apply))
+  override def mapAttempt[B](f: A => String \/ B): ConfigParser[B] =
+    new ConfigParser(parse(_) flatMap f)
 
   def orElse(other: => ConfigParser[A]): ConfigParser[A] =
     new ConfigParser(v => parse(v) orElse other.parse(v))
