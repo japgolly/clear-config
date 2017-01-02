@@ -4,7 +4,7 @@ import japgolly.microlibs.stdlib_ext._
 import java.util.regex.Pattern
 import scalaz.{-\/, \/, \/-}
 
-final class ConfigParser[A](val parse: ConfigValue.Found => String \/ A) extends Ass[ConfigParser, A] {
+final class ConfigParser[A](val parse: ConfigValue.Found => String \/ A) extends ConfigValidation[ConfigParser, A] {
   def map[B](f: A => B): ConfigParser[B] =
     new ConfigParser(parse(_) map f)
 

@@ -1,13 +1,13 @@
 package japgolly.microlibs.config
 
-import japgolly.microlibs.stdlib_ext._, StdlibExt._
-import scalaz._, Scalaz._
+import scalaz._
+import Scalaz._
+import japgolly.microlibs.stdlib_ext.StdlibExt._
+import ConfigInternals._
 
-case class Key(value: String) extends AnyVal
+final case class Key(value: String) extends AnyVal
 
-// ===================================================================================================================
-
-trait Ass[F[_], A] {
+trait ConfigValidation[F[_], A] {
   def mapAttempt[B](f: A => String \/ B): F[B]
 
   def test(errorMsg: A => Option[String]): F[A] =
@@ -26,8 +26,7 @@ trait Ass[F[_], A] {
 /**
   * Representation the desire to read `A` from some as-of-yet-unspecified config.
   */
-sealed trait Config[A] extends Ass[Config, A] {
-  import Config.{R, S, Step, StepResult}
+abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
 
   private[config] def step[F[_]](implicit F: Applicative[F]): Step[F, StepResult[A]]
 
@@ -49,7 +48,7 @@ sealed trait Config[A] extends Ass[Config, A] {
   }
 
   final def map[B](f: A => B): Config[B] =
-    stepMap(ra => ra.flatMap(a => StepResult.Success(f(a), Set(StepResult.Origin.Map))))
+    stepMap(ra => ra.flatMap(a => StepResult.Success(f(a), Set(Origin.Map))))
 
   override final def mapAttempt[B](f: A => String \/ B): Config[B] = {
     val self = this
@@ -57,7 +56,7 @@ sealed trait Config[A] extends Ass[Config, A] {
       private[config] override def step[F[_]](implicit F: Applicative[F]) =
         for {
           ra <- self.step(F)
-          ks <- Config.keysUsed.step(F)
+          ks <- ConfigInternals.keysUsed.step(F)
         } yield
           ra.map {
             case StepResult.Success(a, os) =>
@@ -66,13 +65,13 @@ sealed trait Config[A] extends Ass[Config, A] {
                 case -\/(e) =>
 
                   var keyed = Map.empty[Key, Option[(SourceName, ConfigValue.Error)]]
-                  var other = Set.empty[StepResult.XXX]
+                  var other = Set.empty[UnkeyedError]
                   os.iterator.take(2).toList match {
-                    case (o: StepResult.Origin.Read) :: Nil =>
+                    case (o: Origin.Read) :: Nil =>
                       val err = ConfigValue.Error(e, Some(o.sourceValue.value))
                       keyed += o.key -> Some ((o.sourceName, err))
                     case _ =>
-                      other += StepResult.XXX(e, os)
+                      other += UnkeyedError(e, os)
                   }
                   StepResult.Failure(keyed, other)
               }
@@ -91,7 +90,7 @@ sealed trait Config[A] extends Ass[Config, A] {
   }
 
   final def withKeyMod(f: String => String): Config[A] =
-    Config.keyModCompose(f) *> this <* Config.keyModPop
+    keyModCompose(f) *> this <* keyModPop
 
   final def withCaseInsensitiveKeys: Config[A] =
     withKeyMod(_.toLowerCase)
@@ -104,89 +103,6 @@ sealed trait Config[A] extends Ass[Config, A] {
 }
 
 object Config {
-  private val IdMonad = implicitly[Monad[Id]]
-
-  private[config] type Step[F[_], A] = RWS[R[F], Unit, S[F], F[A]]
-
-  private[config] final case class R[F[_]](highToLowPri: Vector[(SourceName, ConfigStore[F])])
-
-  private[config] final case class S[F[_]](keyModStack: List[Key => Key], queryCache: Map[Key, VO[F]]) {
-    def keyMod: Key => Key =
-      keyModStack.headOption.getOrElse(identity[Key])
-    def keyModPush(f: Key => Key): S[F] =
-      copy(f :: keyModStack)
-    def keyModPop: S[F] =
-      keyModStack match {
-        case Nil => this
-        case _ :: t => copy(t)
-      }
-  }
-  private[config] object S {
-    def init[F[_]]: S[F] = S(Nil, Map.empty)
-  }
-
-  private[config] case class SV(source: SourceName, value: ConfigValue)
-  private[config] case class VO[F[_]](highToLowPri: F[Vector[SV]], selected: F[Option[SV]])
-
-  private[config] sealed abstract class StepResult[+A] {
-    def map[B](f: A => B): StepResult[B]
-    def flatMap[B](f: A => StepResult[B]): StepResult[B]
-    def addOrigins(o: Set[StepResult.Origin]): StepResult[A]
-  }
-
-  private[config] object StepResult {
-
-    sealed abstract class Origin
-    object Origin {
-      final case class Point(value: () => String) extends Origin
-      final case object Map extends Origin
-      final case class Read(key: Key, sourceName: SourceName, sourceValue: ConfigValue.Found) extends Origin
-    }
-
-    final case class XXX(error: String, origins: Set[Origin]) {
-      def public: (String, Set[String \/ Key]) =
-        (error, origins.map {
-          case Origin.Map => -\/("<function>")
-          case Origin.Point(f) =>
-            -\/(f() match {
-              case s if s.matches("^<function\\d+>$") => "<function>"
-              case s => s"runtime value [$s]"
-            })
-          case Origin.Read(k, _, _) => \/-(k)
-        })
-    }
-
-    final case class Failure(keyed: Map[Key, Option[(SourceName, ConfigValue.Error)]],
-                             other: Set[XXX]) extends StepResult[Nothing] {
-      override def map[B](f: Nothing => B): StepResult[B] = this
-      override def flatMap[B](f: Nothing => StepResult[B]): StepResult[B] = this
-      override def addOrigins(o: Set[StepResult.Origin]) = this
-    }
-
-    final case class Success[+A](value: A, origins: Set[Origin]) extends StepResult[A] {
-      override def map[B](f: A => B): StepResult[B] = Success(f(value), origins)
-      override def flatMap[B](f: A => StepResult[B]): StepResult[B] = f(value) addOrigins origins
-      override def addOrigins(o: Set[StepResult.Origin]) = Success(value, origins ++ o)
-    }
-
-    implicit val applicativeInstance: Applicative[StepResult] =
-      new Applicative[StepResult] {
-        override def point[A](aa: => A) = {
-          lazy val a = aa
-          Success(a, Set(Origin.Point(() => a.toString)))
-        }
-        override def map[A, B](fa: StepResult[A])(f: A => B) =
-          fa map f
-        override def ap[A, B](fa: => StepResult[A])(ff: => StepResult[A => B]) =
-          (fa, ff) match {
-            case (Success(a, o1), Success(f, o2)) => Success(f(a), o1 ++ o2)
-            case (f: Failure,     Success(_, _)) => f
-            case (Success(_, _),  f: Failure) => f
-            case (Failure(x1, x2), Failure(y1, y2)) => Failure(x1 ++ y1, x2 ++ y2)
-          }
-      }
-  }
-
   implicit val applicativeInstance: Applicative[Config] =
     new Applicative[Config] {
       override def point[A](a: => A) = new Config[A] {
@@ -197,8 +113,8 @@ object Config {
         fa map f
       override def ap[A, B](fa: => Config[A])(ff: => Config[A => B]) = new Config[B] {
         private[config] override def step[F[_]](implicit F: Applicative[F]) = {
-          val ga = fa.step[F].getF[S[F], R[F]](IdMonad)
-          val gf = ff.step[F].getF[S[F], R[F]](IdMonad)
+          val ga = fa.step[F].getF[S[F], R[F]](idInstance)
+          val gf = ff.step[F].getF[S[F], R[F]](idInstance)
           val FR = F.compose(StepResult.applicativeInstance)
           RWS { (r, s0) =>
             val (_, ff, s1) = gf(r, s0)
@@ -208,57 +124,6 @@ object Config {
         }
       }
     }
-
-  private def baseGet[A](key: String, doIt: (Key, Option[StepResult.Origin.Read]) => StepResult[A]): Config[A] =
-    new Config[A] {
-      private[config] override def step[F[_]](implicit F: Applicative[F]) =
-        RWS { (r, s1) =>
-          val k = s1.keyMod(Key(key))
-
-          val (vo: VO[F], s2) =
-            s1.queryCache.get(k) match {
-              case Some(q) => (q, s1)
-
-              case None =>
-                val results: F[Vector[SV]] =
-                  r.highToLowPri.toIterator
-                    .map { case (name, store) => store(k).map(SV(name, _)) }
-                    .toVector
-                    .sequenceU
-                val selected: F[Option[SV]] =
-                  results.map(_.foldLeft[Option[SV]](None) {
-                    case (None, nameAndValue) => Some(nameAndValue)
-                    case (found@Some(SV(_, _: ConfigValue.Found)), _) => found
-                    case (error@Some(SV(_, _: ConfigValue.Error)), _) => error
-                    case (Some(SV(_, ConfigValue.NotFound)), next) => Some(next)
-                  })
-                val q = VO(results, selected)
-                (q, s1.copy(queryCache = s1.queryCache.updated(k, q)))
-            }
-
-          val result: F[StepResult[A]] =
-            vo.selected.map {
-              case None                                     => doIt(k, None)
-              case Some(SV(name, found: ConfigValue.Found)) => doIt(k, Some(StepResult.Origin.Read(k, name, found)))
-              case Some(SV(_, ConfigValue.NotFound))        => doIt(k, None)
-              case Some(SV(n, e: ConfigValue.Error))        => StepResult.Failure(Map(k -> Some((n, e))), Set.empty)
-            }
-
-          ((), result, s2)
-        }
-    }
-
-  private def baseGetA[A, B](key: String, doIt: (Key, Option[(StepResult.Origin.Read, A)]) => StepResult[B])(implicit v: ConfigParser[A]): Config[B] =
-    baseGet(key, (k, oo) =>
-      oo match {
-        case Some(o) =>
-          v.parse(o.sourceValue) match {
-            case \/-(a) => doIt(k, Some((o, a)))
-            case -\/(e) => StepResult.Failure(Map(k -> Some((o.sourceName, ConfigValue.Error(e, Some(o.sourceValue.value))))), Set.empty)
-          }
-        case None => doIt(k, None)
-      }
-    )
 
   def get[A: ConfigParser](key: String): Config[Option[A]] =
     baseGetA[A, Option[A]](key, (_, o) => o match {
@@ -307,65 +172,4 @@ object Config {
           ((), result, s)
         }
     }
-
-  private[config] def keyModUpdate(f: (String => String) => String => String): Config[Unit] =
-    new Config[Unit] {
-      private[config] override def step[F[_]](implicit F: Applicative[F]) =
-        RWS((_, s) => ((), F pure ().point[StepResult], s.keyModPush(keyModFS(f(keyModTS(s.keyMod))))))
-    }
-
-  private[config] def keyModCompose(f: String => String): Config[Unit] =
-    keyModUpdate(_ compose f)
-
-  private[config] def keyModPop: Config[Unit] =
-    new Config[Unit] {
-      private[config] override def step[F[_]](implicit F: Applicative[F]) =
-        RWS((_, s) => ((), F point ().point[StepResult], s.keyModPop))
-    }
-
-  private[config] def keysUsed: Config[Set[Key]] =
-    new Config[Set[Key]] {
-      private[config] override def step[F[_]](implicit F: Applicative[F]) =
-        RWS((_, s) => ((), F point s.queryCache.keySet.point[StepResult], s))
-    }
-}
-
-sealed abstract class ConfigResult[+A] {
-  def toDisjunction: String \/ A
-}
-
-object ConfigResult {
-  final case class PreparationFailure(sourceName: SourceName, error: String) extends ConfigResult[Nothing] {
-    def errorMsg: String = s"Error preparing source [$sourceName]: $error"
-    override def toDisjunction = -\/(errorMsg)
-  }
-
-  final case class QueryFailure(keyed: Map[Key, Option[(SourceName, ConfigValue.Error)]],
-                                other: Set[(String, Set[String \/ Key])]) extends ConfigResult[Nothing] {
-    def errorMsg: String = {
-      def fmtKey(k: Key) = s"key [${k.value}]"
-      val eachK = keyed.toVector.map {
-        case (k, None) =>
-          s"No value for ${fmtKey(k)}"
-        case (k, Some((SourceName(src), ConfigValue.Error(desc, None)))) =>
-          s"Error reading ${fmtKey(k)} from source [$src]: $desc"
-        case (k, Some((SourceName(src), ConfigValue.Error(desc, Some(v))))) =>
-          s"Error reading ${fmtKey(k)} from source [$src] with value [$v]: $desc"
-      }
-      val eachO = other.toVector.map {
-        case (desc, s1) =>
-          val constituents = s1.toList.map(_.fold(_.toString, fmtKey)).sorted.mkString(", ")
-          s"Error using $constituents: $desc"
-      }
-      var errors = "error"
-      val each = eachK ++ eachO
-      if (each.length != 1) errors += "s"
-      s"${each.length} $errors:${each.sorted.map("\n  - " + _).mkString}"
-    }
-    override def toDisjunction = -\/(errorMsg)
-  }
-
-  final case class Success[+A](value: A) extends ConfigResult[A] {
-    override def toDisjunction = \/-(value)
-  }
 }
