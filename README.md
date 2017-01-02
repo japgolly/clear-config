@@ -3,7 +3,7 @@
 
 
 ```scala
-val VerMicrolibs = "1.1"
+val VerMicrolibs = "1.2"
 
 "com.github.japgolly.microlibs" %% "adt-macros"  % VerMicrolibs
 "com.github.japgolly.microlibs" %% "config"      % VerMicrolibs
@@ -13,6 +13,6 @@ val VerMicrolibs = "1.1"
 "com.github.japgolly.microlibs" %% "recursion"   % VerMicrolibs
 "com.github.japgolly.microlibs" %% "scalaz-ext"  % VerMicrolibs
 "com.github.japgolly.microlibs" %% "stdlib-ext"  % VerMicrolibs
-"com.github.japgolly.microlibs" %% "test-util"   % VerMicrolibs % "test"
+"com.github.japgolly.microlibs" %% "test-util"   % VerMicrolibs % Test
 ```
 
