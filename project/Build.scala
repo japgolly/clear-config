@@ -56,6 +56,8 @@ object Microlibs {
       dependencyUpdatesExclusions   := moduleFilter(organization = "org.scala-lang") |
                                        moduleFilter(organization = "org.eclipse.jetty"),
       releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+      releaseTagComment             := s"v${(version in ThisBuild).value}",
+      releaseVcsSign                := true,
       addCompilerPlugin("org.spire-math" %% "kind-projector" % Ver.KindProjector))
     .configure(
       addCommandAliases(
