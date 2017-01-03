@@ -8,7 +8,7 @@ object SourceTest extends TestSuite {
   def s1: Source[Id] = Source.environment
   def ss: Sources[Id] = s1
 
-  def ensureCompilation(s: Sources[Id]) = ()
+  def ensureCompilation(s: => Sources[Id]) = ()
 
   override def tests = TestSuite {
 
@@ -22,8 +22,7 @@ object SourceTest extends TestSuite {
     "n<n" - ensureCompilation(ss < ss)
 
     * - ensureCompilation {
-      val files = List("a", "b", "c")
-      val sources = files.map(Source.propFileOnClasspath[Id](_, optional = true))
+      val sources: List[Source[Id]] = null
       Source.environment[Id] > Sources.highToLowPri(sources: _*) > Source.system[Id]
     }
   }
