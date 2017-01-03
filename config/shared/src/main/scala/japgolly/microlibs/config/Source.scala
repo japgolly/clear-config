@@ -5,7 +5,8 @@ import scalaz.{Applicative, -\/, \/, \/-}
 
 final case class SourceName(value: String) extends AnyVal
 object SourceName {
-  def environment = SourceName("Environment")
+  def classpath(filename: String) = SourceName(s"cp:$filename")
+  def environment = SourceName("Env")
   def system = SourceName("System")
 }
 
@@ -40,7 +41,7 @@ object Source {
 
   def propFileOnClasspath[F[_]](filename: String, optional: Boolean)(implicit F: Applicative[F]): Source[F] = {
     val f = filename.replaceFirst("^/*", "/")
-    Source[F](SourceName(s"classpath:$f"), F.point {
+    Source[F](SourceName.classpath(f), F.point {
       def load() = {
         val i = getClass.getResourceAsStream(f)
         if (i eq null) {
