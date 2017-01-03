@@ -77,7 +77,7 @@ object ConfigParserTest extends TestSuite {
 
       'ko - assertEq(
         Config.need("in")(ConfigParser[Int].ensure(_ > 150, "Must be > 150.")).run(srcs),
-        ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, ConfigValue.Error("Must be > 150.", Some("100"))))), Set.empty))
+        ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, ConfigValue.Error("Must be > 150.", Some("100"))))), Set.empty, srcNames))
     }
 
   }

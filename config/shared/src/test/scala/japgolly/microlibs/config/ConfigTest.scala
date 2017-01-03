@@ -23,28 +23,32 @@ object ConfigTest extends TestSuite {
       assertEq(Config.get[Int]("notfound").run(srcs), ConfigResult.Success(Option.empty[Int]))
 
     'missing1 -
-      assertEq(Config.need[Int]("missing").run(srcs), ConfigResult.QueryFailure(Map(Key("missing") -> None), Set.empty))
+      assertEq(Config.need[Int]("missing").run(srcs), ConfigResult.QueryFailure(Map(Key("missing") -> None), Set.empty, srcNames))
 
     'missing2 -
       assertEq(
         (Config.need[Int]("no1") tuple Config.need[Int]("no2")).run(srcs),
-        ConfigResult.QueryFailure(Map(Key("no1") -> None, Key("no2") -> None), Set.empty))
+        ConfigResult.QueryFailure(Map(Key("no1") -> None, Key("no2") -> None), Set.empty, srcNames))
 
     'valueFail1 -
       assertEq(
         Config.need[Int]("s").run(srcs),
-        ConfigResult.QueryFailure(Map(Key("s") -> Some((src1.name, ConfigValue.Error("Int expected.", Some("hey"))))), Set.empty))
+        ConfigResult.QueryFailure(Map(Key("s") -> Some((src1.name, ConfigValue.Error("Int expected.", Some("hey"))))), Set.empty, srcNames))
 
     'valueFail2 -
       assertEq(
         Config.need[Int]("s2").run(srcs),
-        ConfigResult.QueryFailure(Map(Key("s2") -> Some((src2.name, ConfigValue.Error("Int expected.", Some("ah"))))), Set.empty))
+        ConfigResult.QueryFailure(Map(Key("s2") -> Some((src2.name, ConfigValue.Error("Int expected.", Some("ah"))))), Set.empty, srcNames))
 
     'errorMsg {
       'notFound - assertEq(Config.need[Int]("QQ").run(srcs).toDisjunction, -\/(
         """
           |1 error:
           |  - No value for key [QQ]
+          |
+          |2 sources:
+          |  - S1
+          |  - S2
         """.stripMargin.trim))
 
       'notFound2 - {
@@ -54,6 +58,10 @@ object ConfigTest extends TestSuite {
             |2 errors:
             |  - No value for key [M]
             |  - No value for key [QQ]
+            |
+            |2 sources:
+            |  - S1
+            |  - S2
           """.stripMargin.trim))
       }
 
@@ -64,6 +72,11 @@ object ConfigTest extends TestSuite {
             |2 errors:
             |  - Error reading key [X] from source [SE]: This source is fake!
             |  - Error reading key [s] from source [S1] with value [hey]: Int expected.
+            |
+            |3 sources:
+            |  - S1
+            |  - S2
+            |  - SE
           """.stripMargin.trim))
       }
 
@@ -78,6 +91,11 @@ object ConfigTest extends TestSuite {
             |  - Error using <function>, key [i2], key [in]: Must be > 150.
             |  - Error using <function>, key [in]: Must be > 1150.
             |  - Error using runtime value [7]: Must be > 10.
+            |
+            |3 sources:
+            |  - S1
+            |  - S2
+            |  - SE
           """.stripMargin.trim))
       }
     }
@@ -90,7 +108,7 @@ object ConfigTest extends TestSuite {
           ConfigResult.Success(100))
         'ko - assertEq(
           c.ensure(_ > 150, "Must be > 150.").run(srcs),
-          ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, ConfigValue.Error("Must be > 150.", Some("100"))))), Set.empty))
+          ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, ConfigValue.Error("Must be > 150.", Some("100"))))), Set.empty, srcNames))
       }
 
       'readMap1 {
@@ -100,7 +118,7 @@ object ConfigTest extends TestSuite {
           ConfigResult.Success(1100))
         'ko - assertEq(
           c.ensure(_ > 1150, "Must be > 1150.").run(srcs),
-          ConfigResult.QueryFailure(Map.empty, Set("Must be > 1150." -> Set(\/-(Key("in")), -\/("<function>")))))
+          ConfigResult.QueryFailure(Map.empty, Set("Must be > 1150." -> Set(\/-(Key("in")), -\/("<function>"))), srcNames))
       }
 
       'read2 {
@@ -110,7 +128,7 @@ object ConfigTest extends TestSuite {
           ConfigResult.Success(122))
         'ko - assertEq(
           c.ensure(_ > 150, "Must be > 150.").run(srcs),
-          ConfigResult.QueryFailure(Map.empty, Set("Must be > 150." -> Set(\/-(Key("in")), \/-(Key("i2")), -\/("<function>")))))
+          ConfigResult.QueryFailure(Map.empty, Set("Must be > 150." -> Set(\/-(Key("in")), \/-(Key("i2")), -\/("<function>"))), srcNames))
       }
     }
 
@@ -182,7 +200,7 @@ object ConfigTest extends TestSuite {
 
         'missing - assertEq(
           one.withPrefix("omg.").run(s),
-          ConfigResult.QueryFailure(Map(Key("omg.1") -> None), Set.empty))
+          ConfigResult.QueryFailure(Map(Key("omg.1") -> None), Set.empty, Vector(s.name)))
       }
 
       'caseInsensitive {

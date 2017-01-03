@@ -41,7 +41,7 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
     F.bind(r3) {
       case \/-(stores) => step(F).run(R(stores), S.init)._2.map {
         case StepResult.Success(a, _) => ConfigResult.Success(a)
-        case StepResult.Failure(x, y) => ConfigResult.QueryFailure(x, y.map(_.public))
+        case StepResult.Failure(x, y) => ConfigResult.QueryFailure(x, y.map(_.public), sources.highToLowPri.map(_.name))
       }
       case -\/((s, err)) => F.pure(ConfigResult.PreparationFailure(s, err))
     }

@@ -10,8 +10,8 @@ object Helpers {
   val src1 = Source.manual[Id]("S1")("in" -> "100", "i" -> "3", "s" -> "hey", "dur3m" -> "3 min")
   val src2 = Source.manual[Id]("S2")("in" -> "200", "i" -> "X300", "i2" -> "22", "s2" -> "ah")
 
-  val srcs: Sources[Id] =
-     src1 > src2
+  val srcs: Sources[Id] = src1 > src2
+  val srcNames = srcs.highToLowPri.map(_.name)
 
   val srcE = Source.point[Id]("SE", new ConfigStore[Id] {
     override def apply(key: Key) = ConfigValue.Error("This source is fake!", None)

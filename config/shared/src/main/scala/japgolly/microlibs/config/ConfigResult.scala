@@ -19,7 +19,8 @@ object ConfigResult {
   }
 
   final case class QueryFailure(keyed: Map[Key, Option[(SourceName, ConfigValue.Error)]],
-                                other: Set[(String, Set[String \/ Key])]) extends ConfigResult[Nothing] {
+                                other: Set[(String, Set[String \/ Key])],
+                                sourcesHighToLowPri: Vector[SourceName]) extends ConfigResult[Nothing] {
     def errorMsg: String = {
       def fmtKey(k: Key) = s"key [${k.value}]"
       val eachK = keyed.toVector.map {
@@ -35,10 +36,21 @@ object ConfigResult {
           val constituents = s1.toList.map(_.fold(_.toString, fmtKey)).sorted.mkString(", ")
           s"Error using $constituents: $desc"
       }
-      var errors = "error"
-      val each = eachK ++ eachO
-      if (each.length != 1) errors += "s"
-      s"${each.length} $errors:${each.sorted.map("\n  - " + _).mkString}"
+      val errors = (eachK ++ eachO).sorted
+
+      val sources = sourcesHighToLowPri.map(_.value)
+
+      def fmtList(one: String, other: String, items: Vector[String]): String = {
+        val n = items.length
+        val a = if (n == 1) one else other
+        s"$n $a:${items.iterator.map("\n  - " + _).mkString}"
+      }
+
+      s"""
+         |${fmtList("error", "errors", errors)}
+         |
+         |${fmtList("source", "sources", sources)}
+       """.stripMargin.trim
     }
     override def toDisjunction = -\/(errorMsg)
   }
