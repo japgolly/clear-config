@@ -4,6 +4,12 @@ import scalaz.{-\/, \/, \/-}
 
 sealed abstract class ConfigResult[+A] {
   def toDisjunction: String \/ A
+
+  def getOrDie(): A =
+    toDisjunction match {
+      case \/-(a) => a
+      case -\/(e) => sys error e
+    }
 }
 
 object ConfigResult {
