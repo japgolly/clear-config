@@ -2,7 +2,7 @@ package japgolly.microlibs.config
 
 import java.util.Properties
 import scala.collection.JavaConverters._
-import scalaz.Applicative
+import scalaz.{Applicative, ~>}
 
 sealed trait ConfigValue extends Product with Serializable
 object ConfigValue {
@@ -20,6 +20,14 @@ object ConfigValue {
 trait ConfigStore[F[_]] {
   def apply(key: Key): F[ConfigValue]
   def getBulk(filter: Key => Boolean): F[Map[Key, String]]
+
+  def trans[G[_]](t: F ~> G): ConfigStore[G] = {
+    val self = this
+    new ConfigStore[G] {
+      override def apply(key: Key) = t(self(key))
+      override def getBulk(f: Key => Boolean) = t(self.getBulk(f))
+    }
+  }
 }
 
 object ConfigStore {

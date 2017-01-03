@@ -1,7 +1,7 @@
 package japgolly.microlibs.config
 
 import java.util.Properties
-import scalaz.{Applicative, -\/, \/, \/-}
+import scalaz.{-\/, Applicative, Functor, \/, \/-, ~>}
 
 final case class SourceName(value: String) extends AnyVal
 object SourceName {
@@ -11,10 +11,14 @@ object SourceName {
 }
 
 final case class Source[F[_]](name: SourceName, prepare: F[String \/ ConfigStore[F]]) {
-  override def toString: String = s"Source(${name.value})"
+  override def toString: String =
+    s"Source(${name.value})"
 
   def toSources: Sources[F] =
     Sources(Vector.empty :+ this)
+
+  def trans[G[_]](t: F ~> G)(implicit G: Functor[G]): Source[G] =
+    copy(prepare = G.map(t(prepare))(_.map(_ trans t)))
 }
 
 object Source {
@@ -72,6 +76,9 @@ final case class Sources[F[_]](highToLowPri: Vector[Source[F]]) extends AnyVal {
 
   def reverse: Sources[F] =
     Sources(highToLowPri.reverse)
+
+  def trans[G[_]: Functor](f: F ~> G): Sources[G] =
+    Sources(highToLowPri.map(_ trans f))
 }
 
 object Sources {
