@@ -159,20 +159,20 @@ object ConfigTest extends TestSuite {
 
       'used {
         "*>" - {
-          val k: Report = (si *> Config.keyReport).run(srcs).get_!
+          val k: ConfigReport = (si *> Config.report).run(srcs).get_!
           assertEq(k.reportUsed, expectUsed)
         }
         "*> <*" - {
-          val k: Report = (si *> Config.keyReport <* Config.need[Int]("i2")).run(srcs).get_!
+          val k: ConfigReport = (si *> Config.report <* Config.need[Int]("i2")).run(srcs).get_!
           assertEq(k.reportUsed, expectUsed)
         }
         'with {
-          val (_, k: Report) = si.withReport.run(srcs).get_!
+          val (_, k: ConfigReport) = si.withReport.run(srcs).get_!
           assertEq(k.reportUsed, expectUsed)
         }
       }
       'unused {
-        val k: Report = (si *> Config.keyReport).run(srcs).get_!
+        val k: ConfigReport = (si *> Config.report).run(srcs).get_!
         assertEq(k.reportUnused, expectUnused)
       }
 //      'combined - (si *> Config.keyReport).run(srcs).get_!.report
@@ -180,7 +180,7 @@ object ConfigTest extends TestSuite {
         // AWS_SECRET_KEY
         // *password*
         val srcs2 = Source.manual[Id]("BLAR")("user.language" -> "omg!") > srcs > Source.environment[Id] > Source.system[Id]
-        (si *> Config.get[String]("user.name") *> Config.keyReport).run(srcs2).get_!
+        (si *> Config.get[String]("user.name") *> Config.report).run(srcs2).get_!
           .report
       }
     }

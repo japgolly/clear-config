@@ -3,9 +3,9 @@ package japgolly.microlibs.config
 import japgolly.microlibs.stdlib_ext.AsciiTable
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 import scala.Console._
-import Report._
+import ConfigReport._
 
-object Report {
+object ConfigReport {
 
   final case class Filter(allow: (Key, Map[SourceName, ConfigValue]) => Boolean) extends AnyVal {
     def unary_! : Filter = Filter(!allow)
@@ -32,6 +32,9 @@ object Report {
 
     def ignoreUnusedByKey(f: Key => Boolean): Filter =
       exclude((k, _) => f(k))
+
+    def defaultUsed: Filter =
+      allowAll
 
     def defaultUnused: Filter =
       ignoreUnusedByKey(_.value contains "TERMCAP") &&
@@ -75,21 +78,23 @@ object Report {
 
   def withDefaults(sourcesHighToLowPri: Vector[SourceName],
                    used               : Map[Key, Map[SourceName, ConfigValue]],
-                   unused             : Map[Key, Map[SourceName, ConfigValue]]): Report =
-    Report(
+                   unused             : Map[Key, Map[SourceName, ConfigValue]]): ConfigReport =
+    ConfigReport(
       sourcesHighToLowPri, used, unused,
       ValueDisplay.default,
+      Filter.defaultUsed,
       Filter.defaultUnused,
       Some(64))
 }
 
-final case class Report(sourcesHighToLowPri: Vector[SourceName],
-                        used               : Map[Key, Map[SourceName, ConfigValue]],
-                        unused             : Map[Key, Map[SourceName, ConfigValue]],
-                        display            : ValueDisplay,
-                        unusedFilter       : Filter,
-                        maxValueLen        : Option[Int]) {
-  override def toString = "Report"
+final case class ConfigReport(sourcesHighToLowPri: Vector[SourceName],
+                              used               : Map[Key, Map[SourceName, ConfigValue]],
+                              unused             : Map[Key, Map[SourceName, ConfigValue]],
+                              display            : ValueDisplay,
+                              usedFilter         : Filter,
+                              unusedFilter       : Filter,
+                              maxValueLen        : Option[Int]) {
+  override def toString = "ConfigReport"
 
   private val display2 =
     maxValueLen.fold(display)(ValueDisplay.limitWidth(_) + display)
@@ -118,7 +123,7 @@ final case class Report(sourcesHighToLowPri: Vector[SourceName],
   }
 
   def reportUsed: String =
-    table(used, Filter.allowAll)
+    table(used, usedFilter)
 
   def reportUnused: String =
     table(unused, unusedFilter)
@@ -132,9 +137,12 @@ final case class Report(sourcesHighToLowPri: Vector[SourceName],
        !$reportUnused
      """.stripMargin('!')
 
-  def filterUnused(f: Filter): Report =
+  def filterUsed(f: Filter): ConfigReport =
+    copy(usedFilter = usedFilter && f)
+
+  def filterUnused(f: Filter): ConfigReport =
     copy(unusedFilter = unusedFilter && f)
 
-  def withMaxValueLength(i: Int): Report =
+  def withMaxValueLength(i: Int): ConfigReport =
     copy(maxValueLen = Some(i))
 }

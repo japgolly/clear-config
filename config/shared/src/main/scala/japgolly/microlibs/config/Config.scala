@@ -98,8 +98,8 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
   final def withPrefix(prefix: String): Config[A] =
     withKeyMod(prefix + _)
 
-  final def withReport: Config[(A, Report)] =
-    this tuple Config.keyReport
+  final def withReport: Config[(A, ConfigReport)] =
+    this tuple Config.report
 }
 
 object Config {
@@ -171,8 +171,8 @@ object Config {
     else
       cs.reduce(applicativeInstance.apply2(_, _)((f, g) => a => { f(a); g(a) }))
 
-  def keyReport: Config[Report] =
-    new Config[Report] {
+  def report: Config[ConfigReport] =
+    new Config[ConfigReport] {
       private[config] override def step[F[_]](implicit F: Applicative[F]) =
         RWS { (r, s) =>
 
@@ -196,9 +196,9 @@ object Config {
             }.map(_.foldLeft(emptyM)(_ |+| _))
 
 
-          val result: F[StepResult[Report]] =
+          val result: F[StepResult[ConfigReport]] =
             F.apply2(fUsed, fUnused)((used, unused) =>
-              Report.withDefaults(r.highToLowPri.map(_._1), used, unused).point[StepResult])
+              ConfigReport.withDefaults(r.highToLowPri.map(_._1), used, unused).point[StepResult])
 
           ((), result, s)
         }
