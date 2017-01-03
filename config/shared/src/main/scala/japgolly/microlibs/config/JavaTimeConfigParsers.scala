@@ -4,8 +4,8 @@ import java.time._
 import java.time.temporal.ChronoUnit
 import japgolly.microlibs.stdlib_ext._
 
-object JavaTimeValueReaders extends JavaTimeValueReaders
-trait JavaTimeValueReaders {
+object JavaTimeConfigParsers extends JavaTimeConfigParsers
+trait JavaTimeConfigParsers {
 
   implicit def readChronoUnit(implicit s: ConfigParser[String]): ConfigParser[ChronoUnit] =
     s.mapOption(ParseChronoUnit.unapply)
