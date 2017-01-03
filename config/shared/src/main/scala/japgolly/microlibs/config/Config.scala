@@ -131,7 +131,7 @@ object Config {
       case None              => StepResult.Success(None, Set.empty)
     })
 
-  def get[A: ConfigParser](key: String, default: => A): Config[A] =
+  def getOrUse[A: ConfigParser](key: String, default: => A): Config[A] =
     get[A](key).map(_ getOrElse default)
 
   def need[A: ConfigParser](key: String): Config[A] =
@@ -139,6 +139,37 @@ object Config {
       case Some((origin, a)) => StepResult.Success(a, Set(origin))
       case None              => StepResult.Failure(Map(k -> None), Set.empty)
     })
+
+  def consumerFn[B] = new ConsumerFn[B]
+  final class ConsumerFn[B] extends {
+    def get[A](k: String, f: B => A => Unit)(implicit r: ConfigParser[A]): Config[B => Unit] =
+      Config.get(k)(r).map(oa => b => oa.fold(())(f(b)))
+
+    def getOrUse[A](k: String, f: B => A => Unit)(default: => A)(implicit r: ConfigParser[A]): Config[B => Unit] =
+      Config.get(k)(r).map(oa => f(_)(oa getOrElse default))
+
+    def need[A](k: String, f: B => A => Unit)(implicit r: ConfigParser[A]): Config[B => Unit] =
+      Config.need(k)(r).map(a => f(_)(a))
+
+    def getC[A](k: String, f: (B, A) => Unit)(implicit r: ConfigParser[A]): Config[B => Unit] =
+      get[A](k, f.curried)
+
+    def getOrUseC[A](k: String, f: (B, A) => Unit)(default: => A)(implicit r: ConfigParser[A]): Config[B => Unit] =
+      getOrUse[A](k, f.curried)(default)
+
+    def needC[A](k: String, f: (B, A) => Unit)(implicit r: ConfigParser[A]): Config[B => Unit] =
+      need[A](k, f.curried)
+
+    def apply(cs: (ConsumerFn[B] => Config[B => Unit])*): Config[B => Unit] =
+      mergeConsumerFns(cs.map(_ apply this): _*)
+  }
+
+
+  def mergeConsumerFns[A](cs: Config[A => Unit]*): Config[A => Unit] =
+    if (cs.isEmpty)
+      ((_: A) => ()).pure[Config]
+    else
+      cs.reduce(applicativeInstance.apply2(_, _)((f, g) => a => { f(a); g(a) }))
 
   def keyReport: Config[Report] =
     new Config[Report] {

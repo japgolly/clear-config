@@ -191,5 +191,45 @@ object ConfigTest extends TestSuite {
       }
     }
 
+    'consumerFn {
+      class Mutable {
+        var a = 1
+        var b = 2
+        var name = ""
+        def setA(x: Int): Unit = a = x
+        def setB(x: Int): Unit = b = x
+        def setName(x: String): Unit = name = x
+      }
+      val c = Config.consumerFn[Mutable](
+        _.get("in", _.setA),
+        _.get("nope", _.setB),
+        _.need("s", _.setName)
+      ).map{ fn =>
+        val m = new Mutable
+        fn(m)
+        m
+      }
+      val m = c.run(srcs).get_!
+      assertEq((m.a, m.b, m.name), (100, 2, "hey"))
+    }
+    'consumerFn {
+      class Mutable {
+        var a = 1
+        var b = 2
+        var name = ""
+      }
+      val c = Config.consumerFn[Mutable](
+        _.getC[Int]("in", _.a = _),
+        _.getC[Int]("nope", _.b = _),
+        _.getC[String]("s", _.name = _)
+      ).map{ fn =>
+        val m = new Mutable
+        fn(m)
+        m
+      }
+      val m = c.run(srcs).get_!
+      assertEq((m.a, m.b, m.name), (100, 2, "hey"))
+    }
+
   }
 }
