@@ -40,7 +40,7 @@ private[config] object ConfigInternals {
         case Origin.Map => -\/("<function>")
         case Origin.Point(f) =>
           -\/(f() match {
-            case s if s.matches("^<function\\d+>$") => "<function>"
+            case s if s.matches("^<function\\d+>$") | s.contains("$Lambda$") => "<function>"
             case s => s"runtime value [$s]"
           })
         case Origin.Read(k, _, _) => \/-(k)
