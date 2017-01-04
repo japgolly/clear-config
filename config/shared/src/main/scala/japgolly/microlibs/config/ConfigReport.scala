@@ -84,28 +84,31 @@ object ConfigReport {
 
   final case class SubReport(data: Map[Key, Map[SourceName, ConfigValue]], rowFilter: RowFilter) {
 
-    def report(sourcesHighToLowPri: Vector[SourceName], valueDisplay: ValueDisplay): String = {
-      val header: Vector[String] =
-        "Key" +: sourcesHighToLowPri.map(_.value)
+    def report(sourcesHighToLowPri: Vector[SourceName], valueDisplay: ValueDisplay): String =
+      if (data.isEmpty)
+        "No data to report."
+      else {
+          val header: Vector[String] =
+          "Key" +: sourcesHighToLowPri.map(_.value)
 
-      def fmtError(e: String) = s"$RED$e$RESET"
+        def fmtError(e: String) = s"$RED$e$RESET"
 
-      val valueRows: List[Vector[String]] =
-        data.iterator
-          .filter(rowFilter.allow.tupled)
-          .toList
-          .sortBy(_._1.value)
-          .map { case (k, vs) =>
-            def fmtValue(v: String) = valueDisplay.fmt(k, v)
-            k.value +: sourcesHighToLowPri.map(vs.getOrElse(_, ConfigValue.NotFound)).map {
-              case ConfigValue.Found(v)            => fmtValue(v)
-              case ConfigValue.NotFound            => ""
-              case ConfigValue.Error(err, None)    => fmtError(err)
-              case ConfigValue.Error(err, Some(v)) => s"${fmtValue(v)} ${fmtError(err)}"
+        val valueRows: List[Vector[String]] =
+          data.iterator
+            .filter(rowFilter.allow.tupled)
+            .toList
+            .sortBy(_._1.value)
+            .map { case (k, vs) =>
+              def fmtValue(v: String) = valueDisplay.fmt(k, v)
+              k.value +: sourcesHighToLowPri.map(vs.getOrElse(_, ConfigValue.NotFound)).map {
+                case ConfigValue.Found(v)            => fmtValue(v)
+                case ConfigValue.NotFound            => ""
+                case ConfigValue.Error(err, None)    => fmtError(err)
+                case ConfigValue.Error(err, Some(v)) => s"${fmtValue(v)} ${fmtError(err)}"
+              }
             }
-          }
-      AsciiTable(header :: valueRows)
-    }
+        AsciiTable(header :: valueRows)
+      }
 
     def addRowFilter(f: RowFilter): SubReport =
       copy(rowFilter = rowFilter && f)
