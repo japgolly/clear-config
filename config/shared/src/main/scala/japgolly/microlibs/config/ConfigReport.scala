@@ -82,72 +82,78 @@ object ConfigReport {
 
   // ===================================================================================================================
 
+  final case class SubReport(data: Map[Key, Map[SourceName, ConfigValue]], rowFilter: RowFilter) {
+
+    def report(sourcesHighToLowPri: Vector[SourceName], valueDisplay: ValueDisplay): String = {
+      val header: Vector[String] =
+        "Key" +: sourcesHighToLowPri.map(_.value)
+
+      def fmtError(e: String) = s"$RED$e$RESET"
+
+      val valueRows: List[Vector[String]] =
+        data.iterator
+          .filter(rowFilter.allow.tupled)
+          .toList
+          .sortBy(_._1.value)
+          .map { case (k, vs) =>
+            def fmtValue(v: String) = valueDisplay.fmt(k, v)
+            k.value +: sourcesHighToLowPri.map(vs.getOrElse(_, ConfigValue.NotFound)).map {
+              case ConfigValue.Found(v)            => fmtValue(v)
+              case ConfigValue.NotFound            => ""
+              case ConfigValue.Error(err, None)    => fmtError(err)
+              case ConfigValue.Error(err, Some(v)) => s"${fmtValue(v)} ${fmtError(err)}"
+            }
+          }
+      AsciiTable(header :: valueRows)
+    }
+
+    def addRowFilter(f: RowFilter): SubReport =
+      copy(rowFilter = rowFilter && f)
+  }
+
+  // ===================================================================================================================
+
   def withDefaults(sourcesHighToLowPri: Vector[SourceName],
                    used               : Map[Key, Map[SourceName, ConfigValue]],
                    unused             : Map[Key, Map[SourceName, ConfigValue]]): ConfigReport =
     ConfigReport(
-      sourcesHighToLowPri, used, unused,
+      sourcesHighToLowPri,
+      SubReport(used, RowFilter.defaultForUsedReport),
+      SubReport(unused, RowFilter.defaultForUnusedReport),
       ValueDisplay.default,
-      RowFilter.defaultForUsedReport,
-      RowFilter.defaultForUnusedReport,
       Some(64))
 }
 
 final case class ConfigReport(sourcesHighToLowPri: Vector[SourceName],
-                              used               : Map[Key, Map[SourceName, ConfigValue]],
-                              unused             : Map[Key, Map[SourceName, ConfigValue]],
+                              used               : SubReport,
+                              unused             : SubReport,
                               display            : ValueDisplay,
-                              usedFilter         : RowFilter,
-                              unusedFilter       : RowFilter,
                               maxValueLen        : Option[Int]) {
   override def toString = "ConfigReport"
 
-  private val display2 =
+  private def display2 =
     maxValueLen.fold(display)(ValueDisplay.limitWidth(_) + display)
 
-  private def table(map: Map[Key, Map[SourceName, ConfigValue]], filter: RowFilter): String = {
-    val header: Vector[String] =
-      "Key" +: sourcesHighToLowPri.map(_.value)
-
-    def fmtError(e: String) = s"$RED$e$RESET"
-
-    val valueRows: List[Vector[String]] =
-      map.iterator
-        .filter(filter.allow.tupled)
-        .toList
-        .sortBy(_._1.value)
-        .map { case (k, vs) =>
-          def fmtValue(v: String) = display2.fmt(k, v)
-          k.value +: sourcesHighToLowPri.map(vs.getOrElse(_, ConfigValue.NotFound)).map {
-            case ConfigValue.Found(v) => fmtValue(v)
-            case ConfigValue.NotFound => ""
-            case ConfigValue.Error(err, None) => fmtError(err)
-            case ConfigValue.Error(err, Some(v)) => s"${fmtValue(v)} ${fmtError(err)}"
-          }
-        }
-    AsciiTable(header :: valueRows)
-  }
-
   def reportUsed: String =
-    table(used, usedFilter)
+    used.report(sourcesHighToLowPri, display2)
 
   def reportUnused: String =
-    table(unused, unusedFilter)
+    unused.report(sourcesHighToLowPri, display2)
 
   def report: String =
     s"""
-       !Used keys (${used.size}):
+       !Used keys (${used.data.size}):
        !$reportUsed
        !
-       !Unused keys (${unused.size}):
+       !Unused keys (${unused.data.size}):
        !$reportUnused
      """.stripMargin('!')
 
-  def filterUsed(f: RowFilter): ConfigReport =
-    copy(usedFilter = usedFilter && f)
+  def withUsedSettings(f: SubReport => SubReport): ConfigReport =
+    copy(used = f(used))
 
-  def filterUnused(f: RowFilter): ConfigReport =
-    copy(unusedFilter = unusedFilter && f)
+  def withUnusedSettings(f: SubReport => SubReport): ConfigReport =
+    copy(unused = f(unused))
 
   def withMaxValueLength(i: Int): ConfigReport =
     copy(maxValueLen = Some(i))
