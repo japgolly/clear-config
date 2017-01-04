@@ -98,8 +98,13 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
   final def withPrefix(prefix: String): Config[A] =
     withKeyMod(prefix + _)
 
+  /**
+    * Generate a report based on the usage _so far_.
+    * This should be at the very end of your Config composition,
+    * else the unused-keys portion of the report may be inaccurate.
+    */
   final def withReport: Config[(A, ConfigReport)] =
-    this tuple Config.report
+    this tuple Config.reportSoFar
 }
 
 object Config {
@@ -171,36 +176,34 @@ object Config {
     else
       cs.reduce(applicativeInstance.apply2(_, _)((f, g) => a => { f(a); g(a) }))
 
-  def report: Config[ConfigReport] =
+  private def generateReport[F[_]](r: R[F], s: S[F])(implicit F: Applicative[F]): F[ConfigReport] = {
+    type M = Map[Key, Map[SourceName, ConfigValue]]
+    def emptyM: M = Map.empty
+    implicit def semigroupConfigValue: Semigroup[ConfigValue] =
+      Semigroup.firstSemigroup // There will never be overlap
+
+    val fUsed: F[M] =
+      s.queryCache
+        .toVector
+        .traverse { case (k, x) => x.highToLowPri.map(x => k -> x.toIterator.map(sv => sv.source -> sv.value).toMap) }
+        .map(_.foldLeft(emptyM) { case (m, (k, vs)) => m.modifyValue(k, _.fold(vs)(_ ++ vs)) })
+
+    val usedKeys = s.queryCache.keySet
+
+    val fUnused: F[M] =
+      r.highToLowPri.traverse { case (src, store) =>
+        store.getBulk(!usedKeys.contains(_))
+          .map(_.mapValuesNow(value => Map(src -> ConfigValue.Found(value))))
+      }.map(_.foldLeft(emptyM)(_ |+| _))
+
+
+    F.apply2(fUsed, fUnused)((used, unused) =>
+      ConfigReport.withDefaults(r.highToLowPri.map(_._1), used, unused))
+  }
+
+  def reportSoFar: Config[ConfigReport] =
     new Config[ConfigReport] {
       private[config] override def step[F[_]](implicit F: Applicative[F]) =
-        RWS { (r, s) =>
-
-          type M = Map[Key, Map[SourceName, ConfigValue]]
-          def emptyM: M = Map.empty
-          implicit def semigroupConfigValue: Semigroup[ConfigValue] =
-            Semigroup.firstSemigroup // There will never be overlap
-
-          val fUsed: F[M] =
-            s.queryCache
-              .toVector
-              .traverse { case (k, x) => x.highToLowPri.map(x => k -> x.toIterator.map(sv => sv.source -> sv.value).toMap) }
-              .map(_.foldLeft(emptyM) { case (m, (k, vs)) => m.modifyValue(k, _.fold(vs)(_ ++ vs)) })
-
-          val usedKeys = s.queryCache.keySet
-
-          val fUnused: F[M] =
-            r.highToLowPri.traverse { case (src, store) =>
-              store.getBulk(!usedKeys.contains(_))
-                .map(_.mapValuesNow(value => Map(src -> ConfigValue.Found(value))))
-            }.map(_.foldLeft(emptyM)(_ |+| _))
-
-
-          val result: F[StepResult[ConfigReport]] =
-            F.apply2(fUsed, fUnused)((used, unused) =>
-              ConfigReport.withDefaults(r.highToLowPri.map(_._1), used, unused).point[StepResult])
-
-          ((), result, s)
-        }
+        RWS((r, s) => ((), generateReport(r, s).map(_.point[StepResult]), s))
     }
 }

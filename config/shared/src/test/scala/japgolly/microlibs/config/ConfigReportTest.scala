@@ -41,11 +41,11 @@ object ConfigReportTest extends TestSuite {
 
       'used {
         "*>" - {
-          val k: ConfigReport = (si *> Config.report).run(srcs).get_!
+          val k: ConfigReport = (si *> Config.reportSoFar).run(srcs).get_!
           assertEq(k.reportUsed, expectUsed)
         }
         "*> <*" - {
-          val k: ConfigReport = (si *> Config.report <* Config.need[Int]("i2")).run(srcs).get_!
+          val k: ConfigReport = (si *> Config.reportSoFar <* Config.need[Int]("i2")).run(srcs).get_!
           assertEq(k.reportUsed, expectUsed)
         }
         'with {
@@ -54,7 +54,7 @@ object ConfigReportTest extends TestSuite {
         }
       }
       'unused {
-        val k: ConfigReport = (si *> Config.report).run(srcs).get_!
+        val k: ConfigReport = (si *> Config.reportSoFar).run(srcs).get_!
         assertEq(k.reportUnused, expectUnused)
       }
 
