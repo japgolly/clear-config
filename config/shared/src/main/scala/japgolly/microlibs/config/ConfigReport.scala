@@ -7,6 +7,9 @@ import ConfigReport._
 
 object ConfigReport {
 
+  private def isValueMapEmpty(m: Map[_, ConfigValue]): Boolean =
+    !m.exists(_._2 != ConfigValue.NotFound)
+
   final case class RowFilter(allow: (Key, Map[SourceName, ConfigValue]) => Boolean) extends AnyVal {
     def unary_! : RowFilter = RowFilter(!allow)
     def &&(f: RowFilter): RowFilter = RowFilter(allow && f.allow)
@@ -21,6 +24,15 @@ object ConfigReport {
     def exclude(f: (Key, Map[SourceName, ConfigValue]) => Boolean): RowFilter =
       RowFilter(!f)
 
+    def excludeEmpty: RowFilter =
+      exclude((_, vs) => isValueMapEmpty(vs))
+
+    def excludeKeys(keys: String*): RowFilter =
+      excludeByKey(keys.toIterator.map(Key).toSet.contains)
+
+    def excludeByKey(f: Key => Boolean): RowFilter =
+      exclude((k, _) => f(k))
+
     /** Exclude rows where a key is only provided by a specified single source. */
     def excludeWhereSingleSource(s: SourceName): RowFilter =
       excludeWhereSingleSource(_ == s)
@@ -29,18 +41,44 @@ object ConfigReport {
     def excludeWhereSingleSource(f: SourceName => Boolean): RowFilter =
       exclude((_, vs) => vs.size == 1 && f(vs.keysIterator.next()))
 
-    def excludeKeys(keys: String*): RowFilter =
-      excludeByKey(keys.toIterator.map(Key).toSet.contains)
-
-    def excludeByKey(f: Key => Boolean): RowFilter =
-      exclude((k, _) => f(k))
-
     def defaultForUsedReport: RowFilter =
       allowAll
 
     def defaultForUnusedReport: RowFilter =
       excludeByKey(_.value contains "TERMCAP") &&
       excludeKeys("PROMPT", "PS1")
+  }
+
+  // ===================================================================================================================
+
+  final case class ColFilter(allow: (SourceName, Map[Key, ConfigValue]) => Boolean) extends AnyVal {
+    def unary_! : ColFilter = ColFilter(!allow)
+    def &&(f: ColFilter): ColFilter = ColFilter(allow && f.allow)
+    def ||(f: ColFilter): ColFilter = ColFilter(allow || f.allow)
+    def addExclusion(f: ColFilter): ColFilter = ColFilter(allow && !f.allow)
+  }
+
+  object ColFilter {
+    def allowAll: ColFilter =
+      ColFilter((_, _) => true)
+
+    def exclude(f: (SourceName, Map[Key, ConfigValue]) => Boolean): ColFilter =
+      ColFilter(!f)
+
+    def excludeEmpty: ColFilter =
+      exclude((_, vs) => isValueMapEmpty(vs))
+
+    def excludeSources(sources: SourceName*): ColFilter =
+      excludeBySource(sources.toSet.contains)
+
+    def excludeBySource(f: SourceName => Boolean): ColFilter =
+      exclude((s, _) => f(s))
+
+    def defaultForUsedReport: ColFilter =
+      excludeEmpty
+
+    def defaultForUnusedReport: ColFilter =
+      excludeEmpty
   }
 
   // ===================================================================================================================
@@ -82,16 +120,28 @@ object ConfigReport {
 
   // ===================================================================================================================
 
-  final case class SubReport(data: Map[Key, Map[SourceName, ConfigValue]], rowFilter: RowFilter) {
+  final case class SubReport(data     : Map[Key, Map[SourceName, ConfigValue]],
+                             rowFilter: RowFilter,
+                             colFilter: ColFilter) {
 
     def report(sourcesHighToLowPri: Vector[SourceName], valueDisplay: ValueDisplay): String =
       if (data.isEmpty)
         "No data to report."
       else {
-          val header: Vector[String] =
-          "Key" +: sourcesHighToLowPri.map(_.value)
-
         def fmtError(e: String) = s"$RED$e$RESET"
+
+        val dataBySource: Map[SourceName, Map[Key, ConfigValue]] =
+          data.iterator
+            .flatMap { case (k, sv) => sv.iterator.map { case (s, v) => (s, (k, v)) } }
+            .toList
+            .groupBy(_._1)
+            .mapValuesNow(_.iterator.map(_._2).toMap)
+
+        val sources: Vector[SourceName] =
+          sourcesHighToLowPri.filter(s => colFilter.allow(s, dataBySource.getOrElse(s, Map.empty)))
+
+        val header: Vector[String] =
+          "Key" +: sources.map(_.value)
 
         val valueRows: List[Vector[String]] =
           data.iterator
@@ -100,7 +150,7 @@ object ConfigReport {
             .sortBy(_._1.value)
             .map { case (k, vs) =>
               def fmtValue(v: String) = valueDisplay.fmt(k, v)
-              k.value +: sourcesHighToLowPri.map(vs.getOrElse(_, ConfigValue.NotFound)).map {
+              k.value +: sources.map(vs.getOrElse(_, ConfigValue.NotFound)).map {
                 case ConfigValue.Found(v)            => fmtValue(v)
                 case ConfigValue.NotFound            => ""
                 case ConfigValue.Error(err, None)    => fmtError(err)
@@ -135,8 +185,8 @@ object ConfigReport {
                    unused             : Map[Key, Map[SourceName, ConfigValue]]): ConfigReport =
     ConfigReport(
       sourcesHighToLowPri,
-      SubReport(used, RowFilter.defaultForUsedReport),
-      SubReport(unused, RowFilter.defaultForUnusedReport),
+      SubReport(used, RowFilter.defaultForUsedReport, ColFilter.defaultForUsedReport),
+      SubReport(unused, RowFilter.defaultForUnusedReport, ColFilter.defaultForUnusedReport),
       Settings.default)
 }
 

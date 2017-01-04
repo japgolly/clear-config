@@ -31,6 +31,9 @@ object Source {
   def point[F[_]](name: String, config: => ConfigStore[F])(implicit F: Applicative[F]): Source[F] =
     Source[F](SourceName(name), F.point(\/-(config)))
 
+  def empty[F[_]](name: String)(implicit F: Applicative[F]): Source[F] =
+    manual(name)()
+
   def manual[F[_]](name: String)(kvs: (String, String)*)(implicit F: Applicative[F]): Source[F] =
     point(name, ConfigStore.stringMap(kvs.toMap))
 

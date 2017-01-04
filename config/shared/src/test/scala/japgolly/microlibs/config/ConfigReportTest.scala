@@ -10,6 +10,8 @@ import Helpers._
 
 object ConfigReportTest extends TestSuite {
 
+  val S0 = Source.empty[Id]("S0")
+
   override def tests = TestSuite {
 
     'report {
@@ -59,11 +61,12 @@ object ConfigReportTest extends TestSuite {
       'combined {
 
         'default - assertMultiline(
-          si.withReport.run(srcs).get_!._2.report,
+          si.withReport.run(srcs > S0).get_!._2.report,
           s"""
-             !2 sources (highest to lowest priority):
+             !3 sources (highest to lowest priority):
              !  - S1
              !  - S2
+             !  - S0
              !
              !Used keys (3):
              !$expectUsed
