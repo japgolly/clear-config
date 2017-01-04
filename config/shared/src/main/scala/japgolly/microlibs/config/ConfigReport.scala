@@ -7,39 +7,43 @@ import ConfigReport._
 
 object ConfigReport {
 
-  final case class Filter(allow: (Key, Map[SourceName, ConfigValue]) => Boolean) extends AnyVal {
-    def unary_! : Filter = Filter(!allow)
-    def &&(f: Filter): Filter = Filter(allow && f.allow)
-    def ||(f: Filter): Filter = Filter(allow || f.allow)
-    def addExclusion(f: Filter): Filter = Filter(allow && !f.allow)
+  final case class RowFilter(allow: (Key, Map[SourceName, ConfigValue]) => Boolean) extends AnyVal {
+    def unary_! : RowFilter = RowFilter(!allow)
+    def &&(f: RowFilter): RowFilter = RowFilter(allow && f.allow)
+    def ||(f: RowFilter): RowFilter = RowFilter(allow || f.allow)
+    def addExclusion(f: RowFilter): RowFilter = RowFilter(allow && !f.allow)
   }
 
-  object Filter {
-    def allowAll: Filter =
-      Filter((_, _) => true)
+  object RowFilter {
+    def allowAll: RowFilter =
+      RowFilter((_, _) => true)
 
-    def exclude(f: (Key, Map[SourceName, ConfigValue]) => Boolean): Filter =
-      Filter(!f)
+    def exclude(f: (Key, Map[SourceName, ConfigValue]) => Boolean): RowFilter =
+      RowFilter(!f)
 
-    def ignoreUnusedBySoleSource(s: SourceName): Filter =
-      ignoreUnusedBySoleSource(_ == s)
+    /** Exclude rows where a key is only provided by a specified single source. */
+    def excludeWhereSingleSource(s: SourceName): RowFilter =
+      excludeWhereSingleSource(_ == s)
 
-    def ignoreUnusedBySoleSource(f: SourceName => Boolean): Filter =
+    /** Exclude rows where a key is only provided by a single source, and that source matches given criteria. */
+    def excludeWhereSingleSource(f: SourceName => Boolean): RowFilter =
       exclude((_, vs) => vs.size == 1 && f(vs.keysIterator.next()))
 
-    def ignoreUnusedKeys(keys: String*): Filter =
-      ignoreUnusedByKey(keys.toIterator.map(Key).toSet.contains)
+    def excludeKeys(keys: String*): RowFilter =
+      excludeByKey(keys.toIterator.map(Key).toSet.contains)
 
-    def ignoreUnusedByKey(f: Key => Boolean): Filter =
+    def excludeByKey(f: Key => Boolean): RowFilter =
       exclude((k, _) => f(k))
 
-    def defaultUsed: Filter =
+    def defaultForUsedReport: RowFilter =
       allowAll
 
-    def defaultUnused: Filter =
-      ignoreUnusedByKey(_.value contains "TERMCAP") &&
-      ignoreUnusedKeys("PROMPT", "PS1")
+    def defaultForUnusedReport: RowFilter =
+      excludeByKey(_.value contains "TERMCAP") &&
+      excludeKeys("PROMPT", "PS1")
   }
+
+  // ===================================================================================================================
 
   final case class ValueDisplay(fmt: (Key, String) => String) extends AnyVal {
     def +(f: ValueDisplay): ValueDisplay =
@@ -76,14 +80,16 @@ object ConfigReport {
       (obfuscateKey(_ contains "password") + obfuscateKey(_ contains "secret")).contramapKeys(_.toLowerCase)
   }
 
+  // ===================================================================================================================
+
   def withDefaults(sourcesHighToLowPri: Vector[SourceName],
                    used               : Map[Key, Map[SourceName, ConfigValue]],
                    unused             : Map[Key, Map[SourceName, ConfigValue]]): ConfigReport =
     ConfigReport(
       sourcesHighToLowPri, used, unused,
       ValueDisplay.default,
-      Filter.defaultUsed,
-      Filter.defaultUnused,
+      RowFilter.defaultForUsedReport,
+      RowFilter.defaultForUnusedReport,
       Some(64))
 }
 
@@ -91,15 +97,15 @@ final case class ConfigReport(sourcesHighToLowPri: Vector[SourceName],
                               used               : Map[Key, Map[SourceName, ConfigValue]],
                               unused             : Map[Key, Map[SourceName, ConfigValue]],
                               display            : ValueDisplay,
-                              usedFilter         : Filter,
-                              unusedFilter       : Filter,
+                              usedFilter         : RowFilter,
+                              unusedFilter       : RowFilter,
                               maxValueLen        : Option[Int]) {
   override def toString = "ConfigReport"
 
   private val display2 =
     maxValueLen.fold(display)(ValueDisplay.limitWidth(_) + display)
 
-  private def table(map: Map[Key, Map[SourceName, ConfigValue]], filter: Filter): String = {
+  private def table(map: Map[Key, Map[SourceName, ConfigValue]], filter: RowFilter): String = {
     val header: Vector[String] =
       "Key" +: sourcesHighToLowPri.map(_.value)
 
@@ -137,10 +143,10 @@ final case class ConfigReport(sourcesHighToLowPri: Vector[SourceName],
        !$reportUnused
      """.stripMargin('!')
 
-  def filterUsed(f: Filter): ConfigReport =
+  def filterUsed(f: RowFilter): ConfigReport =
     copy(usedFilter = usedFilter && f)
 
-  def filterUnused(f: Filter): ConfigReport =
+  def filterUnused(f: RowFilter): ConfigReport =
     copy(unusedFilter = unusedFilter && f)
 
   def withMaxValueLength(i: Int): ConfigReport =

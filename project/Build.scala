@@ -25,7 +25,6 @@ object Microlibs {
     val Scala212        = "2.12.1"
     val Scalaz          = "7.2.8"
     val UnivEq          = "1.0.2"
-
   }
 
   def scalacFlags = Seq(
