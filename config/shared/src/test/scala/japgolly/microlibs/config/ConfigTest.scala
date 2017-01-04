@@ -46,7 +46,7 @@ object ConfigTest extends TestSuite {
           |1 error:
           |  - No value for key [QQ]
           |
-          |2 sources:
+          |2 sources (highest to lowest priority):
           |  - S1
           |  - S2
         """.stripMargin.trim))
@@ -59,7 +59,7 @@ object ConfigTest extends TestSuite {
             |  - No value for key [M]
             |  - No value for key [QQ]
             |
-            |2 sources:
+            |2 sources (highest to lowest priority):
             |  - S1
             |  - S2
           """.stripMargin.trim))
@@ -73,7 +73,7 @@ object ConfigTest extends TestSuite {
             |  - Error reading key [X] from source [SE]: This source is fake!
             |  - Error reading key [s] from source [S1] with value [hey]: Int expected.
             |
-            |3 sources:
+            |3 sources (highest to lowest priority):
             |  - S1
             |  - S2
             |  - SE
@@ -92,7 +92,7 @@ object ConfigTest extends TestSuite {
             |  - Error using <function>, key [in]: Must be > 1150.
             |  - Error using runtime value [7]: Must be > 10.
             |
-            |3 sources:
+            |3 sources (highest to lowest priority):
             |  - S1
             |  - S2
             |  - SE
@@ -129,59 +129,6 @@ object ConfigTest extends TestSuite {
         'ko - assertEq(
           c.ensure(_ > 150, "Must be > 150.").run(srcs),
           ConfigResult.QueryFailure(Map.empty, Set("Must be > 150." -> Set(\/-(Key("in")), \/-(Key("i2")), -\/("<function>"))), srcNames))
-      }
-    }
-
-    'report {
-      val si: Config[Unit] = (Config.need[String]("s") |@| Config.need[Int]("i") |@| Config.get[Int]("no"))((_,_,_) => ())
-      val expectUsed =
-        s"""
-           |+-----+-----+------+
-           || Key | S1  | S2   |
-           |+-----+-----+------+
-           || i   | 3   | X300 |
-           || no  |     |      |
-           || s   | hey |      |
-           |+-----+-----+------+
-         """.stripMargin.trim
-
-      val expectUnused =
-        s"""
-           |+-------+-------+-----+
-           || Key   | S1    | S2  |
-           |+-------+-------+-----+
-           || dur3m | 3 min |     |
-           || i2    |       | 22  |
-           || in    | 100   | 200 |
-           || s2    |       | ah  |
-           |+-------+-------+-----+
-         """.stripMargin.trim
-
-      'used {
-        "*>" - {
-          val k: ConfigReport = (si *> Config.report).run(srcs).get_!
-          assertEq(k.reportUsed, expectUsed)
-        }
-        "*> <*" - {
-          val k: ConfigReport = (si *> Config.report <* Config.need[Int]("i2")).run(srcs).get_!
-          assertEq(k.reportUsed, expectUsed)
-        }
-        'with {
-          val (_, k: ConfigReport) = si.withReport.run(srcs).get_!
-          assertEq(k.reportUsed, expectUsed)
-        }
-      }
-      'unused {
-        val k: ConfigReport = (si *> Config.report).run(srcs).get_!
-        assertEq(k.reportUnused, expectUnused)
-      }
-//      'combined - (si *> Config.keyReport).run(srcs).get_!.report
-      'combined - println {
-        // AWS_SECRET_KEY
-        // *password*
-        val srcs2 = Source.manual[Id]("BLAR")("user.language" -> "omg!") > srcs > Source.environment[Id] > Source.system[Id]
-        (si *> Config.get[String]("user.name") *> Config.report).run(srcs2).get_!
-          .report
       }
     }
 
@@ -230,7 +177,8 @@ object ConfigTest extends TestSuite {
       val m = c.run(srcs).get_!
       assertEq((m.a, m.b, m.name), (100, 2, "hey"))
     }
-    'consumerFn {
+
+    'consumerFnC {
       class Mutable {
         var a = 1
         var b = 2

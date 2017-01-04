@@ -113,6 +113,20 @@ object ConfigReport {
 
   // ===================================================================================================================
 
+  final case class Settings(display0      : ValueDisplay,
+                            maxValueLen   : Option[Int],
+                            showSourceList: Boolean) {
+    def display: ValueDisplay =
+      maxValueLen.fold(display0)(ValueDisplay.limitWidth(_) + display0)
+  }
+
+  object Settings {
+    def default: Settings =
+      Settings(ValueDisplay.default, Some(64), true)
+  }
+
+  // ===================================================================================================================
+
   def withDefaults(sourcesHighToLowPri: Vector[SourceName],
                    used               : Map[Key, Map[SourceName, ConfigValue]],
                    unused             : Map[Key, Map[SourceName, ConfigValue]]): ConfigReport =
@@ -120,34 +134,31 @@ object ConfigReport {
       sourcesHighToLowPri,
       SubReport(used, RowFilter.defaultForUsedReport),
       SubReport(unused, RowFilter.defaultForUnusedReport),
-      ValueDisplay.default,
-      Some(64))
+      Settings.default)
 }
 
 final case class ConfigReport(sourcesHighToLowPri: Vector[SourceName],
                               used               : SubReport,
                               unused             : SubReport,
-                              display            : ValueDisplay,
-                              maxValueLen        : Option[Int]) {
+                              settings           : Settings) {
   override def toString = "ConfigReport"
 
-  private def display2 =
-    maxValueLen.fold(display)(ValueDisplay.limitWidth(_) + display)
-
   def reportUsed: String =
-    used.report(sourcesHighToLowPri, display2)
+    used.report(sourcesHighToLowPri, settings.display)
 
   def reportUnused: String =
-    unused.report(sourcesHighToLowPri, display2)
+    unused.report(sourcesHighToLowPri, settings.display)
 
   def report: String =
     s"""
+       !${if (settings.showSourceList) fmtSourceNameList(sourcesHighToLowPri) else ""}
+       !
        !Used keys (${used.data.size}):
        !$reportUsed
        !
        !Unused keys (${unused.data.size}):
        !$reportUnused
-     """.stripMargin('!')
+     """.stripMargin('!').trim
 
   def withUsedSettings(f: SubReport => SubReport): ConfigReport =
     copy(used = f(used))
@@ -155,6 +166,9 @@ final case class ConfigReport(sourcesHighToLowPri: Vector[SourceName],
   def withUnusedSettings(f: SubReport => SubReport): ConfigReport =
     copy(unused = f(unused))
 
+  def withSettings(f: Settings => Settings): ConfigReport =
+    copy(settings = f(settings))
+
   def withMaxValueLength(i: Int): ConfigReport =
-    copy(maxValueLen = Some(i))
+    withSettings(_.copy(maxValueLen = Some(i)))
 }

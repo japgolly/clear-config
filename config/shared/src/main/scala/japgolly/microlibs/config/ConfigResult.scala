@@ -38,18 +38,10 @@ object ConfigResult {
       }
       val errors = (eachK ++ eachO).sorted
 
-      val sources = sourcesHighToLowPri.map(_.value)
-
-      def fmtList(one: String, other: String, items: Vector[String]): String = {
-        val n = items.length
-        val a = if (n == 1) one else other
-        s"$n $a:${items.iterator.map("\n  - " + _).mkString}"
-      }
-
       s"""
          |${fmtList("error", "errors", errors)}
          |
-         |${fmtList("source", "sources", sources)}
+         |${fmtSourceNameList(sourcesHighToLowPri)}
        """.stripMargin.trim
     }
     override def toDisjunction = -\/(errorMsg)
