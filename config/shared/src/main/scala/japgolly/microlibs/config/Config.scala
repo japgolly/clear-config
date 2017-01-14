@@ -131,16 +131,19 @@ object Config {
     }
 
   def get[A: ConfigParser](key: String): Config[Option[A]] =
-    baseGetA[A, Option[A]](key, (_, o) => o match {
+    baseGetA[A, Option[A]](key, ApiMethod.Get, (_, o) => o match {
       case Some((origin, a)) => StepResult.Success(Some(a), Set(origin))
       case None              => StepResult.Success(None, Set.empty)
     })
 
   def getOrUse[A: ConfigParser](key: String, default: => A): Config[A] =
-    get[A](key).map(_ getOrElse default)
+    baseGetA[A, A](key, ApiMethod.GetOrUse(default.toString), (_, o) => o match {
+      case Some((origin, a)) => StepResult.Success(a, Set(origin))
+      case None              => StepResult.Success(default, Set.empty)
+    })
 
   def need[A: ConfigParser](key: String): Config[A] =
-    baseGetA[A, A](key, (k, o) => o match {
+    baseGetA[A, A](key, ApiMethod.Need, (k, o) => o match {
       case Some((origin, a)) => StepResult.Success(a, Set(origin))
       case None              => StepResult.Failure(Map(k -> None), Set.empty)
     })
@@ -182,11 +185,40 @@ object Config {
     implicit def semigroupConfigValue: Semigroup[ConfigValue] =
       Semigroup.firstSemigroup // There will never be overlap
 
-    val fUsed: F[M] =
+    val apiProps: Option[Map[Key, String]] = {
+      val m: Map[Key, String] =
+        s.apiData
+          .mapOrRemoveValues(_.toList match {
+            case Nil                         => None
+            case ApiMethod.Get         :: Nil => None
+            case ApiMethod.Need        :: Nil => None
+            case ApiMethod.GetOrUse(u) :: Nil => Some(u)
+            case xs@(_ :: _ :: _) => Some(xs.map {
+              case ApiMethod.Get         => "<get>"
+              case ApiMethod.Need        => "<need>"
+              case ApiMethod.GetOrUse(u) => u
+            }.sorted.mkString(" / "))
+          })
+      if (m.isEmpty) None else Some(m)
+    }
+
+    var srcs = r.highToLowPri.map(_._1)
+
+    var fUsed: F[M] =
       s.queryCache
         .toVector
         .traverse { case (k, x) => x.highToLowPri.map(x => k -> x.toIterator.map(sv => sv.source -> sv.value).toMap) }
-        .map(_.foldLeft(emptyM) { case (m, (k, vs)) => m.modifyValue(k, _.fold(vs)(_ ++ vs)) })
+        .map(_.foldLeft(emptyM) { case (m, (k, vs)) => m.setOrModifyValue(k, vs, _ ++ vs) })
+
+    // Add API column to used
+    for (ap <- apiProps) {
+      srcs :+= SourceName.api
+      fUsed = fUsed.map { used =>
+        ap.foldLeft(used){ case (q, (k, v)) =>
+          q.initAndModifyValue(k, Map.empty, _.updated(SourceName.api, ConfigValue.Found(v)))
+        }
+      }
+    }
 
     val usedKeys = s.queryCache.keySet
 
@@ -198,7 +230,7 @@ object Config {
 
 
     F.apply2(fUsed, fUnused)((used, unused) =>
-      ConfigReport.withDefaults(r.highToLowPri.map(_._1), used, unused))
+      ConfigReport.withDefaults(srcs, used, unused))
   }
 
   def reportSoFar: Config[ConfigReport] =

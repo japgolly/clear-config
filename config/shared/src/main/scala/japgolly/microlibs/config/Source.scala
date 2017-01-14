@@ -8,6 +8,7 @@ object SourceName {
   def classpath(filename: String) = SourceName(s"cp:$filename")
   def environment = SourceName("Env")
   def system = SourceName("System")
+  def api = SourceName("API")
 }
 
 final case class Source[F[_]](name: SourceName, prepare: F[String \/ ConfigStore[F]]) {
@@ -35,7 +36,10 @@ object Source {
     manual(name)()
 
   def manual[F[_]](name: String)(kvs: (String, String)*)(implicit F: Applicative[F]): Source[F] =
-    point(name, ConfigStore.stringMap(kvs.toMap))
+    manual(name, kvs.toMap)
+
+  def manual[F[_]](name: String, kvs: Map[String, String])(implicit F: Applicative[F]): Source[F] =
+    point(name, ConfigStore.stringMap(kvs))
 
   def environment[F[_]](implicit F: Applicative[F]): Source[F] =
     point(SourceName.environment.value, ConfigStore.stringMap(sys.env))

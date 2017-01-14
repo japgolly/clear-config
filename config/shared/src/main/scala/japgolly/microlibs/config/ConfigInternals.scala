@@ -2,6 +2,7 @@ package japgolly.microlibs.config
 
 import scalaz._
 import Scalaz._
+import japgolly.microlibs.stdlib_ext.StdlibExt._
 
 private[config] object ConfigInternals {
 
@@ -9,7 +10,7 @@ private[config] object ConfigInternals {
 
   final case class R[F[_]](highToLowPri: Vector[(SourceName, ConfigStore[F])])
 
-  final case class S[F[_]](keyModStack: List[Key => Key], queryCache: Map[Key, VO[F]]) {
+  final case class S[F[_]](keyModStack: List[Key => Key], queryCache: Map[Key, VO[F]], apiData: Map[Key, Set[ApiMethod]]) {
     def keyMod: Key => Key =
       keyModStack.headOption.getOrElse(identity[Key])
     def keyModPush(f: Key => Key): S[F] =
@@ -19,9 +20,11 @@ private[config] object ConfigInternals {
         case Nil => this
         case _ :: t => copy(t)
       }
+    def addApi(key: Key, apiMethod: ApiMethod): S[F] =
+      copy(apiData = apiData.initAndModifyValue(key, Set.empty, _ + apiMethod))
   }
   object S {
-    def init[F[_]]: S[F] = S(Nil, Map.empty)
+    def init[F[_]]: S[F] = S(Nil, Map.empty, Map.empty)
   }
 
   case class SV(source: SourceName, value: ConfigValue)
@@ -30,8 +33,8 @@ private[config] object ConfigInternals {
   sealed abstract class Origin
   object Origin {
     final case class Point(value: () => String) extends Origin
-    final case object Map extends Origin
     final case class Read(key: Key, sourceName: SourceName, sourceValue: ConfigValue.Found) extends Origin
+    case object Map extends Origin
   }
 
   final case class UnkeyedError(error: String, origins: Set[Origin]) {
@@ -86,7 +89,14 @@ private[config] object ConfigInternals {
       }
   }
 
-  def baseGet[A](key: String, doIt: (Key, Option[Origin.Read]) => StepResult[A]): Config[A] =
+  sealed abstract class ApiMethod
+  object ApiMethod {
+    final case class GetOrUse(asString: String) extends ApiMethod
+    case object Need extends ApiMethod
+    case object Get extends ApiMethod
+  }
+
+  def baseGet[A](key: String, apiMethod: ApiMethod, doIt: (Key, Option[Origin.Read]) => StepResult[A]): Config[A] =
     new Config[A] {
       override def step[F[_]](implicit F: Applicative[F]) =
         RWS { (r, s1) =>
@@ -113,6 +123,8 @@ private[config] object ConfigInternals {
                 (q, s1.copy(queryCache = s1.queryCache.updated(k, q)))
             }
 
+          val s3 = s2.addApi(k, apiMethod)
+
           val result: F[StepResult[A]] =
             vo.selected.map {
               case None                                     => doIt(k, None)
@@ -121,12 +133,12 @@ private[config] object ConfigInternals {
               case Some(SV(n, e: ConfigValue.Error))        => StepResult.Failure(Map(k -> Some((n, e))), Set.empty)
             }
 
-          ((), result, s2)
+          ((), result, s3)
         }
     }
 
-  def baseGetA[A, B](key: String, doIt: (Key, Option[(Origin.Read, A)]) => StepResult[B])(implicit v: ConfigParser[A]): Config[B] =
-    baseGet(key, (k, oo) =>
+  def baseGetA[A, B](key: String, apiMethod: ApiMethod, doIt: (Key, Option[(Origin.Read, A)]) => StepResult[B])(implicit v: ConfigParser[A]): Config[B] =
+    baseGet(key, apiMethod, (k, oo) =>
       oo match {
         case Some(o) =>
           v.parse(o.sourceValue) match {

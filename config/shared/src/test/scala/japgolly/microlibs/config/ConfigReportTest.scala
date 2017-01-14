@@ -14,8 +14,12 @@ object ConfigReportTest extends TestSuite {
 
   override def tests = TestSuite {
 
-    'report {
-      val si: Config[Unit] = (Config.need[String]("s") |@| Config.need[Int]("i") |@| Config.get[Int]("no"))((_,_,_) => ())
+    'getNeed {
+      val si: Config[Unit] =
+        (Config.need[String]("s")
+          |@| Config.need[Int]("i")
+          |@| Config.get[Int]("no")
+        )((_,_,_) => ())
       val expectUsed =
         s"""
            |+-----+-----+------+
@@ -42,20 +46,20 @@ object ConfigReportTest extends TestSuite {
       'used {
         "*>" - {
           val k: ConfigReport = (si *> Config.reportSoFar).run(srcs).get_!
-          assertEq(k.reportUsed, expectUsed)
+          assertMultiline(k.reportUsed, expectUsed)
         }
         "*> <*" - {
           val k: ConfigReport = (si *> Config.reportSoFar <* Config.need[Int]("i2")).run(srcs).get_!
-          assertEq(k.reportUsed, expectUsed)
+          assertMultiline(k.reportUsed, expectUsed)
         }
         'with {
           val (_, k: ConfigReport) = si.withReport.run(srcs).get_!
-          assertEq(k.reportUsed, expectUsed)
+          assertMultiline(k.reportUsed, expectUsed)
         }
       }
       'unused {
         val k: ConfigReport = (si *> Config.reportSoFar).run(srcs).get_!
-        assertEq(k.reportUnused, expectUnused)
+        assertMultiline(k.reportUnused, expectUnused)
       }
 
       'combined {
@@ -80,6 +84,68 @@ object ConfigReportTest extends TestSuite {
 //          (si *> Config.get[String]("user.name") *> Config.report).run(srcs2).get_!
 //            .report
 //        }
+      }
+    }
+
+    'getOrUse {
+
+      'specified {
+        val si = Config.need[String]("s2") tuple Config.get[String]("nope") tuple Config.getOrUse[Int]("i2", 666)
+        val k = si.withReport.run(src2).get_!._2
+        assertMultiline(k.report,
+          s"""
+             !2 sources (highest to lowest priority):
+             !  - S2
+             !  - API
+             !
+             !Used keys (3):
+             !+------+----+-----+
+             !| Key  | S2 | API |
+             !+------+----+-----+
+             !| i2   | 22 | 666 |
+             !| nope |    |     |
+             !| s2   | ah |     |
+             !+------+----+-----+
+             !
+             !Unused keys (2):
+             !+-----+------+
+             !| Key | S2   |
+             !+-----+------+
+             !| i   | X300 |
+             !| in  | 200  |
+             !+-----+------+
+             !
+           """.stripMargin('!').trim)
+      }
+
+      'unspecified {
+        val si = Config.need[String]("s") tuple Config.get[String]("nope") tuple Config.getOrUse[Int]("i2", 666)
+        val k = si.withReport.run(src1).get_!._2
+        assertMultiline(k.report,
+          s"""
+             !2 sources (highest to lowest priority):
+             !  - S1
+             !  - API
+             !
+             !Used keys (3):
+             !+------+-----+-----+
+             !| Key  | S1  | API |
+             !+------+-----+-----+
+             !| i2   |     | 666 |
+             !| nope |     |     |
+             !| s    | hey |     |
+             !+------+-----+-----+
+             !
+             !Unused keys (3):
+             !+-------+-------+
+             !| Key   | S1    |
+             !+-------+-------+
+             !| dur3m | 3 min |
+             !| i     | 3     |
+             !| in    | 100   |
+             !+-------+-------+
+             !
+           """.stripMargin('!').trim)
       }
     }
 
