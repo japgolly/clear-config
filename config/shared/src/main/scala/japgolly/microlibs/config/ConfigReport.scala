@@ -1,9 +1,10 @@
 package japgolly.microlibs.config
 
+import japgolly.microlibs.config.ConfigReport._
 import japgolly.microlibs.stdlib_ext.AsciiTable
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 import scala.Console._
-import ConfigReport._
+import scala.util.hashing.MurmurHash3
 
 object ConfigReport {
 
@@ -87,10 +88,19 @@ object ConfigReport {
     def +(f: ValueDisplay): ValueDisplay =
       ValueDisplay((k, s) => f.fmt(k, fmt(k, s)))
 
+    def map(f: String => String): ValueDisplay =
+      ValueDisplay((k, s) => f(fmt(k, s)))
+
     def contramapKeys(f: String => String): ValueDisplay = {
       val g = keyModFS(f)
       ValueDisplay((k, s) => fmt(g(k), s))
     }
+
+    def when(cond: (Key, String) => Boolean): ValueDisplay =
+      ValueDisplay((k, s) => if (cond(k, s)) fmt(k, s) else s)
+
+    def unless(cond: (Key, String) => Boolean): ValueDisplay =
+      when(!cond)
   }
 
   object ValueDisplay {
@@ -110,12 +120,15 @@ object ConfigReport {
     def limitWidth(maxLen: Int): ValueDisplay =
       ValueDisplay((_, s) => if (s.length <= maxLen) s else s.take(maxLen - 1) + "…")
 
+    def obfuscate: ValueDisplay =
+      ValueDisplay((_, s) => s"$YELLOW<# %08X #>$RESET".format(MurmurHash3 stringHash s))
+
     def obfuscateKey(f: String => Boolean): ValueDisplay =
-      ValueDisplay((k, s) => if (f(k.value)) s"$YELLOW<# %08X #>$RESET".format(s.##) else s)
+      obfuscate.when((k, _) => f(k.value))
 
     def default: ValueDisplay =
       escapeCtrlChars +
-      (obfuscateKey(_ contains "password") + obfuscateKey(_ contains "secret")).contramapKeys(_.toLowerCase)
+      obfuscateKey(_ matches ".*(?:password|secret).*").contramapKeys(_.toLowerCase)
   }
 
   // ===================================================================================================================
