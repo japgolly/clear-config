@@ -11,8 +11,6 @@ package object config {
     s"$n $a:${items.iterator.map("\n  - " + _).mkString}"
   }
 
-  private[config] def fmtSourceNameList(sourcesHighToLowPri: Vector[SourceName]): String = {
-    val suffix = " (highest to lowest priority)"
-    fmtList("source" + suffix, "sources" + suffix, sourcesHighToLowPri.map(_.value))
-  }
+  private[config] def fmtSourceNameList(sourcesHighToLowPri: Vector[SourceName]): String =
+    fmtList("source", "sources (highest to lowest priority)", sourcesHighToLowPri.map(_.value))
 }
