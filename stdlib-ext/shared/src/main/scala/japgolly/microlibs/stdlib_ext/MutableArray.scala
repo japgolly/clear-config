@@ -9,11 +9,11 @@ import scala.reflect.ClassTag
 final class MutableArray[A](val underlying: Array[Any]) {
   override def toString = underlying.mkString("MutableArray[", ", ", "]")
 
-  @inline def length = underlying.length
-  @inline def isEmpty = underlying.isEmpty
-  @inline def nonEmpty = underlying.nonEmpty
-  @inline def iterator = array.iterator
-  @inline def toIterable = array.toIterable
+  def length = underlying.length
+  def isEmpty = underlying.isEmpty
+  def nonEmpty = underlying.nonEmpty
+  def iterator = array.iterator
+  def toIterable = array.toIterable
 
   def array: Array[A] =
     underlying.asInstanceOf[Array[A]]
@@ -39,7 +39,7 @@ final class MutableArray[A](val underlying: Array[Any]) {
     b.result()
   }
 
-  @inline def sort(implicit o: Ordering[A]): MutableArray[A] = {
+  def sort(implicit o: Ordering[A]): MutableArray[A] = {
     scala.util.Sorting.quickSort(array)(o)
     this
   }
@@ -60,16 +60,9 @@ final class MutableArray[A](val underlying: Array[Any]) {
 
 object MutableArray {
 
-  def apply[A: ClassTag](as: TraversableOnce[A]): MutableArray[A] =
-    new MutableArray(as.toArray)
+  def apply[A](as: TraversableOnce[A]): MutableArray[A] =
+    new MutableArray(as.toArray[Any])
 
-  def map[A, B: ClassTag](as: IndexedSeq[A])(f: A => B): MutableArray[B] = {
-    val array = new Array[Any](as.length)
-    var i = 0
-    as.foreach { a =>
-      array(i) = f(a)
-      i = i + 1
-    }
-    new MutableArray(array)
-  }
+  def map[A, B](as: Iterable[A])(f: A => B): MutableArray[B] =
+    apply(as.toIterator.map(f))
 }
