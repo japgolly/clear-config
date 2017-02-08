@@ -1,42 +1,44 @@
 package japgolly.microlibs.stdlib_ext
 
 import scala.collection.generic.CanBuildFrom
-import scala.reflect.ClassTag
 
 /**
   * Scala arrays don't support in-place modification.
   */
-final class MutableArray[A](val underlying: Array[Any]) {
+final class MutableArray[A](underlying: Array[Any]) {
   override def toString = underlying.mkString("MutableArray[", ", ", "]")
 
   def length = underlying.length
   def isEmpty = underlying.isEmpty
   def nonEmpty = underlying.nonEmpty
-  def iterator = array.iterator
-  def toIterable = array.toIterable
 
-  def array: Array[A] =
+  private[this] var pendingMap: Option[Any => Any] = None
+
+  def array: Array[A] = {
+    pendingMap.foreach { f =>
+      pendingMap = None
+      var i = length
+      while (i > 0) {
+        i -= 1
+        underlying(i) = f(underlying(i))
+      }
+    }
     underlying.asInstanceOf[Array[A]]
+  }
 
   def widen[B >: A]: MutableArray[B] =
     this.asInstanceOf[MutableArray[B]]
 
-  def map[B](f: A => B): MutableArray[B] = {
-    val a = array
-    var i = length
-    while (i > 0) {
-      i -= 1
-      underlying(i) = f(a(i))
+  def iterator: Iterator[A] =
+    pendingMap match {
+      case None    => array.iterator
+      case Some(f) => underlying.iterator.map(f(_).asInstanceOf[A])
     }
-    this.asInstanceOf[MutableArray[B]]
-  }
 
-  def mapOut[B, That](f: A => B)(implicit cbf: CanBuildFrom[Nothing, B, That]): That = {
-    val b = cbf()
-    b.sizeHint(length)
-    for (a <- array)
-      b += f(a)
-    b.result()
+  def map[B](f: A => B): MutableArray[B] = {
+    val g = f.asInstanceOf[Any => Any]
+    pendingMap = Some(pendingMap.fold(g)(g.compose))
+    this.asInstanceOf[MutableArray[B]]
   }
 
   def sort(implicit o: Ordering[A]): MutableArray[A] = {
@@ -52,8 +54,12 @@ final class MutableArray[A](val underlying: Array[Any]) {
       .sort(Ordering.by((_: (B, A))._1))
       .map(_._2)
 
-  def to[Col[_]](implicit cbf: CanBuildFrom[Nothing, A, Col[A]]): Col[A] =
-    mapOut[A, Col[A]](identity)
+  def to[Col[_]](implicit cbf: CanBuildFrom[Nothing, A, Col[A]]): Col[A] = {
+    val b = cbf()
+    b.sizeHint(length)
+    iterator.foreach(b += _)
+    b.result()
+  }
 }
 
 // =====================================================================================================================
