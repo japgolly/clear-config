@@ -60,6 +60,16 @@ final class MutableArray[A](underlying: Array[Any]) {
     iterator.foreach(b += _)
     b.result()
   }
+
+  def mkString(start: String, sep: String, end: String): String =
+    array.mkString(start, sep, end)
+
+  def mkString(sep: String): String =
+    array.mkString(sep)
+
+  def mkString: String =
+    array.mkString
+
 }
 
 // =====================================================================================================================
