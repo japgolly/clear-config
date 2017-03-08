@@ -19,11 +19,11 @@ object Microlibs {
     val JavaTimeScalaJs = "0.2.0"
     val KindProjector   = "0.9.3"
     val MacroParadise   = "2.1.0"
-    val Monocle         = "1.3.2"
+    val Monocle         = "1.4.0"
     val MTest           = "0.4.5"
     val Scala211        = "2.11.8"
     val Scala212        = "2.12.1"
-    val Scalaz          = "7.2.8"
+    val Scalaz          = "7.2.9"
     val UnivEq          = "1.0.2"
   }
 
@@ -51,7 +51,7 @@ object Microlibs {
       organization                  := "com.github.japgolly.microlibs",
       homepage                      := Some(url("https://github.com/japgolly/" + ghProject)),
       licenses                      += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
-      scalaVersion                  := Ver.Scala211,
+      scalaVersion                  := Ver.Scala212,
       crossScalaVersions            := Seq(Ver.Scala211, Ver.Scala212),
       scalacOptions                ++= scalacFlags.value,
       scalacOptions in Test        --= Seq("-Ywarn-dead-code"),
@@ -105,6 +105,7 @@ object Microlibs {
 
   lazy val root =
     Project("root", file("."))
+      .settings(name := "Microlibs")
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(rootJVM, rootJS, bench)
 
