@@ -21,9 +21,9 @@ object Microlibs {
     val MacroParadise   = "2.1.0"
     val Monocle         = "1.4.0"
     val MTest           = "0.4.5"
-    val Scala211        = "2.11.8"
-    val Scala212        = "2.12.1"
-    val Scalaz          = "7.2.9"
+    val Scala211        = "2.11.11"
+    val Scala212        = "2.12.2"
+    val Scalaz          = "7.2.11"
     val UnivEq          = "1.0.2"
   }
 
