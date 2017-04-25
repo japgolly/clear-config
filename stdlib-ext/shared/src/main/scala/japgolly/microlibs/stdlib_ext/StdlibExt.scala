@@ -16,6 +16,20 @@ object StdlibExt {
     @inline def asOption: Option[A] = s.asInstanceOf[Option[A]]
   }
 
+  implicit class JSLE_Option[A](private val o: Option[A]) extends AnyVal {
+    def toMapEntrySetFn[K]: (Map[K, A], K) => Map[K, A] =
+      o match {
+        case Some(a) => _.updated(_, a)
+        case None    => _ - _
+      }
+  }
+
+  implicit class JSLE_OptionMap[K, V](private val o: Option[Map[K, V]]) extends AnyVal {
+    /** Convenience method to avoid Scala's shitty type inference */
+    def orEmptyMap: Map[K, V] =
+      o getOrElse Map.empty
+  }
+
   implicit class JSLE_Iterator[A](private val as: Iterator[A]) extends AnyVal {
 
     def filterSubType[T <: A](implicit t: ClassTag[T]): Iterator[T] =
@@ -124,6 +138,9 @@ object StdlibExt {
   }
 
   implicit class JSLE_Map[K, V](private val m: Map[K, V]) extends AnyVal {
+
+    def setValueOption(k: K, v: Option[V]): Map[K, V] =
+      v.fold(m - k)(m.updated(k, _))
 
     def modifyValueOption(k: K, f: Option[V] => Option[V]): Map[K, V] = {
       val before = m.get(k)
