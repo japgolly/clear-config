@@ -27,9 +27,6 @@ object Microlibs {
     val UnivEq          = "1.0.2"
   }
 
-  def byScalaVersion[A](f: PartialFunction[(Int, Int), Seq[A]]): Def.Initialize[Seq[A]] =
-    Def.setting(CrossVersion.partialVersion(scalaVersion.value).flatMap(f.lift).getOrElse(Nil))
-
   def scalacFlags = Def.setting(
     Seq(
       "-deprecation",
@@ -41,10 +38,11 @@ object Microlibs {
       "-language:postfixOps",
       "-language:implicitConversions",
       "-language:higherKinds",
-      "-language:existentials") ++
-    byScalaVersion {
-      case (2, 12) => Seq("-opt:l:method")
-    }.value)
+      "-language:existentials")
+    ++ (scalaVersion.value match {
+      case x if x startsWith "2.11." => "-target:jvm-1.6" :: Nil
+      case x if x startsWith "2.12." => "-target:jvm-1.8" :: "-opt:l:method" :: Nil
+    }))
 
   val commonSettings = ConfigureBoth(
     _.settings(
