@@ -16,6 +16,14 @@ object StdlibExt {
     @inline def asOption: Option[A] = s.asInstanceOf[Option[A]]
   }
 
+  implicit class JSLE_OptionObj(private val self: Option.type) extends AnyVal {
+    def when[A](cond: Boolean)(a: => A): Option[A] =
+       if (cond) Some(a) else None
+
+    @inline def unless[A](cond: Boolean)(a: => A): Option[A] =
+       when(!cond)(a)
+  }
+
   implicit class JSLE_Option[A](private val o: Option[A]) extends AnyVal {
     def toMapEntrySetFn[K]: (Map[K, A], K) => Map[K, A] =
       o match {
