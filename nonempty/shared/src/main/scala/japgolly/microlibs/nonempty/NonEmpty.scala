@@ -45,12 +45,17 @@ object NonEmpty {
 
   final case class Proof[I, O](tryProve: I => Option[O]) extends AnyVal
 
-  type ProofA[A] = Proof[A, NonEmpty[A]]
+  type ProofMono[A] = Proof[A, NonEmpty[A]]
 
-  object Proof {
-    def testEmptiness[A](isEmpty: A => Boolean): ProofA[A] =
+  trait ProofImplicitsLo {
+    def testEmptiness[A](isEmpty: A => Boolean): ProofMono[A] =
       Proof(a => if (isEmpty(a)) None else Some(new NonEmpty(a)))
 
+    implicit def proveTraversable[A <: Traversable[_]]: ProofMono[A] =
+      testEmptiness(_.isEmpty)
+  }
+
+  object Proof extends ProofImplicitsLo {
     implicit def proveNES[A: UnivEq]: Proof[Set[A], NonEmptySet[A]] =
       Proof(NonEmptySet.option[A])
 
