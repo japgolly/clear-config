@@ -6,7 +6,7 @@ sealed abstract class MonoS1
 object MonoS1 {
   case object A extends MonoS1
 //   val Values = AdtMacros.adtValues[MonoS1] // SI-7046
-//   val ValuesM = AdtMacros.adtValuesManual[MonoS1](A) // SI-7046
+//   val ValuesM = AdtMacros.adtValuesManually[MonoS1](A) // SI-7046
 }
 
 sealed trait MonoS3
@@ -15,7 +15,7 @@ object MonoS3 {
   case object B extends MonoS3
   case object C extends MonoS3
 //  // val Values = AdtMacros.adtValues[MonoS3] // SI-7046
-//  // val ValuesM = AdtMacros.adtValuesManual[MonoS3](A, B, C) // SI-7046
+//  // val ValuesM = AdtMacros.adtValuesManually[MonoS3](A, B, C) // SI-7046
 }
 
 trait Unsealed

@@ -19,8 +19,8 @@ object AdtMacros {
   def _adtValues[T]: NonEmptyVector[T] = macro AdtMacros.debugAdtValues[T]
 
   /** Because sometimes order matters. */
-  def adtValuesManual[T](vs: T*): NonEmptyVector[T] = macro AdtMacros.quietAdtValuesManual[T]
-  def _adtValuesManual[T](vs: T*): NonEmptyVector[T] = macro AdtMacros.debugAdtValuesManual[T]
+  def adtValuesManually[T](vs: T*): NonEmptyVector[T] = macro AdtMacros.quietAdtValuesManual[T]
+  def _adtValuesManually[T](vs: T*): NonEmptyVector[T] = macro AdtMacros.debugAdtValuesManual[T]
 
   def valuesForAdt[T, V](f: T => V): NonEmptyVector[V] = macro AdtMacros.quietValuesForAdt[T, V]
   def _valuesForAdt[T, V](f: T => V): NonEmptyVector[V] = macro AdtMacros.debugValuesForAdt[T, V]

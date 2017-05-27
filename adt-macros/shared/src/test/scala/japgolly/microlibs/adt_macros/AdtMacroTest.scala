@@ -43,17 +43,17 @@ object AdtMacroTest extends TestSuite {
       'unsealed - assertFail(compileError("adtValues[Unsealed]"))
     }
 
-    'adtValuesManual {
+    'adtValuesManually {
 //      's1i - assertOrderedNEV(MonoS1.ValuesM)(MonoS1.A)
 //      's3i - assertOrderedNEV(MonoS3.ValuesM)(MonoS3.A, MonoS3.B, MonoS3.C)
-      's1 - assertOrderedNEV(adtValuesManual[MonoS1](MonoS1.A))(MonoS1.A)
-      's3 - assertOrderedNEV(adtValuesManual[MonoS3](MonoS3.A, MonoS3.B, MonoS3.C))(MonoS3.A, MonoS3.B, MonoS3.C)
-      'd2 - assertOrderedNEV(adtValuesManual[MonoD2](MonoD2.A, MonoD2.B(true), MonoD2.B(false)))(MonoD2.A, MonoD2.B(true), MonoD2.B(false))
-      'dupS1 - assertFail(compileError("adtValuesManual[MonoS1](MonoS1.A, MonoS1.A)"))
-      'dupS3 - assertFail(compileError("adtValuesManual[MonoS3](MonoS3.A, MonoS3.B, MonoS3.B, MonoS3.C)"))
-      'dupD2 - assertFail(compileError("adtValuesManual[MonoD2](MonoD2.B(true), MonoD2.A, MonoD2.B(true), MonoD2.B(false))"))
-      'missO - assertFail(compileError("adtValuesManual[MonoS3](MonoS3.A, MonoS3.C)"))
-      'missC - assertFail(compileError("adtValuesManual[MonoD2](MonoD2.A)"))
+      's1 - assertOrderedNEV(adtValuesManually[MonoS1](MonoS1.A))(MonoS1.A)
+      's3 - assertOrderedNEV(adtValuesManually[MonoS3](MonoS3.A, MonoS3.B, MonoS3.C))(MonoS3.A, MonoS3.B, MonoS3.C)
+      'd2 - assertOrderedNEV(adtValuesManually[MonoD2](MonoD2.A, MonoD2.B(true), MonoD2.B(false)))(MonoD2.A, MonoD2.B(true), MonoD2.B(false))
+      'dupS1 - assertFail(compileError("adtValuesManually[MonoS1](MonoS1.A, MonoS1.A)"))
+      'dupS3 - assertFail(compileError("adtValuesManually[MonoS3](MonoS3.A, MonoS3.B, MonoS3.B, MonoS3.C)"))
+      'dupD2 - assertFail(compileError("adtValuesManually[MonoD2](MonoD2.B(true), MonoD2.A, MonoD2.B(true), MonoD2.B(false))"))
+      'missO - assertFail(compileError("adtValuesManually[MonoS3](MonoS3.A, MonoS3.C)"))
+      'missC - assertFail(compileError("adtValuesManually[MonoD2](MonoD2.A)"))
     }
 
     'valuesForAdt {
