@@ -216,10 +216,10 @@ object StdlibExt {
       } finally sw.close()
     }
 
-    def stackTraceAsStringWithMod(pf: PartialFunction[String, String]): String =
-      stackTraceAsStringWithModL(pf.andThen(_ :: Nil))
+    def stackTraceAsStringWithLineMod(pf: PartialFunction[String, String]): String =
+      stackTraceAsStringWithLineExpansion(pf.andThen(_ :: Nil))
 
-    def stackTraceAsStringWithModL(pf: PartialFunction[String, List[String]]): String =
+    def stackTraceAsStringWithLineExpansion(pf: PartialFunction[String, List[String]]): String =
       stackTraceAsString
         .split('\n')
         .toIterator
