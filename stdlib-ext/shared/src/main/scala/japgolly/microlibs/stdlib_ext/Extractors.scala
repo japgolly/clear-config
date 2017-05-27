@@ -2,7 +2,6 @@ package japgolly.microlibs.stdlib_ext
 
 import java.time.Duration
 import java.time.temporal.ChronoUnit
-import scala.util.matching.Regex
 
 object ParseDouble {
   def unapply(s: String): Option[Double] =
