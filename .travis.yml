@@ -1,20 +1,24 @@
+language: scala
 sudo: false
 
-cache:
-  directories:
-    - $HOME/.sbt
-    - $HOME/.ivy2/cache
-
-language: scala
 scala:
   - 2.11.11
   - 2.12.2
+
 jdk:
   - oraclejdk8
 
 script:
   - sbt ++$TRAVIS_SCALA_VERSION test
 
-  # Tricks to avoid unnecessary cache updates
-  - find $HOME/.sbt -name "*.lock" -exec rm {} +
-  - find $HOME/.ivy2 -name "ivydata-*.properties" -exec rm {} +
+# Taken from https://github.com/typelevel/cats/blob/master/.travis.yml
+before_cache:
+  - find $HOME/.sbt -name "*.lock" -type f -delete
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
+cache:
+  directories:
+    - $HOME/.sbt/0.13/dependency
+    - $HOME/.sbt/boot/scala*
+    - $HOME/.sbt/launchers
+    - $HOME/.ivy2/cache
+
