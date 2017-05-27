@@ -92,9 +92,6 @@ object Microlibs {
     _.settings(
       libraryDependencies += "com.lihaoyi" %%% "utest" % Ver.MTest % "test",
       testFrameworks      += new TestFramework("utest.runner.Framework")))
-    .jsConfigure(
-      // Not mandatory; just faster.
-      _.settings(jsEnv in Test := PhantomJSEnv().value))
 
   def useTestUtil: CPE =
     _.dependsOn(testUtil % "test->compile")
