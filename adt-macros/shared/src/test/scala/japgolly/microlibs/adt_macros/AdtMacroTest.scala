@@ -14,17 +14,23 @@ object AdtMacroTest extends TestSuite {
   def valuesForAdtF[T, V](f: T => V): (NonEmptyVector[V], T => V) = macro AdtMacros.quietValuesForAdtF[T, V]
    */
 
+  def assertOrderedNEV[A](actual: NonEmptyVector[A], expect: NonEmptyVector[A]): Unit =
+    assert(actual == expect)
+
+  def assertOrderedNEV[A](actual: NonEmptyVector[A])(e1: A, eN: A*): Unit =
+    assertOrderedNEV(actual, NonEmptyVector(e1, eN.toVector))
+
   def assertUnorderedNEV[A](actual: NonEmptyVector[A], expect: NonEmptyVector[A]): Unit = {
     val norm: NonEmptyVector[A] => NonEmptyVector[A] = _.sortBy(_.toString)
-    val a = norm(actual)
-    val e = norm(expect)
-    assert(a == e)
+    assertOrderedNEV(norm(actual), norm(expect))
   }
 
   def assertUnorderedNEV[A](actual: NonEmptyVector[A])(e1: A, eN: A*): Unit =
     assertUnorderedNEV(actual, NonEmptyVector(e1, eN.toVector))
 
   def assertFail(e: CompileError) = e.msg
+
+  implicit def univEqS3: UnivEq[MonoS3] = UnivEq.derive[MonoS3]
 
   override def tests = TestSuite {
 
@@ -37,15 +43,18 @@ object AdtMacroTest extends TestSuite {
       'unsealed - assertFail(compileError("adtValues[Unsealed]"))
     }
 
-//    'adtValuesManual {
+    'adtValuesManual {
 //      's1i - assertOrderedNEV(MonoS1.ValuesM)(MonoS1.A)
 //      's3i - assertOrderedNEV(MonoS3.ValuesM)(MonoS3.A, MonoS3.B, MonoS3.C)
-//      's1 - assertOrderedNEV(adtValuesManual[MonoS1](MonoS1.A))(MonoS1.A)
-//      's3 - assertOrderedNEV(adtValuesManual[MonoS3](MonoS3.A, MonoS3.B, MonoS3.C))(MonoS3.A, MonoS3.B, MonoS3.C)
-//      'dup - assertFail(compileError("adtValuesManual[MonoS1](MonoS1.A, MonoS1.A)"))
-////      'd1 - assertFail(compileError("adtValues[MonoD1]"))
-////      'unsealed - assertFail(compileError("adtValues[Unsealed]"))
-//    }
+      's1 - assertOrderedNEV(adtValuesManual[MonoS1](MonoS1.A))(MonoS1.A)
+      's3 - assertOrderedNEV(adtValuesManual[MonoS3](MonoS3.A, MonoS3.B, MonoS3.C))(MonoS3.A, MonoS3.B, MonoS3.C)
+      'd2 - assertOrderedNEV(adtValuesManual[MonoD2](MonoD2.A, MonoD2.B(true), MonoD2.B(false)))(MonoD2.A, MonoD2.B(true), MonoD2.B(false))
+      'dupS1 - assertFail(compileError("adtValuesManual[MonoS1](MonoS1.A, MonoS1.A)"))
+      'dupS3 - assertFail(compileError("adtValuesManual[MonoS3](MonoS3.A, MonoS3.B, MonoS3.B, MonoS3.C)"))
+      'dupD2 - assertFail(compileError("adtValuesManual[MonoD2](MonoD2.B(true), MonoD2.A, MonoD2.B(true), MonoD2.B(false))"))
+      'missO - assertFail(compileError("adtValuesManual[MonoS3](MonoS3.A, MonoS3.C)"))
+      'missC - assertFail(compileError("adtValuesManual[MonoD2](MonoD2.A)"))
+    }
 
     'valuesForAdt {
       'ok {
@@ -109,7 +118,6 @@ object AdtMacroTest extends TestSuite {
     }
 
     'adtIsoSet {
-      implicit def univEqS3: UnivEq[MonoS3] = UnivEq.derive[MonoS3]
       val (mc, cm, ms, cs) = adtIsoSet[MonoS3, Char] {
         case MonoS3.A => 'a'
         case MonoS3.B => 'b'

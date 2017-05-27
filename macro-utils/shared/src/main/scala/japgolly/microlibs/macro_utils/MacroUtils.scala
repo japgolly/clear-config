@@ -105,7 +105,7 @@ abstract class MacroUtils {
       fail(s"${sym.name} must be abstract or a trait.")
 
     if (sym.knownDirectSubclasses.isEmpty)
-      fail(s"${sym.name} does not have any sub-classes. This may happen due to a limitation of scalac (SI-7046). 95% fix expected in Scala 2.11.9 & 2.12.1.")
+      fail(s"${sym.name} does not have any sub-classes. This may happen due to a limitation of scalac (SI-7046). 95% fixed in Scala 2.11.11 & 2.12.1.")
 
     sym
   }

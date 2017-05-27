@@ -1,6 +1,6 @@
 package aa
 
-import japgolly.microlibs.adt_macros.AdtMacros
+//import japgolly.microlibs.adt_macros.AdtMacros
 
 sealed abstract class MonoS1
 object MonoS1 {
@@ -26,6 +26,12 @@ object Unsealed {
 sealed abstract class MonoD1
 object MonoD1 {
   case class I(i: Int) extends MonoD1
+}
+
+sealed abstract class MonoD2
+object MonoD2 {
+  case object A extends MonoD2
+  case class B(i: Boolean) extends MonoD2
 }
 
 sealed abstract class MonoD

@@ -103,36 +103,37 @@ class AdtMacros(val c: blackbox.Context) extends MacroUtils with JapgollyAccess 
   def implAdtValuesManual[T: c.WeakTypeTag](debug: Boolean)(vs: Seq[c.Expr[T]]): c.Expr[NonEmptyVector[T]] = {
     val T = weakTypeOf[T]
 
-    val all = findConcreteTypesNE(T, LeavesOnly).map(_.fullName)
+    val all = findConcreteTypesNE(T, LeavesOnly)
     if (all.isEmpty)
       fail(s"At least one concrete subtype of $T required.")
+    for (a <- all)
+      if (a.typeParams.nonEmpty)
+        fail(s"Polymorphic case not supported: ${a.toType}")
 
-    var unseen = all
+    var unseen = all.map(_.toType)
+    var seen = Set.empty[String]
 
-    /*
-    v.tree match {
-      case Select(This(_), name) => name isn't the FQN :(
-      case t => fail("Don't know how to interpret " + showRaw(t))
-    */
-    val hack = """^Select\([^,]+, ([^,)]+)\)$""".r
+    def attempt(tree: Tree): Unit = {
+      val t = tree.tpe.dealias
+      if (!(t <:< T))
+        fail(s"$t is not a subclass of $T")
+      val expr = tree.toString()
+      if (seen.contains(expr))
+        fail(s"Duplicate value: $expr")
+      unseen = unseen.filterNot(_ <:< t)
+      seen += expr
+    }
 
     for (v <- vs)
-      showRaw(v.tree) match {
-        case hack(name) =>
-          if (!all.contains(name))
-            fail(s"'$name' isn't part of legal values: $all")
-          if (!unseen.contains(name))
-            fail(s"Duplicate value: '$name'")
-          unseen -= name
-
-        case x => fail("Don't know how to interpret " + x)
+      v.tree match {
+        case t if t.isTerm => attempt(t)
+//        case a@Apply(_, _) => attempt(a)
+//        case s@Select(_, _) => attempt(s)
+        case x => fail("Don't know how to interpret " + showRaw(x))
       }
 
     if (unseen.nonEmpty)
       fail("Not all value accounted for: " + unseen.map("\n  - " + _).mkString)
-
-    if (vs.size != all.size)
-      fail(s"Expected ${all.size} values, got ${vs.size}.")
 
     val addValues = vs.map(v => q"b += $v")
 
