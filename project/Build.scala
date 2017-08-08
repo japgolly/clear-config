@@ -15,15 +15,15 @@ object Microlibs {
     Lib.publicationSettings(ghProject)
 
   object Ver {
-    val JAMM            = "0.3.1"
-    val JavaTimeScalaJs = "0.2.1"
-    val KindProjector   = "0.9.3"
-    val MacroParadise   = "2.1.0"
+    val JAMM            = "0.3.2"
+    val JavaTimeScalaJs = "0.2.2"
+    val KindProjector   = "0.9.4"
+    val MacroParadise   = "2.1.1"
     val Monocle         = "1.4.0"
-    val MTest           = "0.4.7"
+    val MTest           = "0.4.8"
     val Scala211        = "2.11.11"
-    val Scala212        = "2.12.2"
-    val Scalaz          = "7.2.13"
+    val Scala212        = "2.12.3"
+    val Scalaz          = "7.2.14"
     val UnivEq          = "1.0.2"
   }
 
