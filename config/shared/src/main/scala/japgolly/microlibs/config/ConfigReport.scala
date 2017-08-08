@@ -3,6 +3,7 @@ package japgolly.microlibs.config
 import japgolly.microlibs.config.ConfigReport._
 import japgolly.microlibs.stdlib_ext.AsciiTable
 import japgolly.microlibs.stdlib_ext.StdlibExt._
+import java.util.regex.Pattern
 import scala.Console._
 import scala.util.hashing.MurmurHash3
 
@@ -84,31 +85,26 @@ object ConfigReport {
 
   // ===================================================================================================================
 
-  final case class ValueDisplay(fmt: (Key, String) => String) extends AnyVal {
+  final case class ValueDisplay(fmt: (SourceName, Key, String) => String) extends AnyVal {
     def +(f: ValueDisplay): ValueDisplay =
-      ValueDisplay((k, s) => f.fmt(k, fmt(k, s)))
+      ValueDisplay((s, k, v) => f.fmt(s, k, fmt(s, k, v)))
 
     def map(f: String => String): ValueDisplay =
-      ValueDisplay((k, s) => f(fmt(k, s)))
+      ValueDisplay((s, k, v) => f(fmt(s, k, v)))
 
-    def contramapKeys(f: String => String): ValueDisplay = {
-      val g = keyModFS(f)
-      ValueDisplay((k, s) => fmt(g(k), s))
-    }
+    def when(cond: (SourceName, Key, String) => Boolean): ValueDisplay =
+      ValueDisplay((s, k, v) => if (cond(s, k, v)) fmt(s, k, v) else v)
 
-    def when(cond: (Key, String) => Boolean): ValueDisplay =
-      ValueDisplay((k, s) => if (cond(k, s)) fmt(k, s) else s)
-
-    def unless(cond: (Key, String) => Boolean): ValueDisplay =
+    def unless(cond: (SourceName, Key, String) => Boolean): ValueDisplay =
       when(!cond)
   }
 
   object ValueDisplay {
     def identity: ValueDisplay =
-      ValueDisplay((_, s) => s)
+      ValueDisplay((_, _, v) => v)
 
     def escapeCtrlChars: ValueDisplay =
-      ValueDisplay((_, s) => s.toIterator.flatMap {
+      ValueDisplay((_, _, v) => v.toIterator.flatMap {
         case '\b' => "\\b"
         case '\n' => "\\n"
         case '\r' => "\\r"
@@ -118,17 +114,26 @@ object ConfigReport {
       }.mkString)
 
     def limitWidth(maxLen: Int): ValueDisplay =
-      ValueDisplay((_, s) => if (s.length <= maxLen) s else s.take(maxLen - 1) + "…")
+      ValueDisplay((_, _, v) => if (v.length <= maxLen) v else v.take(maxLen - 1) + "…")
 
     def obfuscate: ValueDisplay =
-      ValueDisplay((_, s) => s"$YELLOW<# %08X #>$RESET".format(MurmurHash3 stringHash s))
+      ValueDisplay((_, _, v) => s"$YELLOW<# %08X #>$RESET".format(MurmurHash3 stringHash v))
 
-    def obfuscateKey(f: String => Boolean): ValueDisplay =
-      obfuscate.when((k, _) => f(k.value))
+    def obfuscateSources(f: SourceName => Boolean): ValueDisplay =
+      obfuscate.when((s, _, _) => f(s))
+
+    def obfuscateKeys(f: Key => Boolean): ValueDisplay =
+      obfuscate.when((_, k, _) => f(k))
+
+    def obfuscateSourcesAndKeys(f: String => Boolean): ValueDisplay =
+      obfuscate.when((s, k, _) => f(s.value) || f(k.value))
 
     def default: ValueDisplay =
       escapeCtrlChars +
-      obfuscateKey(_ matches ".*(?:password|secret).*").contramapKeys(_.toLowerCase)
+      obfuscateSourcesAndKeys(seemsSecret.matcher(_).matches)
+
+    val seemsSecret: Pattern =
+      Pattern.compile(".*(?:password|secret).*", Pattern.CASE_INSENSITIVE)
   }
 
   // ===================================================================================================================
@@ -162,13 +167,12 @@ object ConfigReport {
             .toList
             .sortBy(_._1.value)
             .map { case (k, vs) =>
-              def fmtValue(v: String) = valueDisplay.fmt(k, v)
-              k.value +: sources.map(vs.getOrElse(_, ConfigValue.NotFound)).map {
-                case ConfigValue.Found(v)            => fmtValue(v)
+              k.value +: sources.map(s => vs.getOrElse(s, ConfigValue.NotFound) match {
+                case ConfigValue.Found(v)            => valueDisplay.fmt(s, k, v)
                 case ConfigValue.NotFound            => ""
                 case ConfigValue.Error(err, None)    => fmtError(err)
-                case ConfigValue.Error(err, Some(v)) => s"${fmtValue(v)} ${fmtError(err)}"
-              }
+                case ConfigValue.Error(err, Some(v)) => s"${valueDisplay.fmt(s, k, v)} ${fmtError(err)}"
+              })
             }
         AsciiTable(header :: valueRows)
       }
