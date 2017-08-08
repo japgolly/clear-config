@@ -2,13 +2,15 @@ package japgolly.microlibs.config
 
 import java.util.Properties
 import scala.collection.JavaConverters._
-import scalaz.{Applicative, ~>}
+import scalaz.{Applicative, Monad, ~>}
 
 sealed trait ConfigValue extends Product with Serializable
 object ConfigValue {
   final case class Found(value: String) extends ConfigValue
   case object NotFound extends ConfigValue
   final case class Error(desc: String, value: Option[String]) extends ConfigValue
+
+  @inline def notFound: ConfigValue = NotFound
 
   def option(o: Option[String]): ConfigValue =
     o match {
@@ -20,6 +22,23 @@ object ConfigValue {
 trait ConfigStore[F[_]] {
   def apply(key: Key): F[ConfigValue]
   def getBulk(filter: Key => Boolean): F[Map[Key, String]]
+
+  /** Expands each key query into multiple, and chooses the first that returns a result. */
+  def mapKeyQueries(f: Key => List[Key])(implicit F: Monad[F]): ConfigStore[F] = {
+    val self = this
+    new ConfigStore[F] {
+      override def apply(origKey: Key) =
+        f(origKey).foldLeft(F pure ConfigValue.notFound)((plan, key) =>
+          F.bind(plan) {
+            case ConfigValue.NotFound => self(key)
+            case other                => F pure other
+          }
+        )
+      override def getBulk(f: Key => Boolean) = self.getBulk(f)
+      override def toString = s"$self*"
+      override def hashCode = self.##
+    }
+  }
 
   def trans[G[_]](t: F ~> G): ConfigStore[G] = {
     val self = this
@@ -74,4 +93,3 @@ object ConfigStore {
         .toMap)
     }
 }
-

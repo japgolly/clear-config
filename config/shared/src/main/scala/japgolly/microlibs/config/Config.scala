@@ -5,7 +5,15 @@ import Scalaz._
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 import ConfigInternals._
 
-final case class Key(value: String) extends AnyVal
+final case class Key(value: String) extends AnyVal {
+  def map(f: String => String): Key =
+    Key(f(value))
+
+  def toUpperCase                                  : Key = map(_.toUpperCase)
+  def toLowerCase                                  : Key = map(_.toLowerCase)
+  def replace(from: Char, to: Char)                : Key = map(_.replace(from, to))
+  def replace(from: CharSequence, to: CharSequence): Key = map(_.replace(from, to))
+}
 
 trait ConfigValidation[F[_], A] {
   def mapAttempt[B](f: A => String \/ B): F[B]
@@ -35,7 +43,7 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
     type KO = (SourceName, String)
 
     val r1: Vector[F[KO \/ OK]] = sources.highToLowPri.map(s => F.map(s.prepare)(_.bimap(s.name -> _, s.name -> _)))
-    val r2: F[Vector[KO \/ OK]] = r1.sequenceU
+    val r2: F[Vector[KO \/ OK]] = r1.sequence
     val r3: F[KO \/ Vector[OK]] = F.map(r2)(_.sequenceU)
 
     F.bind(r3) {

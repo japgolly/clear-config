@@ -197,5 +197,15 @@ object ConfigTest extends TestSuite {
       assertEq((m.a, m.b, m.name), (100, 2, "hey"))
     }
 
+    'mapKeyQueries {
+      val s = Source.manual[Id]("S")(
+        "both.1" -> "YAY", "both_1" -> "NOPE",
+        "db_port" -> "1234")
+        .mapKeyQueries(k => List(k, k.replace('.', '_')))
+
+      'alternate - assertEq(Config.need[Int]("db.port").run(s).get_!, 1234)
+      'priority - assertEq(Config.need[String]("both.1").run(s).get_!, "YAY")
+    }
+
   }
 }

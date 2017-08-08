@@ -1,7 +1,7 @@
 package japgolly.microlibs.config
 
 import java.util.Properties
-import scalaz.{-\/, Applicative, Functor, \/, \/-, ~>}
+import scalaz.{-\/, Applicative, Functor, Monad, \/, \/-, ~>}
 
 final case class SourceName(value: String) extends AnyVal
 object SourceName {
@@ -17,6 +17,10 @@ final case class Source[F[_]](name: SourceName, prepare: F[String \/ ConfigStore
 
   def toSources: Sources[F] =
     Sources(Vector.empty :+ this)
+
+  /** Expands each key query into multiple, and chooses the first that returns a result. */
+  def mapKeyQueries(f: Key => List[Key])(implicit F: Monad[F]): Source[F] =
+    Source(name, F.map(prepare)(_.map(_.mapKeyQueries(f)(F))))
 
   def trans[G[_]](t: F ~> G)(implicit G: Functor[G]): Source[G] =
     copy(prepare = G.map(t(prepare))(_.map(_ trans t)))
