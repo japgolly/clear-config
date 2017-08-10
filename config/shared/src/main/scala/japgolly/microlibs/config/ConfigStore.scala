@@ -6,15 +6,15 @@ import scalaz.{Applicative, Monad, ~>}
 
 sealed trait ConfigValue extends Product with Serializable
 object ConfigValue {
-  final case class Found(value: String) extends ConfigValue
+  final case class Found(key: Key, value: String) extends ConfigValue
   case object NotFound extends ConfigValue
   final case class Error(desc: String, value: Option[String]) extends ConfigValue
 
   @inline def notFound: ConfigValue = NotFound
 
-  def option(o: Option[String]): ConfigValue =
+  def fromOption(k: Key, o: Option[String]): ConfigValue =
     o match {
-      case Some(v) => Found(v)
+      case Some(v) => Found(k, v)
       case None => NotFound
     }
 }
@@ -66,7 +66,7 @@ object ConfigStore {
       override def hashCode = p.##
       override def apply(key: Key) = {
         val o = Option(p.getProperty(key.value))
-        val r = ConfigValue.option(o)
+        val r = ConfigValue.fromOption(key, o)
         F.pure(r)
       }
       override def getBulk(f: Key => Boolean) = F.pure(
@@ -84,7 +84,7 @@ object ConfigStore {
       override def hashCode = m.##
       override def apply(key: Key) = {
         val o = m.get(key.value)
-        val r = ConfigValue.option(o)
+        val r = ConfigValue.fromOption(key, o)
         F.pure(r)
       }
       override def getBulk(f: Key => Boolean) = F.pure(m.toIterator

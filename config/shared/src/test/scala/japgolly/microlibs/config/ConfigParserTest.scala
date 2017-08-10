@@ -8,11 +8,13 @@ import Helpers._
 
 object ConfigParserTest extends TestSuite {
 
+  val k = Key("k")
+
   def testOk[A: ConfigParser: Equal](origValue: String, expect: A): Unit =
-    assertEq(ConfigParser[A].parse(ConfigValue.Found(origValue)), \/-(expect))
+    assertEq(ConfigParser[A].parse(ConfigValue.Found(k, origValue)), \/-(expect))
 
   def testBad[A: ConfigParser : Equal](origValue: String, errorFrag: String = ""): Unit =
-    ConfigParser[A].parse(ConfigValue.Found(origValue)) match {
+    ConfigParser[A].parse(ConfigValue.Found(k, origValue)) match {
       case -\/(e) => assertContainsCI(e, errorFrag)
       case \/-(a) => fail(s"Error expected containing '$errorFrag', instead it passed with $a.")
     }

@@ -197,7 +197,7 @@ object Config {
       val m: Map[Key, String] =
         s.apiData
           .mapOrRemoveValues(_.toList match {
-            case Nil                         => None
+            case Nil                          => None
             case ApiMethod.Get         :: Nil => None
             case ApiMethod.Need        :: Nil => None
             case ApiMethod.GetOrUse(u) :: Nil => Some(u)
@@ -215,30 +215,49 @@ object Config {
     var fUsed: F[M] =
       s.queryCache
         .toVector
-        .traverse { case (k, x) => x.highToLowPri.map(x => k -> x.toIterator.map(sv => sv.source -> sv.value).toMap) }
-        .map(_.foldLeft(emptyM) { case (m, (k, vs)) => m.setOrModifyValue(k, vs, _ ++ vs) })
+        .traverse { case (k, vof) =>
+          vof.highToLowPri.map(_.flatMap(sv =>
+            sv.value match {
+              case ConfigValue.Found(k2, _) if k2 != k =>
+                Vector((k2, sv.source, sv.value), (k, sv.source, ConfigValue.NotFound))
+              case _ =>
+                Vector((k, sv.source, sv.value))
+            }
+          ))
+        }
+        .map(_.iterator
+          .flatMap(_.map { case (k, s, v) => emptyM.updated(k, Map(s -> v)) })
+          .foldLeft(emptyM)(_ |+| _))
 
     // Add API column to used
     for (ap <- apiProps) {
       srcs :+= SourceName.api
       fUsed = fUsed.map { used =>
         ap.foldLeft(used){ case (q, (k, v)) =>
-          q.initAndModifyValue(k, Map.empty, _.updated(SourceName.api, ConfigValue.Found(v)))
+          q.initAndModifyValue(k, Map.empty, _.updated(SourceName.api, ConfigValue.Found(k, v)))
         }
       }
     }
 
-    val usedKeys = s.queryCache.keySet
+    val usedKeys: Set[Key] =
+      s.queryCache.keySet
 
-    val fUnused: F[M] =
+    val fProbablyUnused: F[M] =
       r.highToLowPri.traverse { case (src, store) =>
         store.getBulk(!usedKeys.contains(_))
-          .map(_.mapValuesNow(value => Map(src -> ConfigValue.Found(value))))
+          .map(_.map(kv => kv._1 -> Map(src -> ConfigValue.Found(kv._1, kv._2))))
       }.map(_.foldLeft(emptyM)(_ |+| _))
 
+    val fReport: F[ConfigReport] =
+      F.apply2(fUsed, fProbablyUnused) { (used, probablyUnused) =>
+        val unused: M =
+          used.foldLeft(probablyUnused) { case (m, (k, usedValues)) =>
+            m.modifyValueOption(k, _.map(_.filterKeys(s => !usedValues.contains(s))).filter(_.nonEmpty))
+          }
+        ConfigReport.withDefaults(srcs, used, unused)
+      }
 
-    F.apply2(fUsed, fUnused)((used, unused) =>
-      ConfigReport.withDefaults(srcs, used, unused))
+    fReport
   }
 
   def reportSoFar: Config[ConfigReport] =

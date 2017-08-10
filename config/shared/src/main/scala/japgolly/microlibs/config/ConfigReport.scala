@@ -168,7 +168,7 @@ object ConfigReport {
             .sortBy(_._1.value)
             .map { case (k, vs) =>
               k.value +: sources.map(s => vs.getOrElse(s, ConfigValue.NotFound) match {
-                case ConfigValue.Found(v)            => valueDisplay.fmt(s, k, v)
+                case ConfigValue.Found(_, v)         => valueDisplay.fmt(s, k, v)
                 case ConfigValue.NotFound            => ""
                 case ConfigValue.Error(err, None)    => fmtError(err)
                 case ConfigValue.Error(err, Some(v)) => s"${valueDisplay.fmt(s, k, v)} ${fmtError(err)}"

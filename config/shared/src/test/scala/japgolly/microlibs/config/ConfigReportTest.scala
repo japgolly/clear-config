@@ -114,7 +114,6 @@ object ConfigReportTest extends TestSuite {
              !| i   | X300 |
              !| in  | 200  |
              !+-----+------+
-             !
            """.stripMargin('!').trim)
       }
 
@@ -144,6 +143,73 @@ object ConfigReportTest extends TestSuite {
              !| i     | 3     |
              !| in    | 100   |
              !+-------+-------+
+           """.stripMargin('!').trim)
+      }
+    }
+
+    'mapKeyQueries {
+      'oneSource {
+        val s = Source.manual[Id]("S")(
+          "both.1" -> "YAY", "both_1" -> "NOPE",
+          "db_port" -> "1234")
+          .mapKeyQueries(k => List(k, k.replace('.', '_')))
+        val c = Config.need[Int]("db.port") tuple Config.need[String]("both.1")
+        val r = c.withReport.run(s).get_!._2
+        assertMultiline(r.report,
+          s"""
+             !1 source:
+             !  - S
+             !
+             !Used keys (3):
+             !+---------+------+
+             !| Key     | S    |
+             !+---------+------+
+             !| both.1  | YAY  |
+             !| db.port |      |
+             !| db_port | 1234 |
+             !+---------+------+
+             !
+             !Unused keys (1):
+             !+--------+------+
+             !| Key    | S    |
+             !+--------+------+
+             !| both_1 | NOPE |
+             !+--------+------+
+           """.stripMargin('!').trim)
+      }
+      'multipleSources {
+        val s1 = Source.manual[Id]("S1")(
+          "both.1" -> "YAY", "both_1" -> "NOPE",
+          "db_port" -> "1234")
+          .mapKeyQueries(k => List(k, k.replace('.', '_')))
+        val s2 = Source.manual[Id]("S2")("db_port" -> "9875").mapKeyQueries(k => List(k, k.replace('.', '_')))
+        val s3 = Source.manual[Id]("S3")("db_port" -> "3333")
+        val s = s1 > s2 > s3
+        val c = Config.need[Int]("db.port") tuple Config.need[String]("both.1")
+        val r = c.withReport.run(s).get_!._2
+        assertMultiline(r.report,
+          s"""
+             !3 sources (highest to lowest priority):
+             !  - S1
+             !  - S2
+             !  - S3
+             !
+             !Used keys (3):
+             !+---------+------+------+
+             !| Key     | S1   | S2   |
+             !+---------+------+------+
+             !| both.1  | YAY  |      |
+             !| db.port |      |      |
+             !| db_port | 1234 | 9875 |
+             !+---------+------+------+
+             !
+             !Unused keys (2):
+             !+---------+------+------+
+             !| Key     | S1   | S3   |
+             !+---------+------+------+
+             !| both_1  | NOPE |      |
+             !| db_port |      | 3333 |
+             !+---------+------+------+
              !
            """.stripMargin('!').trim)
       }
