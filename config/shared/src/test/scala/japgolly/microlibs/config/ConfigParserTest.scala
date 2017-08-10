@@ -27,6 +27,19 @@ object ConfigParserTest extends TestSuite {
       'string {
         testOk("qWe", "qWe")
       }
+
+      'double {
+        testOk[Double]("123", 123)
+        testOk[Double]("-3", -3.0)
+        testOk[Double]("1.2", 1.2)
+        testOk[Double]("0.2", 0.2)
+        testOk[Double](".2", 0.2)
+        testBad[Double]("X")
+        testBad[Double]("123X")
+        testBad[Double]("X123")
+        testBad[Double]("")
+      }
+
       'int {
         testOk("123", 123)
         testOk("-3", -3)
@@ -36,11 +49,13 @@ object ConfigParserTest extends TestSuite {
         testBad[Int]("3.4")
         testBad[Int]("")
       }
+
       'long {
         testOk("123", 123L)
         testOk("-3", -3L)
         testBad[Long]("X")
       }
+
       'boolean {
         testOk("1", true)
         testOk("true", true)
@@ -59,10 +74,12 @@ object ConfigParserTest extends TestSuite {
         testBad[Boolean]("what")
         testBad[Boolean]("")
       }
+
       'whitespace {
         testOk(" a b c  ", "a b c")
         testOk("   124  ", 124)
       }
+
       'comments {
         testOk("x # y # z", "x")
         testOk("36 # hehe what?! 1", 36)

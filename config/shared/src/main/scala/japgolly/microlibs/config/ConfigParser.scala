@@ -41,6 +41,12 @@ object ConfigParser {
 
     object Primitives extends Primitives
     trait Primitives {
+      implicit def configParserDouble(implicit s: ConfigParser[String]): ConfigParser[Double] =
+        s.mapAttempt {
+          case ParseDouble(d) => \/-(d)
+          case _ => -\/("Double expected.")
+        }
+
       implicit def configParserInt(implicit s: ConfigParser[String]): ConfigParser[Int] =
         s.mapAttempt {
           case ParseInt(i) => \/-(i)
