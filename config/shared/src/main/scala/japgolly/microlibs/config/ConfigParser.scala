@@ -22,6 +22,9 @@ object ConfigParser {
 
   @inline def apply[A](implicit r: ConfigParser[A]) = r
 
+  def removeComments(s: String): String =
+    s.replaceFirst("(?:^|\\s+)#.*$", "")
+
   object Implicits {
 
     private val RegexTrue = Pattern.compile("^(?:t(?:rue)?|y(?:es)?|1|on|enabled?)$", Pattern.CASE_INSENSITIVE)
@@ -36,7 +39,7 @@ object ConfigParser {
     object StringDefault extends StringDefault
     trait StringDefault {
       implicit val parseString: ConfigParser[String] =
-        StringAsIs.parseString.map(_.trim.replaceFirst("\\s*#.*$", ""))
+        StringAsIs.parseString.map(removeComments(_).trim)
     }
 
     object Primitives extends Primitives

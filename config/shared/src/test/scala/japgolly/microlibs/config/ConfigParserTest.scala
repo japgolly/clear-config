@@ -82,8 +82,13 @@ object ConfigParserTest extends TestSuite {
 
       'comments {
         testOk("x # y # z", "x")
+        testOk(" # y # z", "")
+        testOk("# y # z", "")
         testOk("36 # hehe what?! 1", 36)
         testOk("136 #", 136)
+        testOk("blah!@#!@#", "blah!@#!@#")
+        testOk("blah!@#!@# ", "blah!@#!@#")
+        testOk("blah!@#!@# # a password", "blah!@#!@#")
       }
     }
 
