@@ -5,6 +5,13 @@ import StdlibExt._
 
 object ScalaExtTest extends TestSuite {
   override def tests = TestSuite {
+
+    "indent(int)" - {
+      assert("a".indent(2) == "  a")
+      assert("a\nb".indent(2) == "  a\n  b")
+      assert("a\n  b".indent(2) == "  a\n    b")
+    }
+
     'vectorInsertBefore {
       for {
         vs <- List(Vector(), Vector(1), Vector(1, 2, 3))

@@ -9,6 +9,18 @@ object StdlibExt {
   // JSLE prefix = Japgolly StdLib Ext
 
   implicit class JSLE_String(private val s: String) extends AnyVal {
+    def indent(i: String): String =
+      if (i.isEmpty)
+        s
+      else
+        i + s.replace("\n", "\n" + i)
+
+    def indent(spaces: Int): String =
+      if (spaces <= 0)
+        s
+      else
+        indent(" " * spaces)
+
     def removeAnsiEscapeCodes: String =
       s.replaceAll("[\u001b\u009b][\\[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]", "")
   }
