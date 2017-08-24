@@ -73,20 +73,8 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
           case StepResult.Success(a, originsA) =>
             f(a) match {
               case \/-(b) => StepResult.Success(b, originsA)
-              case -\/(e) =>
-
-                var keyed = Map.empty[Key, Option[(SourceName, ConfigValue.Error)]]
-                var other = Set.empty[UnkeyedError]
-                originsA.iterator.take(2).toList match {
-                  case (o: Origin.Read) :: Nil =>
-                    val err = ConfigValue.Error(e, Some(o.sourceValue.value))
-                    keyed += o.key -> Some ((o.sourceName, err))
-                  case _ =>
-                    other += UnkeyedError(e, originsA)
-                }
-                StepResult.Failure(keyed, other)
+              case -\/(e) => StepResult.fail(e, originsA)
             }
-
           case f: StepResult.Failure => f
         }
     }
@@ -97,6 +85,27 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
     new Config[B] {
       private[config] override def step[F[_]](implicit F: Monad[F]) =
         self.step(F).map(f)
+    }
+  }
+
+  // DO NOT call this flatMap.
+  // Doing so would allow this to work in for-comprehensions which would make it the default call and exclude the main
+  // features of this lib which are based on Applicative.
+  final def choose[B](f: A => Config[B]): Config[B] =
+    chooseAttempt(a => \/-(f(a)))
+
+  final def chooseAttempt[B](f: A => String \/ Config[B]): Config[B] = {
+    val self = this
+    new Config[B] {
+      private[config] override def step[F[_]](implicit F: Monad[F]): Step[F, StepResult[B]] =
+        self.step(F).flatMap {
+          case StepResult.Success(a, originsA) =>
+            f(a) match {
+              case \/-(cb) => cb.step(F).map(_.addOrigins(originsA))
+              case -\/(e)  => Step.ret(StepResult.fail(e, originsA))
+            }
+          case f: StepResult.Failure => Step.ret(f)
+        }
     }
   }
 
@@ -123,7 +132,7 @@ object Config {
     new Applicative[Config] {
       override def point[A](a: => A) = new Config[A] {
         private[config] override def step[F[_]](implicit F: Monad[F]) =
-          Step((_, s) => (s, a.point[StepResult]).point[F])
+          Step.ret(a.point[StepResult])
       }
       override def map[A, B](fa: Config[A])(f: A => B) =
         fa map f

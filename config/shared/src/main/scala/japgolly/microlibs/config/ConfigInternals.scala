@@ -10,6 +10,9 @@ private[config] object ConfigInternals {
   object Step {
     def apply[F[_], A](f: (R[F], S[F]) => F[(S[F], A)])(implicit F: Functor[F]): Step[F, A] =
       RWST((r, s) => F.map(f(r, s))(x => ((), x._2, x._1)))
+
+    def ret[F[_], A](a: A)(implicit F: Applicative[F]): Step[F, A] =
+      RWST((_, s) => F.point(((), a, s)))
   }
 
   final case class R[F[_]](highToLowPri: Vector[(SourceName, ConfigStore[F])])
@@ -102,6 +105,19 @@ private[config] object ConfigInternals {
         override def bind[A, B](fa: StepResult[A])(f: A => StepResult[B]) =
           fa flatMap f
       }
+
+    def fail(errorMsg: String, origins: Set[Origin]): Failure = {
+      var keyed = Map.empty[Key, Option[(SourceName, ConfigValue.Error)]]
+      var other = Set.empty[UnkeyedError]
+      origins.iterator.take(2).toList match {
+        case (o: Origin.Read) :: Nil =>
+          val err = ConfigValue.Error(errorMsg, Some(o.sourceValue.value))
+          keyed += o.key -> Some((o.sourceName, err))
+        case _ =>
+          other += UnkeyedError(errorMsg, origins)
+      }
+      Failure(keyed, other)
+    }
   }
 
   sealed abstract class ApiMethod
