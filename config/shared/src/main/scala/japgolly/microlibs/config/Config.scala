@@ -101,7 +101,7 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
         self.step(F).flatMap {
           case StepResult.Success(a, originsA) =>
             f(a) match {
-              case \/-(cb) => cb.step(F).map(_.addOrigins(originsA))
+              case \/-(cb) => cb.step(F)
               case -\/(e)  => Step.ret(StepResult.fail(e, originsA))
             }
           case f: StepResult.Failure => Step.ret(f)
