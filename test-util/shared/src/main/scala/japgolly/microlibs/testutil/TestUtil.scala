@@ -57,10 +57,11 @@ trait TestUtil {
       val maxL = lim.toString.length
       println("A|E")
       val fmt = s"%s%${maxL}d: %-${maxA}s |%s| %s$RESET\n"
-      for (i <- (0 until lim)) {
+      def removeWhitespace(s: String) = s.filterNot(_.isWhitespace)
+      for (i <- 0 until lim) {
         val List(a, e) = AE.map(s => if (i >= s.length) "" else s(i))
         val ok = a == e
-        val cmp = if (ok) " " else "≠"
+        val cmp = if (ok) " " else if (removeWhitespace(a) == removeWhitespace(e)) "≈" else "≠"
         val col = if (ok) BOLD + BLACK else WHITE
         printf(fmt, col, i + 1, a, cmp, e)
       }
