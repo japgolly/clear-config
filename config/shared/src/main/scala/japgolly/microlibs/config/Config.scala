@@ -282,4 +282,17 @@ object Config {
       private[config] override def step[F[_]](implicit F: Monad[F]) =
         Step((r, s) => generateReport(r, s).map(a => (s, a.point[StepResult])))
     }
+
+  implicit class ConfigOptionExt[A](private val config: Config[Option[A]]) extends AnyVal {
+
+    /** Opens up a new bunch of config opens when some other option config value is defined.
+      *
+      * It's recommended not to use this function in most cases because it hides the optional config from reports when
+      * it's not enabled. Where as when a user decides to enable the feature they often want to know what the additional,
+      * potentially-mandatory options are. This function makes that an unclear, two-step process.
+      */
+    def chooseWhenDefined[B](f: A => Config[B]): Config[Option[B]] =
+      config.choose(_.fold(Option.empty[B].point[Config])(f(_).map(Some(_))))
+  }
+
 }
