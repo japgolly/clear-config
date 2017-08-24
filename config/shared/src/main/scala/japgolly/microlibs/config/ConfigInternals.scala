@@ -111,7 +111,7 @@ private[config] object ConfigInternals {
 
   def baseGet[A](key: String, apiMethod: ApiMethod, doIt: (Key, Option[Origin.Read]) => StepResult[A]): Config[A] =
     new Config[A] {
-      override def step[F[_]](implicit F: Applicative[F]) =
+      override def step[F[_]](implicit F: Monad[F]) =
         RWS { (r, s1) =>
           val k = s1.keyMod(Key(key))
 
@@ -164,7 +164,7 @@ private[config] object ConfigInternals {
 
   def keyModUpdate(f: (String => String) => String => String): Config[Unit] =
     new Config[Unit] {
-      override def step[F[_]](implicit F: Applicative[F]) =
+      override def step[F[_]](implicit F: Monad[F]) =
         RWS((_, s) => ((), ().point[StepResult].point[F], s.keyModPush(keyModFS(f(keyModTS(s.keyMod))))))
     }
 
@@ -173,13 +173,13 @@ private[config] object ConfigInternals {
 
   def keyModPop: Config[Unit] =
     new Config[Unit] {
-      override def step[F[_]](implicit F: Applicative[F]) =
+      override def step[F[_]](implicit F: Monad[F]) =
         RWS((_, s) => ((), ().point[StepResult].point[F], s.keyModPop))
     }
 
   def keysUsed: Config[Set[Key]] =
     new Config[Set[Key]] {
-      override def step[F[_]](implicit F: Applicative[F]) =
+      override def step[F[_]](implicit F: Monad[F]) =
         RWS((_, s) => ((), s.queryCache.keySet.point[StepResult].point[F], s))
     }
 }

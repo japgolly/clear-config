@@ -36,7 +36,7 @@ trait ConfigValidation[F[_], A] {
   */
 abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
 
-  private[config] def step[F[_]](implicit F: Applicative[F]): Step[F, StepResult[A]]
+  private[config] def step[F[_]](implicit F: Monad[F]): Step[F, StepResult[A]]
 
   final def run[F[_]](sources: Sources[F])(implicit F: Monad[F]): F[ConfigResult[A]] = {
     type OK = (SourceName, ConfigStore[F])
@@ -66,7 +66,7 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
   override final def mapAttempt[B](f: A => String \/ B): Config[B] = {
     val self = this
     new Config[B] {
-      private[config] override def step[F[_]](implicit F: Applicative[F]) =
+      private[config] override def step[F[_]](implicit F: Monad[F]) =
         for {
           fStepResultA <- self.step(F)
           // ks <- ConfigInternals.keysUsed.step(F)
@@ -97,7 +97,7 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
   private[config] final def stepMap[B](f: StepResult[A] => StepResult[B]): Config[B] = {
     val self = this
     new Config[B] {
-      private[config] override def step[F[_]](implicit F: Applicative[F]) =
+      private[config] override def step[F[_]](implicit F: Monad[F]) =
         self.step(F).map(F.map(_)(f))
     }
   }
@@ -124,13 +124,13 @@ object Config {
   implicit val applicativeInstance: Applicative[Config] =
     new Applicative[Config] {
       override def point[A](a: => A) = new Config[A] {
-        private[config] override def step[F[_]](implicit F: Applicative[F]) =
+        private[config] override def step[F[_]](implicit F: Monad[F]) =
           RWS((r, s) => ((), F.point(StepResult.scalazInstance point a), s))
       }
       override def map[A, B](fa: Config[A])(f: A => B) =
         fa map f
       override def ap[A, B](fa: => Config[A])(ff: => Config[A => B]) = new Config[B] {
-        private[config] override def step[F[_]](implicit F: Applicative[F]) = {
+        private[config] override def step[F[_]](implicit F: Monad[F]) = {
           val ga = fa.step[F].getF[S[F], R[F]](idInstance)
           val gf = ff.step[F].getF[S[F], R[F]](idInstance)
           val FR = F.compose(StepResult.scalazInstance)
@@ -267,7 +267,7 @@ object Config {
 
   def reportSoFar: Config[ConfigReport] =
     new Config[ConfigReport] {
-      private[config] override def step[F[_]](implicit F: Applicative[F]) =
+      private[config] override def step[F[_]](implicit F: Monad[F]) =
         RWS((r, s) => ((), generateReport(r, s).map(_.point[StepResult]), s))
     }
 }
