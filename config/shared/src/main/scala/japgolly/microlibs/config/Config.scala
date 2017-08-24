@@ -36,7 +36,7 @@ trait ConfigValidation[F[_], A] {
   */
 abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
 
-  private[config] def step[F[_]](implicit F: Applicative[F]): Step[F, StepResult[A]]
+  private[config] def step[F[_]](implicit F: Monad[F]): Step[F, StepResult[A]]
 
   final def run[F[_]](sources: Sources[F])(implicit F: Monad[F]): F[ConfigResult[A]] = {
     type OK = (SourceName, ConfigStore[F])
@@ -51,9 +51,11 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
       case \/-(stores) =>
 
         // Read config
-        step(F).run(R(stores), S.init)._2.map {
-          case StepResult.Success(a, _) => ConfigResult.Success(a)
-          case StepResult.Failure(x, y) => ConfigResult.QueryFailure(x, y.map(_.public), sources.highToLowPri.map(_.name))
+        step(F).run(R(stores), S.init).map { case (_, stepResult, _) =>
+          stepResult match {
+            case StepResult.Success(a, _) => ConfigResult.Success(a)
+            case StepResult.Failure(x, y) => ConfigResult.QueryFailure(x, y.map(_.public), sources.highToLowPri.map(_.name))
+          }
         }
 
       case -\/((s, err)) => F.pure(ConfigResult.PreparationFailure(s, err))
@@ -66,39 +68,44 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
   override final def mapAttempt[B](f: A => String \/ B): Config[B] = {
     val self = this
     new Config[B] {
-      private[config] override def step[F[_]](implicit F: Applicative[F]) =
-        for {
-          fStepResultA <- self.step(F)
-          // ks <- ConfigInternals.keysUsed.step(F)
-        } yield
-          fStepResultA.map {
-            case StepResult.Success(a, originsA) =>
-              f(a) match {
-                case \/-(b) => StepResult.Success(b, originsA)
-                case -\/(e) =>
-
-                  var keyed = Map.empty[Key, Option[(SourceName, ConfigValue.Error)]]
-                  var other = Set.empty[UnkeyedError]
-                  originsA.iterator.take(2).toList match {
-                    case (o: Origin.Read) :: Nil =>
-                      val err = ConfigValue.Error(e, Some(o.sourceValue.value))
-                      keyed += o.key -> Some ((o.sourceName, err))
-                    case _ =>
-                      other += UnkeyedError(e, originsA)
-                  }
-                  StepResult.Failure(keyed, other)
-              }
-
-            case f: StepResult.Failure => f
-          }
+      private[config] override def step[F[_]](implicit F: Monad[F]) =
+        self.step(F) map {
+          case StepResult.Success(a, originsA) =>
+            f(a) match {
+              case \/-(b) => StepResult.Success(b, originsA)
+              case -\/(e) => StepResult.fail(e, originsA)
+            }
+          case f: StepResult.Failure => f
+        }
     }
   }
 
   private[config] final def stepMap[B](f: StepResult[A] => StepResult[B]): Config[B] = {
     val self = this
     new Config[B] {
-      private[config] override def step[F[_]](implicit F: Applicative[F]) =
-        self.step(F).map(F.map(_)(f))
+      private[config] override def step[F[_]](implicit F: Monad[F]) =
+        self.step(F).map(f)
+    }
+  }
+
+  // DO NOT call this flatMap.
+  // Doing so would allow this to work in for-comprehensions which would make it the default call and exclude the main
+  // features of this lib which are based on Applicative.
+  final def choose[B](f: A => Config[B]): Config[B] =
+    chooseAttempt(a => \/-(f(a)))
+
+  final def chooseAttempt[B](f: A => String \/ Config[B]): Config[B] = {
+    val self = this
+    new Config[B] {
+      private[config] override def step[F[_]](implicit F: Monad[F]): Step[F, StepResult[B]] =
+        self.step(F).flatMap {
+          case StepResult.Success(a, originsA) =>
+            f(a) match {
+              case \/-(cb) => cb.step(F)
+              case -\/(e)  => Step.ret(StepResult.fail(e, originsA))
+            }
+          case f: StepResult.Failure => Step.ret(f)
+        }
     }
   }
 
@@ -124,20 +131,25 @@ object Config {
   implicit val applicativeInstance: Applicative[Config] =
     new Applicative[Config] {
       override def point[A](a: => A) = new Config[A] {
-        private[config] override def step[F[_]](implicit F: Applicative[F]) =
-          RWS((r, s) => ((), F.point(StepResult.scalazInstance point a), s))
+        private[config] override def step[F[_]](implicit F: Monad[F]) =
+          Step.ret(a.point[StepResult])
       }
       override def map[A, B](fa: Config[A])(f: A => B) =
         fa map f
       override def ap[A, B](fa: => Config[A])(ff: => Config[A => B]) = new Config[B] {
-        private[config] override def step[F[_]](implicit F: Applicative[F]) = {
-          val ga = fa.step[F].getF[S[F], R[F]](idInstance)
-          val gf = ff.step[F].getF[S[F], R[F]](idInstance)
-          val FR = F.compose(StepResult.scalazInstance)
-          RWS { (r, s0) =>
-            val (_, ff, s1) = gf(r, s0)
-            val (_, fa, s2) = ga(r, s1)
-            ((), FR.ap(fa)(ff), s2)
+        private[config] override def step[F[_]](implicit F: Monad[F]) = {
+          // type X[Y] = F[(R[F], S[F]) => F[(Unit, StepResult[Y], S[F])]]
+          val xa = fa.step(F).getF[S[F], R[F]](F) // : X[A]
+          val xf = ff.step(F).getF[S[F], R[F]](F) // : X[A => B]
+          Step[F, StepResult[B]] { (r, s0) =>
+            for {
+              gf          ← xf
+              ga          ← xa
+              hf          ← gf(r, s0)
+              (_, ff, s1) = hf
+              ha          ← ga(r, s1)
+              (_, fa, s2) = ha
+            } yield (s2, StepResult.scalazInstance.ap(fa)(ff))
           }
         }
       }
@@ -267,7 +279,7 @@ object Config {
 
   def reportSoFar: Config[ConfigReport] =
     new Config[ConfigReport] {
-      private[config] override def step[F[_]](implicit F: Applicative[F]) =
-        RWS((r, s) => ((), generateReport(r, s).map(_.point[StepResult]), s))
+      private[config] override def step[F[_]](implicit F: Monad[F]) =
+        Step((r, s) => generateReport(r, s).map(a => (s, a.point[StepResult])))
     }
 }

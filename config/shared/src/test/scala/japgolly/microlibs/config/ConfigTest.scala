@@ -207,5 +207,25 @@ object ConfigTest extends TestSuite {
       'priority - assertEq(Config.need[String]("both.1").run(s).get_!, "YAY")
     }
 
+    'choice {
+      val ci = Config.need[Int]("C").ensure(1.to(2).contains, "Choose 1 or 2")
+      val c1 = Config.need[String]("C1")
+      val c2 = Config.need[String]("C2")
+      val cc = ci.choose(i => if (i == 1) c1 else c2)
+      val v1 = "see one"
+      val v2 = "sea too"
+      val s1 = Source.manual[Id]("S1")("C" -> "1", "C1" -> v1)
+      val s2 = Source.manual[Id]("S2")("C" -> "2", "C2" -> v2)
+
+      'c1 {
+        assertEq(cc.run(s1).get_!, v1)
+        assertEq(cc.run(s1 > s2).get_!, v1)
+      }
+      'c2 {
+        assertEq(cc.run(s2).get_!, v2)
+        assertEq(cc.run(s2 > s1).get_!, v2)
+      }
+    }
+
   }
 }

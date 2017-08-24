@@ -6,7 +6,14 @@ import japgolly.microlibs.stdlib_ext.StdlibExt._
 
 private[config] object ConfigInternals {
 
-  type Step[F[_], A] = RWS[R[F], Unit, S[F], F[A]]
+  type Step[F[_], A] = RWST[F, R[F], Unit, S[F], A]
+  object Step {
+    def apply[F[_], A](f: (R[F], S[F]) => F[(S[F], A)])(implicit F: Functor[F]): Step[F, A] =
+      RWST((r, s) => F.map(f(r, s))(x => ((), x._2, x._1)))
+
+    def ret[F[_], A](a: A)(implicit F: Applicative[F]): Step[F, A] =
+      RWST((_, s) => F.point(((), a, s)))
+  }
 
   final case class R[F[_]](highToLowPri: Vector[(SourceName, ConfigStore[F])])
 
@@ -98,6 +105,19 @@ private[config] object ConfigInternals {
         override def bind[A, B](fa: StepResult[A])(f: A => StepResult[B]) =
           fa flatMap f
       }
+
+    def fail(errorMsg: String, origins: Set[Origin]): Failure = {
+      var keyed = Map.empty[Key, Option[(SourceName, ConfigValue.Error)]]
+      var other = Set.empty[UnkeyedError]
+      origins.iterator.take(2).toList match {
+        case (o: Origin.Read) :: Nil =>
+          val err = ConfigValue.Error(errorMsg, Some(o.sourceValue.value))
+          keyed += o.key -> Some((o.sourceName, err))
+        case _ =>
+          other += UnkeyedError(errorMsg, origins)
+      }
+      Failure(keyed, other)
+    }
   }
 
   sealed abstract class ApiMethod
@@ -111,8 +131,8 @@ private[config] object ConfigInternals {
 
   def baseGet[A](key: String, apiMethod: ApiMethod, doIt: (Key, Option[Origin.Read]) => StepResult[A]): Config[A] =
     new Config[A] {
-      override def step[F[_]](implicit F: Applicative[F]) =
-        RWS { (r, s1) =>
+      override def step[F[_]](implicit F: Monad[F]) =
+        Step { (r, s1) =>
           val k = s1.keyMod(Key(key))
 
           val (vo: QueryResult[F], s2) =
@@ -146,7 +166,8 @@ private[config] object ConfigInternals {
               case Some(SrcAndVal(n, e: ConfigValue.Error))        => StepResult.Failure(Map(k -> Some((n, e))), Set.empty)
             }
 
-          ((), result, s3)
+          // println(s"After [$k] - $s3")
+          result.map((s3, _))
         }
     }
 
@@ -164,8 +185,8 @@ private[config] object ConfigInternals {
 
   def keyModUpdate(f: (String => String) => String => String): Config[Unit] =
     new Config[Unit] {
-      override def step[F[_]](implicit F: Applicative[F]) =
-        RWS((_, s) => ((), ().point[StepResult].point[F], s.keyModPush(keyModFS(f(keyModTS(s.keyMod))))))
+      override def step[F[_]](implicit F: Monad[F]) =
+        Step((_, s) => (s.keyModPush(keyModFS(f(keyModTS(s.keyMod)))), ().point[StepResult]).point[F])
     }
 
   def keyModCompose(f: String => String): Config[Unit] =
@@ -173,13 +194,13 @@ private[config] object ConfigInternals {
 
   def keyModPop: Config[Unit] =
     new Config[Unit] {
-      override def step[F[_]](implicit F: Applicative[F]) =
-        RWS((_, s) => ((), ().point[StepResult].point[F], s.keyModPop))
+      override def step[F[_]](implicit F: Monad[F]) =
+        Step((_, s) => (s.keyModPop, ().point[StepResult]).point[F])
     }
 
   def keysUsed: Config[Set[Key]] =
     new Config[Set[Key]] {
-      override def step[F[_]](implicit F: Applicative[F]) =
-        RWS((_, s) => ((), s.queryCache.keySet.point[StepResult].point[F], s))
+      override def step[F[_]](implicit F: Monad[F]) =
+        Step((_, s) => (s, s.queryCache.keySet.point[StepResult]).point[F])
     }
 }

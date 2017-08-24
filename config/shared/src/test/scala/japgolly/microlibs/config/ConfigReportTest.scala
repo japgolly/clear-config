@@ -215,5 +215,37 @@ object ConfigReportTest extends TestSuite {
       }
     }
 
+    'choice {
+      val ci = Config.need[Int]("C").ensure(1.to(2).contains, "Choose 1 or 2")
+      val c1 = Config.need[String]("C1")
+      val c2 = Config.need[String]("C2")
+      val cc = ci.choose(i => if (i == 1) c1 else c2)
+      val v1 = "see one"
+      val v2 = "sea too"
+      val s = Source.manual[Id]("S")("C" -> "1", "C1" -> v1, "C2" -> v2)
+
+      val r = cc.withReport.run(s).get_!._2
+      assertMultiline(r.report,
+        s"""
+           !1 source:
+           !  - S
+           !
+           !Used keys (2):
+           !+-----+---------+
+           !| Key | S       |
+           !+-----+---------+
+           !| C   | 1       |
+           !| C1  | see one |
+           !+-----+---------+
+           !
+           !Unused keys (1):
+           !+-----+---------+
+           !| Key | S       |
+           !+-----+---------+
+           !| C2  | sea too |
+           !+-----+---------+
+           !
+         """.stripMargin('!').trim)
+    }
   }
 }
