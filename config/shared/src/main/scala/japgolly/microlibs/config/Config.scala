@@ -42,15 +42,20 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
     type OK = (SourceName, ConfigStore[F])
     type KO = (SourceName, String)
 
+    // Prepare sources
     val r1: Vector[F[KO \/ OK]] = sources.highToLowPri.map(s => F.map(s.prepare)(_.bimap(s.name -> _, s.name -> _)))
     val r2: F[Vector[KO \/ OK]] = r1.sequence
     val r3: F[KO \/ Vector[OK]] = F.map(r2)(_.sequenceU)
 
     F.bind(r3) {
-      case \/-(stores) => step(F).run(R(stores), S.init)._2.map {
-        case StepResult.Success(a, _) => ConfigResult.Success(a)
-        case StepResult.Failure(x, y) => ConfigResult.QueryFailure(x, y.map(_.public), sources.highToLowPri.map(_.name))
-      }
+      case \/-(stores) =>
+
+        // Read config
+        step(F).run(R(stores), S.init)._2.map {
+          case StepResult.Success(a, _) => ConfigResult.Success(a)
+          case StepResult.Failure(x, y) => ConfigResult.QueryFailure(x, y.map(_.public), sources.highToLowPri.map(_.name))
+        }
+
       case -\/((s, err)) => F.pure(ConfigResult.PreparationFailure(s, err))
     }
   }
@@ -63,23 +68,23 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
     new Config[B] {
       private[config] override def step[F[_]](implicit F: Applicative[F]) =
         for {
-          ra <- self.step(F)
-          ks <- ConfigInternals.keysUsed.step(F)
+          fStepResultA <- self.step(F)
+          // ks <- ConfigInternals.keysUsed.step(F)
         } yield
-          ra.map {
-            case StepResult.Success(a, os) =>
+          fStepResultA.map {
+            case StepResult.Success(a, originsA) =>
               f(a) match {
-                case \/-(b) => StepResult.Success(b, os)
+                case \/-(b) => StepResult.Success(b, originsA)
                 case -\/(e) =>
 
                   var keyed = Map.empty[Key, Option[(SourceName, ConfigValue.Error)]]
                   var other = Set.empty[UnkeyedError]
-                  os.iterator.take(2).toList match {
+                  originsA.iterator.take(2).toList match {
                     case (o: Origin.Read) :: Nil =>
                       val err = ConfigValue.Error(e, Some(o.sourceValue.value))
                       keyed += o.key -> Some ((o.sourceName, err))
                     case _ =>
-                      other += UnkeyedError(e, os)
+                      other += UnkeyedError(e, originsA)
                   }
                   StepResult.Failure(keyed, other)
               }
@@ -120,7 +125,7 @@ object Config {
     new Applicative[Config] {
       override def point[A](a: => A) = new Config[A] {
         private[config] override def step[F[_]](implicit F: Applicative[F]) =
-          RWS((r, s) => ((), F.point(StepResult.applicativeInstance point a), s))
+          RWS((r, s) => ((), F.point(StepResult.scalazInstance point a), s))
       }
       override def map[A, B](fa: Config[A])(f: A => B) =
         fa map f
@@ -128,7 +133,7 @@ object Config {
         private[config] override def step[F[_]](implicit F: Applicative[F]) = {
           val ga = fa.step[F].getF[S[F], R[F]](idInstance)
           val gf = ff.step[F].getF[S[F], R[F]](idInstance)
-          val FR = F.compose(StepResult.applicativeInstance)
+          val FR = F.compose(StepResult.scalazInstance)
           RWS { (r, s0) =>
             val (_, ff, s1) = gf(r, s0)
             val (_, fa, s2) = ga(r, s1)
