@@ -6,7 +6,11 @@ import japgolly.microlibs.stdlib_ext.StdlibExt._
 
 private[config] object ConfigInternals {
 
-  type Step[F[_], A] = RWS[R[F], Unit, S[F], F[A]]
+  type Step[F[_], A] = RWST[F, R[F], Unit, S[F], A]
+  object Step {
+    def apply[F[_], A](f: (R[F], S[F]) => F[(S[F], A)])(implicit F: Functor[F]): Step[F, A] =
+      RWST((r, s) => F.map(f(r, s))(x => ((), x._2, x._1)))
+  }
 
   final case class R[F[_]](highToLowPri: Vector[(SourceName, ConfigStore[F])])
 
@@ -112,7 +116,7 @@ private[config] object ConfigInternals {
   def baseGet[A](key: String, apiMethod: ApiMethod, doIt: (Key, Option[Origin.Read]) => StepResult[A]): Config[A] =
     new Config[A] {
       override def step[F[_]](implicit F: Monad[F]) =
-        RWS { (r, s1) =>
+        Step { (r, s1) =>
           val k = s1.keyMod(Key(key))
 
           val (vo: QueryResult[F], s2) =
@@ -146,7 +150,7 @@ private[config] object ConfigInternals {
               case Some(SrcAndVal(n, e: ConfigValue.Error))        => StepResult.Failure(Map(k -> Some((n, e))), Set.empty)
             }
 
-          ((), result, s3)
+          result.map((s3, _))
         }
     }
 
@@ -165,7 +169,7 @@ private[config] object ConfigInternals {
   def keyModUpdate(f: (String => String) => String => String): Config[Unit] =
     new Config[Unit] {
       override def step[F[_]](implicit F: Monad[F]) =
-        RWS((_, s) => ((), ().point[StepResult].point[F], s.keyModPush(keyModFS(f(keyModTS(s.keyMod))))))
+        Step((_, s) => (s.keyModPush(keyModFS(f(keyModTS(s.keyMod)))), ().point[StepResult]).point[F])
     }
 
   def keyModCompose(f: String => String): Config[Unit] =
@@ -174,12 +178,12 @@ private[config] object ConfigInternals {
   def keyModPop: Config[Unit] =
     new Config[Unit] {
       override def step[F[_]](implicit F: Monad[F]) =
-        RWS((_, s) => ((), ().point[StepResult].point[F], s.keyModPop))
+        Step((_, s) => (s.keyModPop, ().point[StepResult]).point[F])
     }
 
   def keysUsed: Config[Set[Key]] =
     new Config[Set[Key]] {
       override def step[F[_]](implicit F: Monad[F]) =
-        RWS((_, s) => ((), s.queryCache.keySet.point[StepResult].point[F], s))
+        Step((_, s) => (s, s.queryCache.keySet.point[StepResult]).point[F])
     }
 }

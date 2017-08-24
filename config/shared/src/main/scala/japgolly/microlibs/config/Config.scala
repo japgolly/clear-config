@@ -51,9 +51,11 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
       case \/-(stores) =>
 
         // Read config
-        step(F).run(R(stores), S.init)._2.map {
-          case StepResult.Success(a, _) => ConfigResult.Success(a)
-          case StepResult.Failure(x, y) => ConfigResult.QueryFailure(x, y.map(_.public), sources.highToLowPri.map(_.name))
+        step(F).run(R(stores), S.init).map { case (_, stepResult, _) =>
+          stepResult match {
+            case StepResult.Success(a, _) => ConfigResult.Success(a)
+            case StepResult.Failure(x, y) => ConfigResult.QueryFailure(x, y.map(_.public), sources.highToLowPri.map(_.name))
+          }
         }
 
       case -\/((s, err)) => F.pure(ConfigResult.PreparationFailure(s, err))
@@ -67,30 +69,26 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
     val self = this
     new Config[B] {
       private[config] override def step[F[_]](implicit F: Monad[F]) =
-        for {
-          fStepResultA <- self.step(F)
-          // ks <- ConfigInternals.keysUsed.step(F)
-        } yield
-          fStepResultA.map {
-            case StepResult.Success(a, originsA) =>
-              f(a) match {
-                case \/-(b) => StepResult.Success(b, originsA)
-                case -\/(e) =>
+        self.step(F) map {
+          case StepResult.Success(a, originsA) =>
+            f(a) match {
+              case \/-(b) => StepResult.Success(b, originsA)
+              case -\/(e) =>
 
-                  var keyed = Map.empty[Key, Option[(SourceName, ConfigValue.Error)]]
-                  var other = Set.empty[UnkeyedError]
-                  originsA.iterator.take(2).toList match {
-                    case (o: Origin.Read) :: Nil =>
-                      val err = ConfigValue.Error(e, Some(o.sourceValue.value))
-                      keyed += o.key -> Some ((o.sourceName, err))
-                    case _ =>
-                      other += UnkeyedError(e, originsA)
-                  }
-                  StepResult.Failure(keyed, other)
-              }
+                var keyed = Map.empty[Key, Option[(SourceName, ConfigValue.Error)]]
+                var other = Set.empty[UnkeyedError]
+                originsA.iterator.take(2).toList match {
+                  case (o: Origin.Read) :: Nil =>
+                    val err = ConfigValue.Error(e, Some(o.sourceValue.value))
+                    keyed += o.key -> Some ((o.sourceName, err))
+                  case _ =>
+                    other += UnkeyedError(e, originsA)
+                }
+                StepResult.Failure(keyed, other)
+            }
 
-            case f: StepResult.Failure => f
-          }
+          case f: StepResult.Failure => f
+        }
     }
   }
 
@@ -98,7 +96,7 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
     val self = this
     new Config[B] {
       private[config] override def step[F[_]](implicit F: Monad[F]) =
-        self.step(F).map(F.map(_)(f))
+        self.step(F).map(f)
     }
   }
 
@@ -125,19 +123,24 @@ object Config {
     new Applicative[Config] {
       override def point[A](a: => A) = new Config[A] {
         private[config] override def step[F[_]](implicit F: Monad[F]) =
-          RWS((r, s) => ((), F.point(StepResult.scalazInstance point a), s))
+          Step((_, s) => (s, a.point[StepResult]).point[F])
       }
       override def map[A, B](fa: Config[A])(f: A => B) =
         fa map f
       override def ap[A, B](fa: => Config[A])(ff: => Config[A => B]) = new Config[B] {
         private[config] override def step[F[_]](implicit F: Monad[F]) = {
-          val ga = fa.step[F].getF[S[F], R[F]](idInstance)
-          val gf = ff.step[F].getF[S[F], R[F]](idInstance)
-          val FR = F.compose(StepResult.scalazInstance)
-          RWS { (r, s0) =>
-            val (_, ff, s1) = gf(r, s0)
-            val (_, fa, s2) = ga(r, s1)
-            ((), FR.ap(fa)(ff), s2)
+          // type X[Y] = F[(R[F], S[F]) => F[(Unit, StepResult[Y], S[F])]]
+          val xa = fa.step(F).getF[S[F], R[F]](F) // : X[A]
+          val xf = ff.step(F).getF[S[F], R[F]](F) // : X[A => B]
+          Step[F, StepResult[B]] { (r, s0) =>
+            for {
+              gf          ← xf
+              ga          ← xa
+              hf          ← gf(r, s0)
+              (_, ff, s1) = hf
+              ha          ← ga(r, s1)
+              (_, fa, s2) = ha
+            } yield (s2, StepResult.scalazInstance.ap(fa)(ff))
           }
         }
       }
@@ -268,6 +271,6 @@ object Config {
   def reportSoFar: Config[ConfigReport] =
     new Config[ConfigReport] {
       private[config] override def step[F[_]](implicit F: Monad[F]) =
-        RWS((r, s) => ((), generateReport(r, s).map(_.point[StepResult]), s))
+        Step((r, s) => generateReport(r, s).map(a => (s, a.point[StepResult])))
     }
 }
