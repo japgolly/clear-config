@@ -38,6 +38,24 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
 
   private[config] def step[F[_]](implicit F: Monad[F]): Step[F, StepResult[A]]
 
+  /** When a [[japgolly.microlibs.config.ConfigReport]] is generated, the keys used to populate this `A` will displayed
+    * with their values obfuscated.
+    */
+  final def obfuscateInReport: Config[A] = {
+    val self = this
+    new Config[A] {
+      private[config] override def step[F[_]](implicit F: Monad[F]) = {
+        val x = Step.monad[F]
+        def keys(s1: S[F], s2: S[F]): Vector[Key] = s2.queryLog.drop(s1.queryLog.length)
+        for {
+          s <- x.get
+          a <- self.step(F)
+          _ <- x.modify(s2 => s2.obfuscateKeys(keys(s, s2)))
+        } yield a
+      }
+    }
+  }
+
   final def run[F[_]](sources: Sources[F])(implicit F: Monad[F]): F[ConfigResult[A]] = {
     type OK = (SourceName, ConfigStore[F])
     type KO = (SourceName, String)
@@ -271,7 +289,12 @@ object Config {
           used.foldLeft(probablyUnused) { case (m, (k, usedValues)) =>
             m.modifyValueOption(k, _.map(_.filterKeys(s => !usedValues.contains(s))).filter(_.nonEmpty))
           }
+
+        val keysToObfuscate: Set[Key] =
+          s.keysToObfuscate.map(_.toLowerCase)
+
         ConfigReport.withDefaults(srcs, used, unused)
+          .obfuscateKeys(k => keysToObfuscate.contains(k.toLowerCase))
       }
 
     fReport

@@ -1,8 +1,8 @@
 package japgolly.microlibs.config
 
+import japgolly.microlibs.stdlib_ext.StdlibExt._
 import japgolly.microlibs.testutil.TestUtil._
 import scalaz.Scalaz.Id
-import scalaz.std.AllInstances._
 import scalaz.syntax.applicative._
 import utest._
 import ConfigParser.Implicits.Defaults._
@@ -245,6 +245,31 @@ object ConfigReportTest extends TestSuite {
            !| C2  | sea too |
            !+-----+---------+
            !
+         """.stripMargin('!').trim)
+    }
+
+    'obfuscateInReport {
+      val a = Config.need[String]("a")
+      val b = Config.need[String]("b").obfuscateInReport
+      val c = Config.need[String]("c")
+      val s = Source.manual[Id]("S")("a" -> "1", "b" -> "2", "c" -> "3")
+      val r = (a tuple b tuple c withReport).run(s).get_!._2
+      assertMultiline(r.report.removeAnsiEscapeCodes,
+        s"""
+           !1 source:
+           !  - S
+           !
+           !Used keys (3):
+           !+-----+----------------+
+           !| Key | S              |
+           !+-----+----------------+
+           !| a   | 1              |
+           !| b   | <# 16CC649D #> |
+           !| c   | 3              |
+           !+-----+----------------+
+           !
+           !Unused keys (0):
+           !No data to report.
          """.stripMargin('!').trim)
     }
   }

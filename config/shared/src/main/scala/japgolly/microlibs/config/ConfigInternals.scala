@@ -11,6 +11,9 @@ private[config] object ConfigInternals {
     def apply[F[_], A](f: (R[F], S[F]) => F[(S[F], A)])(implicit F: Functor[F]): Step[F, A] =
       RWST((r, s) => F.map(f(r, s))(x => ((), x._2, x._1)))
 
+    def monad[F[_]: Monad] =
+      ReaderWriterStateT.rwstMonad[F, R[F], Unit, S[F]]
+
     def ret[F[_], A](a: A)(implicit F: Applicative[F]): Step[F, A] =
       RWST((_, s) => F.point(((), a, s)))
   }
@@ -18,9 +21,11 @@ private[config] object ConfigInternals {
   final case class R[F[_]](highToLowPri: Vector[(SourceName, ConfigStore[F])])
 
   /** State */
-  final case class S[F[_]](keyModStack: List[Key => Key],
-                           queryCache : Map[Key, QueryResult[F]],
-                           apiData    : Map[Key, Set[ApiMethod]]) {
+  final case class S[F[_]](keyModStack    : List[Key => Key],
+                           queryCache     : Map[Key, QueryResult[F]],
+                           apiData        : Map[Key, Set[ApiMethod]],
+                           queryLog       : Vector[Key],
+                           keysToObfuscate: Set[Key]) {
 
     def keyMod: Key => Key =
       keyModStack.headOption.getOrElse(identity[Key])
@@ -34,11 +39,18 @@ private[config] object ConfigInternals {
         case _ :: t => copy(t)
       }
 
+    def logQuery(key: Key): S[F] =
+      copy(queryLog = queryLog :+ key)
+
     def addApi(key: Key, apiMethod: ApiMethod): S[F] =
       copy(apiData = apiData.initAndModifyValue(key, Set.empty, _ + apiMethod))
+
+    def obfuscateKeys(keys: TraversableOnce[Key]): S[F] =
+      copy(keysToObfuscate = keysToObfuscate ++ keys)
   }
   object S {
-    def init[F[_]]: S[F] = S(Nil, Map.empty, Map.empty)
+    def init[F[_]]: S[F] =
+      S(Nil, Map.empty, Map.empty, Vector.empty, Set.empty)
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -156,7 +168,7 @@ private[config] object ConfigInternals {
                 (q, s1.copy(queryCache = s1.queryCache.updated(k, q)))
             }
 
-          val s3 = s2.addApi(k, apiMethod)
+          val s3 = s2.addApi(k, apiMethod).logQuery(k)
 
           val result: F[StepResult[A]] =
             vo.selected.map {
