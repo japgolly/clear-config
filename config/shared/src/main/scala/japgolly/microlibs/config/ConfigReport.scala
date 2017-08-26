@@ -177,8 +177,11 @@ object ConfigReport {
         AsciiTable(header :: valueRows)
       }
 
-    def addRowFilter(f: RowFilter): SubReport =
-      copy(rowFilter = rowFilter && f)
+    def withColFilter(f: ColFilter => ColFilter): SubReport =
+      copy(colFilter = f(colFilter))
+
+    def withRowFilter(f: RowFilter => RowFilter): SubReport =
+      copy(rowFilter = f(rowFilter))
   }
 
   // ===================================================================================================================
@@ -207,6 +210,8 @@ object ConfigReport {
       Settings.default)
 }
 
+// █████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+
 final case class ConfigReport(sourcesHighToLowPri: Vector[SourceName],
                               used               : SubReport,
                               unused             : SubReport,
@@ -230,15 +235,31 @@ final case class ConfigReport(sourcesHighToLowPri: Vector[SourceName],
        !$reportUnused
      """.stripMargin('!').trim
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Customisation
+
   def withUsedSettings(f: SubReport => SubReport): ConfigReport =
     copy(used = f(used))
 
   def withUnusedSettings(f: SubReport => SubReport): ConfigReport =
     copy(unused = f(unused))
 
+  def withColFilter(f: ColFilter => ColFilter): ConfigReport =
+    copy(unused = unused.withColFilter(f), used = used.withColFilter(f))
+
+  def withRowFilter(f: RowFilter => RowFilter): ConfigReport =
+    copy(unused = unused.withRowFilter(f), used = used.withRowFilter(f))
+
   def withSettings(f: Settings => Settings): ConfigReport =
     copy(settings = f(settings))
 
+  def withValueDisplay(f: ValueDisplay => ValueDisplay): ConfigReport =
+    copy(settings = settings.copy(display0 = f(settings.display0)))
+
   def withMaxValueLength(i: Int): ConfigReport =
     withSettings(_.copy(maxValueLen = Some(i)))
+
+  /** Convenient shortcut because this is such a common case. */
+  def obfuscateKeys(f: Key => Boolean): ConfigReport =
+    withValueDisplay(_ + ValueDisplay.obfuscateKeys(f))
 }
