@@ -22,7 +22,7 @@ object Microlibs {
     val Monocle         = "1.4.0"
     val MTest           = "0.4.8"
     val Scala211        = "2.11.11"
-    val Scala212        = "2.12.3"
+    val Scala212        = "2.12.4"
     val Scalaz          = "7.2.14"
     val UnivEq          = "1.0.2"
   }
