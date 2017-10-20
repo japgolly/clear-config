@@ -307,6 +307,14 @@ abstract class MacroUtils {
         fail(s"""Expected 'k -> "v", got: $x\n${showRaw(x)}""")
     }
 
+  final def readMacroArg_symbolBoolean(e: c.Expr[(scala.Symbol, Boolean)]): (String, Boolean) =
+    e match {
+      case Expr(Apply(TypeApply(Select(Apply(_, List(Apply(_, List(Literal(Constant(k: String)))))), _), _), List(Literal(Constant(b: Boolean))))) =>
+        (k, b)
+      case x =>
+        fail(s"""Expected 'k -> b, got: $x\n${showRaw(x)}""")
+    }
+
   final def readMacroArg_tToLitFn[T, V: scala.reflect.Manifest](e: c.Expr[T => V]): List[(Either[Select, Type], Literal)] =
     readMacroArg_tToTree(e).map(x => (x._1, x._2 match {
       case lit @ Literal(Constant(_: V)) => lit
