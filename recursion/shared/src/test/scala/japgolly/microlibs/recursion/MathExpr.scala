@@ -1,6 +1,6 @@
 package japgolly.microlibs.recursion
 
-import scalaz.Functor
+import scalaz.{Functor, ~>}
 
 sealed abstract class MathExpr[+A]
 object MathExpr {
@@ -27,6 +27,11 @@ object MathExpr {
         case Add(a, b) => Add(f(a), f(b))
       }
     }
+
+  val add10 = Lambda[MathExpr[?] ~> MathExpr[?]] {
+    case MathExpr.Num(n) => MathExpr.Num(n + 10)
+    case e@ MathExpr.Add(_, _) => e
+  }
 
   object Helpers {
     type FM = Fix[MathExpr]
