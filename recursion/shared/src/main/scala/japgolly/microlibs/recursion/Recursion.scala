@@ -27,19 +27,19 @@ object Recursion {
     * Top-most structure (i.e. the input) is not transformed.
     * Outside to inside.
     */
-  def prepro[F[_], A](pro: F ~> F, alg: Algebra[F, A])(f: Fix[F])(implicit F: Functor[F]): A =
-    RecursionFn.prepro(pro, alg).apply(f)
+  def prepro[F[_], A](pre: F ~> F, alg: Algebra[F, A])(f: Fix[F])(implicit F: Functor[F]): A =
+    RecursionFn.prepro(pre, alg).apply(f)
 
   /** ana that creates a structure, transforming each new child (i.e. the entire structure as exists at the end of a pass).
     * Top-most structure (i.e. the end result) is not transformed.
     * Inside to outside.
     */
-  def postpro[F[_], A](pro: F ~> F, coalg: Coalgebra[F, A])(a: A)(implicit F: Functor[F]): Fix[F] =
-    RecursionFn.postpro(pro, coalg).apply(a)
+  def postpro[F[_], A](coalg: Coalgebra[F, A], pro: F ~> F)(a: A)(implicit F: Functor[F]): Fix[F] =
+    RecursionFn.postpro(coalg, pro).apply(a)
 
   /** hylo that can short-circuit on construction */
-  def elgot[F[_], A, B](alg: Algebra[F, B], elcoalg: A => B Either F[A])(a: A)(implicit F: Functor[F]): B =
-    RecursionFn.elgot(alg, elcoalg).apply(a)
+  def elgot[F[_], A, B](elcoalg: A => B Either F[A], alg: Algebra[F, B])(a: A)(implicit F: Functor[F]): B =
+    RecursionFn.elgot(elcoalg, alg).apply(a)
 
   /** hylo that can short-circuit on reduction */
   def coelgot[F[_], A, B](coalg: Coalgebra[F, A], elalg: (A, F[B]) => B)(a: A)(implicit F: Functor[F]): B =

@@ -45,9 +45,9 @@ object RecursionFn {
     * Top-most structure (i.e. the input) is not transformed.
     * Outside to inside.
     */
-  def prepro[F[_], A](pro: F ~> F, alg: Algebra[F, A])(implicit F: Functor[F]): Fix[F] => A = {
+  def prepro[F[_], A](pre: F ~> F, alg: Algebra[F, A])(implicit F: Functor[F]): Fix[F] => A = {
     var self : Fix[F] => A        = null
-    val algF : Algebra[F, Fix[F]] = f => Fix[F](pro(f))
+    val algF : Algebra[F, Fix[F]] = f => Fix[F](pre(f))
     val cataF: Fix[F] => Fix[F]   = cata(algF)
     val inner: Fix[F] => A        = f => self(cataF(f))
     self                          = f => alg(F.map(f.unfix)(inner))
@@ -73,7 +73,7 @@ object RecursionFn {
     * Top-most structure (i.e. the end result) is not transformed.
     * Inside to outside.
     */
-  def postpro[F[_], A](pro: F ~> F, coalg: Coalgebra[F, A])(implicit F: Functor[F]): A => Fix[F] = {
+  def postpro[F[_], A](coalg: Coalgebra[F, A], pro: F ~> F)(implicit F: Functor[F]): A => Fix[F] = {
     var self : A => Fix[F]          = null
     val algF : Coalgebra[F, Fix[F]] = f => pro(f.unfix)
     val anaF : Fix[F] => Fix[F]     = ana(algF)
@@ -97,7 +97,7 @@ object RecursionFn {
   }
 
   /** hylo that can short-circuit on construction */
-  def elgot[F[_], A, B](alg: Algebra[F, B], elcoalg: A => B Either F[A])(implicit F: Functor[F]): A => B = {
+  def elgot[F[_], A, B](elcoalg: A => B Either F[A], alg: Algebra[F, B])(implicit F: Functor[F]): A => B = {
     var self: A => B = null
     self = a => elcoalg(a) match {
       case Right(fa) => alg(F.map(fa)(self))

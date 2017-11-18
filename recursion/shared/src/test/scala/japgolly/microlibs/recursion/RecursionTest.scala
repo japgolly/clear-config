@@ -47,14 +47,14 @@ object RecursionTest extends TestSuite {
     'postpro {
       'stopAboveFive {
         val i = -3
-        val a = Recursion.postpro[ListF[Int, ?], Int](FixList.stopAboveFive, FixList.ascStream)(i)
+        val a = Recursion.postpro[ListF[Int, ?], Int](FixList.ascStream, FixList.stopAboveFive)(i)
         val expect = (-3 to 5).toList
         assert(a == FixList(expect: _*))
       }
 
       'zeroOutOdds {
         val i = 93
-        val a = Recursion.postpro[ListF[Int, ?], Int](FixList.zeroOutOdds, FixList.ascStream)(i)
+        val a = Recursion.postpro[ListF[Int, ?], Int](FixList.ascStream, FixList.zeroOutOdds)(i)
         val aa = FixList.toList(a)
         val expect = List(93, 94, 0, 96, 0, 98, 0, 100)
         assert(aa == expect)
