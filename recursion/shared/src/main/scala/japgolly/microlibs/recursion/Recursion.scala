@@ -42,7 +42,7 @@ object Recursion {
     RecursionFn.elgot(elcoalg, alg).apply(a)
 
   /** hylo that can short-circuit on reduction */
-  def coelgot[F[_], A, B](coalg: Coalgebra[F, A], elalg: (A, F[B]) => B)(a: A)(implicit F: Functor[F]): B =
+  def coelgot[F[_], A, B](coalg: Coalgebra[F, A], elalg: (A, () => F[B]) => B)(a: A)(implicit F: Functor[F]): B =
     RecursionFn.coelgot(coalg, elalg).apply(a)
 
 }

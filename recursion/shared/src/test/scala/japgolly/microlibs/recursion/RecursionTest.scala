@@ -61,5 +61,25 @@ object RecursionTest extends TestSuite {
       }
     }
 
+    'coelgot {
+      'shortCircuit {
+        var coalgs = Vector.empty[Int]
+        var algs = Vector.empty[Int]
+        val str = Recursion.coelgot[MathExpr, Int, String](
+          i => {coalgs :+= i; MathExpr.plusOnes(i)},
+          (i, f) => {
+            algs :+= i
+            if (i == 87)
+              "stop!"
+            else
+              f() match {
+                case MathExpr.Num(s) => s.toString
+                case MathExpr.Add(a, b) => s"$a+$b"
+              }
+          })(90)
+        assert(str == "1+1+1+stop!", coalgs.length < 10, algs.length < 10)
+      }
+    }
+
   }
 }

@@ -107,9 +107,9 @@ object RecursionFn {
   }
 
   /** hylo that can short-circuit on reduction */
-  def coelgot[F[_], A, B](coalg: Coalgebra[F, A], elalg: (A, F[B]) => B)(implicit F: Functor[F]): A => B = {
+  def coelgot[F[_], A, B](coalg: Coalgebra[F, A], elalg: (A, () => F[B]) => B)(implicit F: Functor[F]): A => B = {
     var self: A => B = null
-    self = a => elalg(a, F.map(coalg(a))(self))
+    self = a => elalg(a, () => F.map(coalg(a))(self))
     self
   }
 
