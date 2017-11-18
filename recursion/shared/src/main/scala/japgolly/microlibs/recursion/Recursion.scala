@@ -3,12 +3,8 @@ package japgolly.microlibs.recursion
 import scalaz.{Functor, Monad, Traverse, ~>}
 
 object Recursion {
-
-  def cata[F[_], A](alg: Algebra[F, A])(f: Fix[F])(implicit F: Functor[F]): A = {
-    var self: Fix[F] => A = null
-    self = f => alg(F.map(f.unfix)(self))
-    self(f)
-  }
+  def cata[F[_], A](alg: Algebra[F, A])(f: Fix[F])(implicit F: Functor[F]): A =
+    RecursionFn.cata(alg).apply(f)
 
   def cataM[M[_], F[_], A](alg: AlgebraM[M, F, A])(f: Fix[F])(implicit M: Monad[M], F: Traverse[F]): M[A] = {
     var self: Fix[F] => M[A] = null
@@ -40,15 +36,34 @@ object Recursion {
     self(a)
   }
 
-  def prepro[F[_], A](pro: F ~> F)(alg: Algebra[F, A])(f: Fix[F])(implicit F: Functor[F]): A = {
-    var self: Fix[F] => A = null
-    val algF: Algebra[F, Fix[F]] = f => Fix[F](pro(f))
-    val inner: Fix[F] => A = f => self(cata(algF)(f))
-    self = f => alg(F.map(f.unfix)(inner))
+  /** cata that transforms children (outside to inside) before folding */
+  def prepro[F[_], A](pro: F ~> F, alg: Algebra[F, A])(f: Fix[F])(implicit F: Functor[F]): A = {
+    val algF : Algebra[F, Fix[F]] = f => Fix[F](pro(f))
+    val cataF: Fix[F] => Fix[F]   = RecursionFn.cata(algF)
+    var self : Fix[F] => A        = null
+    val inner: Fix[F] => A        = f => self(cataF(f))
+    self                          = f => alg(F.map(f.unfix)(inner))
     self(f)
+    /*
+    // Inspection
+    var space = ""
+    var self: Fix[F] => A = null
+    self = f => {
+      println(s"${space}F  = ${f.toString.replace("ConsF(", "").replace(")", "")}")
+      space += "  "
+      val step1 = f.unfix
+      val step2 = F.map(step1)(ff => self(cata[F, Fix[F]](q => Fix(pro(q)))(ff)))
+      val step3 = alg(step2)
+      space = space.drop(2)
+      println(s"${space}FA = $step2")
+      println(s"${space} A = $step3")
+      step3
+    }
+    self(f)
+    */
   }
 
-  def postpro[F[_], A](pro: F ~> F)(coalg: Coalgebra[F, A])(a: A)(implicit F: Functor[F]): Fix[F] = {
+  def postpro[F[_], A](pro: F ~> F, coalg: Coalgebra[F, A])(a: A)(implicit F: Functor[F]): Fix[F] = {
     var self: A => Fix[F] = null
     val algF: Coalgebra[F, Fix[F]] = f => pro(f.unfix)
     val inner: A => Fix[F] = a => ana(algF)(self(a))
