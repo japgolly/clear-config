@@ -41,22 +41,24 @@ object RecursionFn {
     self
   }
 
-  /** cata that transforms children (outside to inside) before folding */
+  /** cata that transforms children before folding.
+    * Top-most structure (i.e. the input) is not transformed.
+    * Outside to inside.
+    */
   def prepro[F[_], A](pro: F ~> F, alg: Algebra[F, A])(implicit F: Functor[F]): Fix[F] => A = {
+    var self : Fix[F] => A        = null
     val algF : Algebra[F, Fix[F]] = f => Fix[F](pro(f))
     val cataF: Fix[F] => Fix[F]   = cata(algF)
-    var self : Fix[F] => A        = null
     val inner: Fix[F] => A        = f => self(cataF(f))
     self                          = f => alg(F.map(f.unfix)(inner))
     /*
     // Inspection
     var space = ""
-    var self: Fix[F] => A = null
     self = f => {
       println(s"${space}F  = ${f.toString.replace("ConsF(", "").replace(")", "")}")
       space += "  "
       val step1 = f.unfix
-      val step2 = F.map(step1)(ff => self(cata[F, Fix[F]](q => Fix(pro(q)))(ff)))
+      val step2 = F.map(step1)(inner)
       val step3 = alg(step2)
       space = space.drop(2)
       println(s"${space}FA = $step2")
@@ -67,12 +69,30 @@ object RecursionFn {
     self
   }
 
+  /** ana that creates a structure, transforming each new child (i.e. the entire structure as exists at the end of a pass).
+    * Top-most structure (i.e. the end result) is not transformed.
+    * Inside to outside.
+    */
   def postpro[F[_], A](pro: F ~> F, coalg: Coalgebra[F, A])(implicit F: Functor[F]): A => Fix[F] = {
     var self : A => Fix[F]          = null
     val algF : Coalgebra[F, Fix[F]] = f => pro(f.unfix)
     val anaF : Fix[F] => Fix[F]     = ana(algF)
     val inner: A => Fix[F]          = a => anaF(self(a))
     self = a => Fix[F](F.map(coalg(a))(inner))
+    /*
+    // Inspection
+    var space = ""
+    self = a => {
+      space += "  "
+      val step1 = coalg(a)
+      val step2 = Fix[F](F.map(coalg(a))(inner))
+      space = space.drop(2)
+      println(s"${space}/A = $a")
+      println(s"${space}FA = $step1")
+      println(s"${space}F  = ${step2.toString.replace("ConsF(", "").replace(")", "")}")
+      step2
+    }
+    */
     self
   }
 

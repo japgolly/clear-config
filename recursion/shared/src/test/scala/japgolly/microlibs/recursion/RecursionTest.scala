@@ -45,14 +45,20 @@ object RecursionTest extends TestSuite {
     }
 
     'postpro {
-      println("\npostpro")
-      for (i <- 1 to 8) {
-        val t = Recursion.postpro(MathExpr.add10, MathExpr.plusOnes)(i)
-        println(s"$i: ${Recursion.cata(MathExpr.print)(t)}")
+      'stopAboveFive {
+        val i = -3
+        val a = Recursion.postpro[ListF[Int, ?], Int](FixList.stopAboveFive, FixList.ascStream)(i)
+        val expect = (-3 to 5).toList
+        assert(a == FixList(expect: _*))
       }
-      println()
-//      val expr = Recursion.postpro(add10)(MathExpr.plusOnes)(5)
-//      assert(expr == add(12, add(12, add(12, add(12, 12)))))
+
+      'zeroOutOdds {
+        val i = 93
+        val a = Recursion.postpro[ListF[Int, ?], Int](FixList.zeroOutOdds, FixList.ascStream)(i)
+        val aa = FixList.toList(a)
+        val expect = List(93, 94, 0, 96, 0, 98, 0, 100)
+        assert(aa == expect)
+      }
     }
 
   }

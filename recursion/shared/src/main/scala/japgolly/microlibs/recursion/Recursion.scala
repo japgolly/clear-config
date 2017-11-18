@@ -23,10 +23,17 @@ object Recursion {
   def hyloM[M[_], F[_], A, B](coalg: CoalgebraM[M, F, A], alg: AlgebraM[M, F, B])(a: A)(implicit M: Monad[M], F: Traverse[F]): M[B] =
     RecursionFn.hyloM(coalg, alg).apply(a)
 
-  /** cata that transforms children (outside to inside) before folding */
+  /** cata that transforms children before folding.
+    * Top-most structure (i.e. the input) is not transformed.
+    * Outside to inside.
+    */
   def prepro[F[_], A](pro: F ~> F, alg: Algebra[F, A])(f: Fix[F])(implicit F: Functor[F]): A =
     RecursionFn.prepro(pro, alg).apply(f)
 
+  /** ana that creates a structure, transforming each new child (i.e. the entire structure as exists at the end of a pass).
+    * Top-most structure (i.e. the end result) is not transformed.
+    * Inside to outside.
+    */
   def postpro[F[_], A](pro: F ~> F, coalg: Coalgebra[F, A])(a: A)(implicit F: Functor[F]): Fix[F] =
     RecursionFn.postpro(pro, coalg).apply(a)
 

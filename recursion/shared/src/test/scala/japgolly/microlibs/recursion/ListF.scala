@@ -19,21 +19,36 @@ object FixList {
   type FixList[A] = Fix[ListF[A, ?]]
 
   def apply[A](as: A*): FixList[A] =
-    Recursion.ana[ListF[A, ?], List[A]](coalg)(as.toList)
-  def coalg[A]: Coalgebra[ListF[A, ?], List[A]] = {
+    Recursion.ana[ListF[A, ?], List[A]](listCoalg)(as.toList)
+
+  def toList[A](f: FixList[A]): List[A]  =
+    Recursion.cata[ListF[A, ?], List[A]](listAlg)(f)
+
+  def listAlg[A]: Algebra[ListF[A, ?], List[A]] = {
+    case NilF => Nil
+    case ConsF(h, t) => h :: t
+  }
+
+  def listCoalg[A]: Coalgebra[ListF[A, ?], List[A]] = {
     case Nil => NilF
     case h :: t => ConsF(h, t)
   }
+
   val zeroOutOdds = Lambda[ListF[Int, ?] ~> ListF[Int, ?]] {
     case ConsF(n, t) if n % 2 == 1 => ConsF(0, t)
     case e => e
   }
+
   val stopAboveFive = Lambda[ListF[Int, ?] ~> ListF[Int, ?]] {
     case ConsF(n, _) if n > 5 => NilF
     case e => e
   }
+
   val sum: Algebra[ListF[Int, ?], Int] = {
     case ConsF(h, t) => h + t
     case NilF        => 0
   }
+
+  val ascStream: Coalgebra[ListF[Int, ?], Int] =
+    i => if (i > 100) NilF else ConsF(i, i + 1)
 }
