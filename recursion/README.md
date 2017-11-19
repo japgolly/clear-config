@@ -25,3 +25,20 @@ Hylos that can short-circuit (in terms of recursion depth).
 |--|--|--|
 | elgot | `(a -> b \/ f a) -> (f b -> b) -> a -> b` | short-circuit during ana  |
 | coelgot | `(a -> f a) -> ((a, () -> f b) -> b) -> a -> b` | short-circuit during cata  |
+
+## Para/apo
+
+Basic morphisms with read/write access to the subtree, (read for para/cata, write for apo/ana).
+
+| Name | Type | Desc |
+|--|--|--|
+| para | `(f (Fix f, a) -> a) -> Fix f -> a` | cata that has access to current subtree (`Fix f`) <br> as well as that subtree's folded result (`a`) |
+| apo  | `(a -> f (Fix f \/ a)) -> a -> Fix f` | ana that can branch / short-circuit |
+
+## Course-of-values
+
+| Name | Type | Desc |
+|--|--|--|
+| histo | `(f (Cofree f a) -> a) -> Fix f -> a` | cata that retains values of all previous (i.e. child) steps |
+| futu | `(a -> f (Free f a)) -> a -> Fix f` | ana that can build multiple levels in a single pass |
+| chrono | `(a -> f (Free f a)) ->`<br>`(f (Cofree f b) -> b) ->`<br>` a -> b` | hylo of above |
