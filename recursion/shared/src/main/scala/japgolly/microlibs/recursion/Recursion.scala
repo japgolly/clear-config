@@ -52,4 +52,17 @@ object Recursion {
   /** ana that can branch / short-circuit */
   def apo[F[_], A](coalg: RCoalgebra[F, A])(a: A)(implicit F: Functor[F]): Fix[F] =
     RecursionFn.apo(coalg).apply(a)
+
+  /** cata that retains values of all previous (i.e. child) steps */
+  def histo[F[_], A](alg: CVAlgebra[F, A])(f: Fix[F])(implicit F: Functor[F]): A =
+    RecursionFn.histo(alg).apply(f)
+
+  /** ana that can build multiple levels in a single pass */
+  def futu[F[_], A](coalg: CVCoalgebra[F, A])(a: A)(implicit F: Functor[F]): Fix[F] =
+    RecursionFn.futu(coalg).apply(a)
+
+  /** hylo of futu into histo */
+  def chrono[F[_], A, B](coalg: CVCoalgebra[F, A], alg: CVAlgebra[F, B])(a: A)(implicit F: Functor[F]): B =
+    RecursionFn.chrono(coalg, alg).apply(a)
+
 }

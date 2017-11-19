@@ -1,5 +1,7 @@
 package japgolly.microlibs
 
+import scalaz.{Free, Cofree}
+
 package object recursion {
 
   val Fix: FixModule = FixImpl
@@ -13,6 +15,12 @@ package object recursion {
 
   type RAlgebra[F[_], A] = F[(Fix[F], A)] => A
   type RCoalgebra[F[_], A] = A => F[Either[Fix[F], A]]
+
+  /** Course-of-values algebra */
+  type CVAlgebra[F[_], A] = F[Cofree[F, A]] => A
+
+  /** Course-of-values co-algebra */
+  type CVCoalgebra[F[_], A] = A => F[Free[F, A]]
 
   @inline implicit class FixOps[F[_]](private val self: Fix[F]) extends AnyVal {
     @inline def unfix: F[Fix[F]] =
