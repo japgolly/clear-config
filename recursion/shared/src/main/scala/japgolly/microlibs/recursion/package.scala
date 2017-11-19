@@ -11,6 +11,9 @@ package object recursion {
   type AlgebraM[M[_], F[_], A] = F[A] => M[A]
   type CoalgebraM[M[_], F[_], A] = A => M[F[A]]
 
+  type RAlgebra[F[_], A] = F[(Fix[F], A)] => A
+  type RCoalgebra[F[_], A] = A => F[Either[Fix[F], A]]
+
   @inline implicit class FixOps[F[_]](private val self: Fix[F]) extends AnyVal {
     @inline def unfix: F[Fix[F]] =
       Fix.unfix(self)

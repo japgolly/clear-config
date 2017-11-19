@@ -113,4 +113,23 @@ object RecursionFn {
     self
   }
 
+  /** cata that has access to current subtree (Fix[F]) as well as that subtree's folded result (A) */
+  def para[F[_], A](alg: RAlgebra[F, A])(implicit F: Functor[F]): Fix[F] => A = {
+    var self: Fix[F] => A = null
+    val fanout: Fix[F] => (Fix[F], A) = x => (x, self(x))
+    self = f => alg(F.map(f.unfix)(fanout))
+    self
+  }
+
+  /** ana that can branch / short-circuit */
+  def apo[F[_], A](coalg: RCoalgebra[F, A])(implicit F: Functor[F]): A => Fix[F] = {
+    var self: A => Fix[F] = null
+    val fanin: Either[Fix[F], A] => Fix[F] = {
+      case Left(f) => f
+      case Right(a) => self(a)
+    }
+    self = a => Fix[F](F.map(coalg(a))(fanin))
+    self
+  }
+
 }

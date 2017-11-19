@@ -45,4 +45,11 @@ object Recursion {
   def coelgot[F[_], A, B](coalg: Coalgebra[F, A], elalg: (A, () => F[B]) => B)(a: A)(implicit F: Functor[F]): B =
     RecursionFn.coelgot(coalg, elalg).apply(a)
 
+  /** cata that has access to current subtree (Fix[F]) as well as that subtree's folded result (A) */
+  def para[F[_], A](alg: RAlgebra[F, A])(f: Fix[F])(implicit F: Functor[F]): A =
+    RecursionFn.para(alg).apply(f)
+
+  /** ana that can branch / short-circuit */
+  def apo[F[_], A](coalg: RCoalgebra[F, A])(a: A)(implicit F: Functor[F]): Fix[F] =
+    RecursionFn.apo(coalg).apply(a)
 }
