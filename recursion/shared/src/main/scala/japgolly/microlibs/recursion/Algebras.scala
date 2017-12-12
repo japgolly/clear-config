@@ -7,6 +7,9 @@ final class FAlgebraOps[F[_], A](private val self: FAlgebra[F, A]) extends AnyVa
   def toFAlgebraM[M[_]](implicit M: Monad[M]): FAlgebraM[M, F, A] =
     fa => M.point(self(fa))
 
+  def toRAlgebra(implicit F: Functor[F]): RAlgebra[F, A] =
+    ffa => self(F.map(ffa)(_._2))
+
   def toCVAlgebra(implicit F: Functor[F]): CVAlgebra[F, A] =
     fa => self(F.map(fa)(_.head))
 
@@ -22,6 +25,9 @@ final class FCoalgebraOps[F[_], A](private val self: FCoalgebra[F, A]) extends A
 
   def toFCoalgebraM[M[_]](implicit M: Monad[M]): FCoalgebraM[M, F, A] =
     a => M.point(self(a))
+
+  def toRCoalgebra(implicit F: Functor[F]): RCoalgebra[F, A] =
+    a => F.map(self(a))(Right(_))
 
   def toCVCoalgebra(implicit F: Functor[F]): CVCoalgebra[F, A] =
     a => F.map(self(a))(Free.pure)
