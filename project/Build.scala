@@ -17,13 +17,13 @@ object Microlibs {
   object Ver {
     val JAMM            = "0.3.2"
     val JavaTimeScalaJs = "0.2.2"
-    val KindProjector   = "0.9.4"
+    val KindProjector   = "0.9.5"
     val MacroParadise   = "2.1.1"
     val Monocle         = "1.4.0"
     val MTest           = "0.5.4"
     val Scala211        = "2.11.12"
     val Scala212        = "2.12.4"
-    val Scalaz          = "7.2.16"
+    val Scalaz          = "7.2.17"
     val UnivEq          = "1.0.2"
   }
 
