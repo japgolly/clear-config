@@ -51,6 +51,20 @@ object StdlibExt {
       o getOrElse Map.empty
   }
 
+  implicit class JSLE_TraversableOnce[A](private val as: TraversableOnce[A]) extends AnyVal {
+    def minOption[B >: A: Ordering]: Option[A] =
+      if (as.isEmpty) None else Some(as.min[B])
+
+    def minOptionBy[B: Ordering](f: A => B): Option[A] =
+      if (as.isEmpty) None else Some(as.minBy(f))
+
+    def maxOption[B >: A: Ordering]: Option[A] =
+      if (as.isEmpty) None else Some(as.max[B])
+
+    def maxOptionBy[B: Ordering](f: A => B): Option[A] =
+      if (as.isEmpty) None else Some(as.maxBy(f))
+  }
+
   implicit class JSLE_Iterator[A](private val as: Iterator[A]) extends AnyVal {
 
     def filterSubType[T <: A](implicit t: ClassTag[T]): Iterator[T] =
