@@ -7,17 +7,17 @@ object MathExpr {
   case class Num(value: Int) extends MathExpr[Nothing]
   case class Add[+A](a: A, b: A) extends MathExpr[A]
 
-  val eval: Algebra[MathExpr, Int] = {
+  val eval: FAlgebra[MathExpr, Int] = {
     case Num(i)    => i
     case Add(a, b) => a + b
   }
 
-  val print: Algebra[MathExpr, String] = {
+  val print: FAlgebra[MathExpr, String] = {
     case Num(i)    => i.toString
     case Add(a, b) => s"($a + $b)"
   }
 
-  val plusOnes: Coalgebra[MathExpr, Int] =
+  val plusOnes: FCoalgebra[MathExpr, Int] =
     i => if (i < 2) MathExpr.Num(i) else MathExpr.Add(1, i - 1)
 
   implicit val functor: Functor[MathExpr] =

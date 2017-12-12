@@ -24,12 +24,12 @@ object FixList {
   def toList[A](f: FixList[A]): List[A]  =
     Recursion.cata[ListF[A, ?], List[A]](listAlg)(f)
 
-  def listAlg[A]: Algebra[ListF[A, ?], List[A]] = {
+  def listAlg[A]: FAlgebra[ListF[A, ?], List[A]] = {
     case NilF => Nil
     case ConsF(h, t) => h :: t
   }
 
-  def listCoalg[A]: Coalgebra[ListF[A, ?], List[A]] = {
+  def listCoalg[A]: FCoalgebra[ListF[A, ?], List[A]] = {
     case Nil => NilF
     case h :: t => ConsF(h, t)
   }
@@ -44,11 +44,11 @@ object FixList {
     case e => e
   }
 
-  val sum: Algebra[ListF[Int, ?], Int] = {
+  val sum: FAlgebra[ListF[Int, ?], Int] = {
     case ConsF(h, t) => h + t
     case NilF        => 0
   }
 
-  val ascStream: Coalgebra[ListF[Int, ?], Int] =
+  val ascStream: FCoalgebra[ListF[Int, ?], Int] =
     i => if (i > 100) NilF else ConsF(i, i + 1)
 }

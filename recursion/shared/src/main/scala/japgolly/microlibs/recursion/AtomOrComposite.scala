@@ -18,13 +18,13 @@ object AtomOrComposite {
     override def atom = toAtom(composite)
   }
 
-  def cata[F[_] : Functor, A](alg: Algebra[F, AtomOrComposite[A]])(f: Fix[F]): A =
+  def cata[F[_] : Functor, A](alg: FAlgebra[F, AtomOrComposite[A]])(f: Fix[F]): A =
     Recursion.cata(alg)(f) match {
       case Atom(a) => a
       case Composite(a, _) => a
     }
 
-  def cataM[M[_] : Monad, F[_] : Traverse, A](alg: AlgebraM[M, F, AtomOrComposite[A]])(f: Fix[F]): M[A] =
+  def cataM[M[_] : Monad, F[_] : Traverse, A](alg: FAlgebraM[M, F, AtomOrComposite[A]])(f: Fix[F]): M[A] =
     Monad[M].map(Recursion.cataM(alg)(f)) {
       case Atom(a) => a
       case Composite(a, _) => a
