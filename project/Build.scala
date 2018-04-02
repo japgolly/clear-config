@@ -89,13 +89,13 @@ object Microlibs {
     Project("JVM", file(".rootJVM"))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        adtMacrosJVM, configJVM, macroUtilsJVM, nameFnJVM, nonemptyJVM, recursionJVM, scalazExtJVM, stdlibExtJVM, testUtilJVM)
+        adtMacrosJVM, configJVM, macroUtilsJVM, nameFnJVM, nonemptyJVM, recursionJVM, scalazExtJVM, stdlibExtJVM, testUtilJVM, utilsJVM)
 
   lazy val rootJS =
     Project("JS", file(".rootJS"))
       .configure(commonSettings.jvm, preventPublication)
       .aggregate(
-        adtMacrosJS, configJS, macroUtilsJS, nameFnJS, nonemptyJS, recursionJS, scalazExtJS, stdlibExtJS, testUtilJS)
+        adtMacrosJS, configJS, macroUtilsJS, nameFnJS, nonemptyJS, recursionJS, scalazExtJS, stdlibExtJS, testUtilJS, utilsJS)
 
   // ===================================================================================================================
 
@@ -169,6 +169,13 @@ object Microlibs {
     .settings(
       moduleName := "test-util",
       libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
+
+  lazy val utilsJVM = utils.jvm
+  lazy val utilsJS  = utils.js
+  lazy val utils = crossProject
+    .configureCross(commonSettings, publicationSettings, utestSettings)
+    .settings(
+      libraryDependencies += "com.github.japgolly.univeq" %%% "univeq" % Ver.UnivEq)
 
   // ===================================================================================================================
 

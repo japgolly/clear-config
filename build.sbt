@@ -20,5 +20,7 @@ val stdlibExtJVM  = Microlibs.stdlibExtJVM
 val stdlibExtJS   = Microlibs.stdlibExtJS
 val testUtilJVM   = Microlibs.testUtilJVM
 val testUtilJS    = Microlibs.testUtilJS
+val utilsJVM      = Microlibs.utilsJVM
+val utilsJS       = Microlibs.utilsJS
 
 val bench         = Microlibs.bench

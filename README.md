@@ -14,5 +14,6 @@ val VerMicrolibs = "1.xxx"
 "com.github.japgolly.microlibs" %% "scalaz-ext"  % VerMicrolibs
 "com.github.japgolly.microlibs" %% "stdlib-ext"  % VerMicrolibs
 "com.github.japgolly.microlibs" %% "test-util"   % VerMicrolibs % Test
+"com.github.japgolly.microlibs" %% "utils"       % VerMicrolibs
 ```
 
