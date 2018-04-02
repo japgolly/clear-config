@@ -16,14 +16,14 @@ object Microlibs {
 
   object Ver {
     val JAMM            = "0.3.2"
-    val JavaTimeScalaJs = "0.2.2"
-    val KindProjector   = "0.9.5"
+    val JavaTimeScalaJs = "0.2.4"
+    val KindProjector   = "0.9.6"
     val MacroParadise   = "2.1.1"
-    val Monocle         = "1.4.0"
+    val Monocle         = "1.5.0"
     val MTest           = "0.5.4"
     val Scala211        = "2.11.12"
     val Scala212        = "2.12.4"
-    val Scalaz          = "7.2.17"
+    val Scalaz          = "7.2.20"
     val UnivEq          = "1.0.2"
   }
 
@@ -55,7 +55,6 @@ object Microlibs {
       scalacOptions in Test        --= Seq("-Ywarn-dead-code"),
       shellPrompt in ThisBuild      := ((s: State) => Project.extract(s).currentRef.project + "> "),
       triggeredMessage              := Watched.clearWhenTriggered,
-      incOptions                    := incOptions.value.withNameHashing(true),
       updateOptions                 := updateOptions.value.withCachedResolution(true),
       releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       releaseTagComment             := s"v${(version in ThisBuild).value}",
