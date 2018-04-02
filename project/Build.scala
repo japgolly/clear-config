@@ -57,40 +57,22 @@ object Microlibs {
       triggeredMessage              := Watched.clearWhenTriggered,
       incOptions                    := incOptions.value.withNameHashing(true),
       updateOptions                 := updateOptions.value.withCachedResolution(true),
-      dependencyUpdatesExclusions   := moduleFilter(organization = "org.scala-lang") |
-                                       moduleFilter(organization = "org.eclipse.jetty"),
       releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       releaseTagComment             := s"v${(version in ThisBuild).value}",
       releaseVcsSign                := true,
-      addCompilerPlugin("org.spire-math" %% "kind-projector" % Ver.KindProjector))
-    .configure(
-      addCommandAliases(
-        "/"   -> "project root",
-        "L"   -> "root/publishLocal",
-        "C"   -> "root/clean",
-        "T"   -> ";root/clean;root/test",
-        "TL"  -> ";T;L",
-        "c"   -> "compile",
-        "tc"  -> "test:compile",
-        "t"   -> "test",
-        "to"  -> "test-only",
-        "tq"  -> "test-quick",
-        "cc"  -> ";clean;compile",
-        "ctc" -> ";clean;test:compile",
-        "ct"  -> ";clean;test")))
+      addCompilerPlugin("org.spire-math" %% "kind-projector" % Ver.KindProjector)))
 
   def definesMacros = ConfigureBoth(
     _.settings(
       scalacOptions += "-language:experimental.macros",
-      libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided")))
+      libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided"))
 
   def macroParadisePlugin =
     compilerPlugin("org.scalamacros" % "paradise" % Ver.MacroParadise cross CrossVersion.full)
 
   def utestSettings = ConfigureBoth(
     _.settings(
-      libraryDependencies += "com.lihaoyi" %%% "utest" % Ver.MTest % "test",
+      libraryDependencies += "com.lihaoyi" %%% "utest" % Ver.MTest % Test,
       testFrameworks      += new TestFramework("utest.runner.Framework")))
 
   def useTestUtil: CPE =
@@ -178,7 +160,7 @@ object Microlibs {
     .in(file("stdlib-ext"))
     .configureCross(commonSettings, publicationSettings, utestSettings, useTestUtil)
     .settings(moduleName := "stdlib-ext")
-    .jsSettings(libraryDependencies += "org.scala-js" %%% "scalajs-java-time" % Ver.JavaTimeScalaJs % "test")
+    .jsSettings(libraryDependencies += "org.scala-js" %%% "scalajs-java-time" % Ver.JavaTimeScalaJs % Test)
 
   lazy val testUtilJVM = testUtil.jvm
   lazy val testUtilJS  = testUtil.js
