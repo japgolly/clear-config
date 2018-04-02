@@ -2,7 +2,6 @@ import sbt._
 import Keys._
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
 import pl.project13.scala.sbt.JmhPlugin
-import com.timushev.sbt.updates.UpdatesKeys._
 import com.typesafe.sbt.pgp.PgpKeys
 import sbtrelease.ReleasePlugin.autoImport._
 import Lib._
