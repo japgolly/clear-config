@@ -179,7 +179,7 @@ object Config {
       case None              => StepResult.Success(None, Set.empty)
     })
 
-  def getOrUse[A: ConfigParser](key: String, default: => A): Config[A] =
+  def getOrUse[A: ConfigParser](key: String, default: A): Config[A] =
     baseGetA[A, A](key, ApiMethod.GetOrUse(default.toString), (_, o) => o match {
       case Some((origin, a)) => StepResult.Success(a, Set(origin))
       case None              => StepResult.Success(default, Set.empty)
