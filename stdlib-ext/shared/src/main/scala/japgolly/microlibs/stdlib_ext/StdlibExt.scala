@@ -63,6 +63,9 @@ object StdlibExt {
 
     def maxOptionBy[B: Ordering](f: A => B): Option[A] =
       if (as.isEmpty) None else Some(as.maxBy(f))
+
+    def mapToOrder: Map[A, Int] =
+      as.toIterator.zipWithIndex.toMap
   }
 
   implicit class JSLE_Iterator[A](private val as: Iterator[A]) extends AnyVal {
@@ -229,6 +232,14 @@ object StdlibExt {
 
     def mapValuesNow[X](f: V => X): Map[K, X] =
       mapEntriesNow((k, v) => (k, f(v)))
+  }
+
+  implicit class JSLE_Set[A](private val self: Set[A]) extends AnyVal {
+    def togglePresence(a: A): Set[A] =
+      if (self contains a)
+        self - a
+      else
+        self + a
   }
 
   implicit class JSLE_Throwable(private val t: Throwable) extends AnyVal {

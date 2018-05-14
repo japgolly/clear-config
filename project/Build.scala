@@ -20,6 +20,7 @@ object Microlibs {
     val MacroParadise   = "2.1.1"
     val Monocle         = "1.5.0"
     val MTest           = "0.5.4"
+    val Nyaya           = "0.8.1"
     val Scala211        = "2.11.12"
     val Scala212        = "2.12.4"
     val Scalaz          = "7.2.20"
@@ -173,8 +174,13 @@ object Microlibs {
   lazy val utilsJS  = utils.js
   lazy val utils = crossProject
     .configureCross(commonSettings, publicationSettings, utestSettings)
+    .dependsOn(stdlibExt)
     .settings(
-      libraryDependencies += "com.github.japgolly.univeq" %%% "univeq" % Ver.UnivEq)
+      libraryDependencies ++= Seq(
+        "com.github.japgolly.univeq" %%% "univeq" % Ver.UnivEq,
+        "com.github.japgolly.nyaya" %%% "nyaya-gen" % Ver.Nyaya % Test,
+        "com.github.japgolly.nyaya" %%% "nyaya-prop" % Ver.Nyaya % Test,
+        "com.github.japgolly.nyaya" %%% "nyaya-test" % Ver.Nyaya % Test))
 
   // ===================================================================================================================
 
