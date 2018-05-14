@@ -21,7 +21,7 @@ object SourceTest extends TestSuite {
     "n>n" - ensureCompilation(ss > ss)
     "n<n" - ensureCompilation(ss < ss)
 
-    * - ensureCompilation {
+    "chain" - ensureCompilation {
       val sources: List[Source[Id]] = null
       Source.environment[Id] > Sources.highToLowPri(sources: _*) > Source.system[Id]
     }

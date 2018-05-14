@@ -1,5 +1,6 @@
 package japgolly.microlibs.config
 
+import java.io.InputStream
 import java.util.Properties
 import scala.collection.JavaConverters._
 import scalaz.{Applicative, Monad, ~>}
@@ -77,6 +78,15 @@ object ConfigStore {
           .map(k => k -> p.getProperty(k.value))
           .toMap)
     }
+
+  def javaPropsFromInputStream[F[_]](is: InputStream, close: Boolean)(implicit F: Applicative[F]): ConfigStore[F] =
+    try {
+      val p = new Properties()
+      p.load(is)
+      javaProps[F](p)
+    } finally
+      if (close)
+        is.close()
 
   def stringMap[F[_]](m: Map[String, String])(implicit F: Applicative[F]): ConfigStore[F] =
     new ConfigStore[F] {

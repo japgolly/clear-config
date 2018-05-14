@@ -1,6 +1,6 @@
 package japgolly.microlibs.config
 
-import java.util.Properties
+import java.io.{File, FileInputStream}
 import scalaz.{-\/, Applicative, Functor, Monad, \/, \/-, ~>}
 
 final case class SourceName(value: String) extends AnyVal
@@ -59,17 +59,33 @@ object Source {
     Source[F](SourceName.classpath(f), F.point {
       def load() = {
         val i = getClass.getResourceAsStream(f)
-        if (i eq null) {
-          if (optional)
-            \/-(ConfigStore.empty[F])
-          else
-            -\/("File not found.")
-        } else {
-          val p = new Properties()
-          p.load(i)
-          \/-(ConfigStore.javaProps[F](p))
-        }
+        if (i ne null)
+          \/-(ConfigStore.javaPropsFromInputStream[F](i, close = true))
+        else if (optional)
+          \/-(ConfigStore.empty[F])
+        else
+          -\/("File not found.")
       }
+      \/.fromTryCatchNonFatal(load()).leftMap(_.getMessage).flatMap(identity)
+    })
+  }
+
+  def propFile[F[_]](filename: String, optional: Boolean)(implicit F: Applicative[F]): Source[F] =
+    propFile(new File(filename), optional)
+
+  def propFile[F[_]](file: File, optional: Boolean)(implicit F: Applicative[F]): Source[F] = {
+    Source[F](SourceName(file.getAbsolutePath), F.point {
+      def load() =
+        if (file.exists()) {
+          if (file.canRead) {
+            val is = new FileInputStream(file)
+            \/-(ConfigStore.javaPropsFromInputStream[F](is, close = true))
+          } else
+            -\/("Unable to read file.")
+        } else if (optional)
+          \/-(ConfigStore.empty[F])
+        else
+          -\/("File not found.")
       \/.fromTryCatchNonFatal(load()).leftMap(_.getMessage).flatMap(identity)
     })
   }
