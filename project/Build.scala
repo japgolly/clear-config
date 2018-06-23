@@ -38,10 +38,8 @@ object ClearConfig {
       "-language:higherKinds",
       "-language:existentials")
     ++ (scalaVersion.value match {
-      case x if x startsWith "2.11." =>
-        "-target:jvm-1.6" :: Nil
-      case x if x startsWith "2.12." =>
-        "-target:jvm-1.8" :: "-opt:l:method" :: Nil
+      case x if x startsWith "2.11." => "-target:jvm-1.6" :: Nil
+      case x if x startsWith "2.12." => "-target:jvm-1.8" :: "-opt:l:method" :: Nil
     }))
 
   val commonSettings = ConfigureBoth(
@@ -52,7 +50,7 @@ object ClearConfig {
       scalaVersion                  := Ver.Scala212,
       crossScalaVersions            := Seq(Ver.Scala211, Ver.Scala212),
       scalacOptions                ++= scalacFlags.value,
-      scalacOptions in Test        --= Seq("-Ywarn-dead-code"),
+      scalacOptions in Test        --= Seq("-Ywarn-dead-code", "-Ywarn-unused"),
       shellPrompt in ThisBuild      := ((s: State) => Project.extract(s).currentRef.project + "> "),
       triggeredMessage              := Watched.clearWhenTriggered,
       updateOptions                 := updateOptions.value.withCachedResolution(true),
