@@ -1,8 +1,11 @@
 import sbt._
 import Keys._
-import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
-import pl.project13.scala.sbt.JmhPlugin
 import com.typesafe.sbt.pgp.PgpKeys
+import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.{crossProject => _, CrossType => _, _}
+import pl.project13.scala.sbt.JmhPlugin
+import sbtcrossproject.CrossPlugin.autoImport._
+import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
 import sbtrelease.ReleasePlugin.autoImport._
 import Lib._
 
@@ -16,14 +19,14 @@ object Microlibs {
   object Ver {
     val JAMM            = "0.3.2"
     val JavaTimeScalaJs = "0.2.4"
-    val KindProjector   = "0.9.6"
+    val KindProjector   = "0.9.7"
     val MacroParadise   = "2.1.1"
     val Monocle         = "1.5.0"
     val MTest           = "0.5.4"
     val Nyaya           = "0.8.1"
     val Scala211        = "2.11.12"
-    val Scala212        = "2.12.4"
-    val Scalaz          = "7.2.20"
+    val Scala212        = "2.12.6"
+    val Scalaz          = "7.2.24"
     val UnivEq          = "1.0.2"
   }
 
@@ -101,7 +104,7 @@ object Microlibs {
 
   lazy val adtMacrosJVM = adtMacros.jvm
   lazy val adtMacrosJS  = adtMacros.js
-  lazy val adtMacros = crossProject
+  lazy val adtMacros = crossProject(JVMPlatform, JSPlatform)
     .in(file("adt-macros"))
     .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
     .dependsOn(macroUtils, nonempty)
@@ -109,28 +112,28 @@ object Microlibs {
 
   lazy val configJVM = config.jvm
   lazy val configJS  = config.js
-  lazy val config = crossProject
+  lazy val config = crossProject(JVMPlatform, JSPlatform)
     .configureCross(commonSettings, publicationSettings, utestSettings, useTestUtil)
     .dependsOn(stdlibExt)
     .settings(libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
   lazy val macroUtilsJVM = macroUtils.jvm
   lazy val macroUtilsJS  = macroUtils.js
-  lazy val macroUtils = crossProject
+  lazy val macroUtils = crossProject(JVMPlatform, JSPlatform)
     .in(file("macro-utils"))
     .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
     .settings(moduleName := "macro-utils")
 
   lazy val nameFnJVM = nameFn.jvm
   lazy val nameFnJS  = nameFn.js
-  lazy val nameFn = crossProject
+  lazy val nameFn = crossProject(JVMPlatform, JSPlatform)
     .in(file("name-fn"))
     .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
     .settings(moduleName := "name-fn")
 
   lazy val nonemptyJVM = nonempty.jvm
   lazy val nonemptyJS  = nonempty.js
-  lazy val nonempty = crossProject
+  lazy val nonempty = crossProject(JVMPlatform, JSPlatform)
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
       libraryDependencies ++= Seq(
@@ -139,13 +142,13 @@ object Microlibs {
 
   lazy val recursionJVM = recursion.jvm
   lazy val recursionJS  = recursion.js
-  lazy val recursion = crossProject
+  lazy val recursion = crossProject(JVMPlatform, JSPlatform)
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
   lazy val scalazExtJVM = scalazExt.jvm
   lazy val scalazExtJS  = scalazExt.js
-  lazy val scalazExt = crossProject
+  lazy val scalazExt = crossProject(JVMPlatform, JSPlatform)
     .in(file("scalaz-ext"))
     .configureCross(commonSettings, publicationSettings, definesMacros, utestSettings)
     .dependsOn(macroUtils)
@@ -155,7 +158,7 @@ object Microlibs {
 
   lazy val stdlibExtJVM = stdlibExt.jvm
   lazy val stdlibExtJS  = stdlibExt.js
-  lazy val stdlibExt = crossProject
+  lazy val stdlibExt = crossProject(JVMPlatform, JSPlatform)
     .in(file("stdlib-ext"))
     .configureCross(commonSettings, publicationSettings, utestSettings, useTestUtil)
     .settings(moduleName := "stdlib-ext")
@@ -163,7 +166,7 @@ object Microlibs {
 
   lazy val testUtilJVM = testUtil.jvm
   lazy val testUtilJS  = testUtil.js
-  lazy val testUtil = crossProject
+  lazy val testUtil = crossProject(JVMPlatform, JSPlatform)
     .in(file("test-util"))
     .configureCross(commonSettings, publicationSettings)
     .settings(
@@ -172,7 +175,7 @@ object Microlibs {
 
   lazy val utilsJVM = utils.jvm
   lazy val utilsJS  = utils.js
-  lazy val utils = crossProject
+  lazy val utils = crossProject(JVMPlatform, JSPlatform)
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .dependsOn(stdlibExt)
     .settings(
