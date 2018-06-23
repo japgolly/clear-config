@@ -1,7 +1,7 @@
-package japgolly.microlibs.stdlib_ext
+package japgolly.microlibs.utils
 
 import scala.annotation.tailrec
-import StdlibExt._
+import japgolly.microlibs.stdlib_ext.StdlibExt._
 
 /**
  * Taken from

@@ -1,8 +1,8 @@
 package japgolly.microlibs.config
 
 import japgolly.microlibs.config.ConfigReport._
-import japgolly.microlibs.stdlib_ext.AsciiTable
 import japgolly.microlibs.stdlib_ext.StdlibExt._
+import japgolly.microlibs.utils.AsciiTable
 import java.util.regex.Pattern
 import scala.Console._
 import scala.util.hashing.MurmurHash3

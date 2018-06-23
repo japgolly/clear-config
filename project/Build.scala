@@ -114,7 +114,7 @@ object Microlibs {
   lazy val configJS  = config.js
   lazy val config = crossProject(JVMPlatform, JSPlatform)
     .configureCross(commonSettings, publicationSettings, utestSettings, useTestUtil)
-    .dependsOn(stdlibExt)
+    .dependsOn(utils)
     .settings(libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
   lazy val macroUtilsJVM = macroUtils.jvm
