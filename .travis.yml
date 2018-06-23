@@ -3,7 +3,7 @@ sudo: false
 
 scala:
   - 2.11.12
-  - 2.12.4
+  - 2.12.6
 
 jdk:
   - oraclejdk8
@@ -11,7 +11,6 @@ jdk:
 script:
   - sbt ++$TRAVIS_SCALA_VERSION test
 
-# Taken from https://github.com/typelevel/cats/blob/master/.travis.yml
 before_cache:
   - find $HOME/.sbt -name "*.lock" -type f -delete
   - find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
