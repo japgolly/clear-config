@@ -148,10 +148,8 @@ abstract class Config[A] private[config]() extends ConfigValidation[Config, A] {
 object Config {
   implicit val applicativeInstance: Applicative[Config] =
     new Applicative[Config] {
-      override def point[A](a: => A) = new Config[A] {
-        private[config] override def step[F[_]](implicit F: Monad[F]) =
-          Step.ret(a.point[StepResult])
-      }
+      override def point[A](a: => A) =
+        Config.const(a)
       override def map[A, B](fa: Config[A])(f: A => B) =
         fa map f
       override def ap[A, B](fa: => Config[A])(ff: => Config[A => B]) = new Config[B] {
@@ -171,6 +169,12 @@ object Config {
           }
         }
       }
+    }
+
+  def const[A](a: A): Config[A] =
+    new Config[A] {
+      override def step[F[_]](implicit F: Monad[F]) =
+        Step.ret(a.point[StepResult])
     }
 
   def get[A: ConfigParser](key: String): Config[Option[A]] =
