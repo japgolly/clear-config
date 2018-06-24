@@ -103,30 +103,30 @@ object ConfigTest extends TestSuite {
       'read1 {
         val c = ConfigDef.need[Int]("in")
         'ok - assertEq(
-          c.ensure(_ < 150, "Must be < 150.").run(srcs),
+          c.ensure_<(150).run(srcs),
           ConfigResult.Success(100))
         'ko - assertEq(
-          c.ensure(_ > 150, "Must be > 150.").run(srcs),
+          c.ensure_>(150).run(srcs),
           ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, Lookup.Error("Must be > 150.", Some("100"))))), Set.empty, srcNames))
       }
 
       'readMap1 {
         val c = ConfigDef.need[Int]("in").map(_ + 1000)
         'ok - assertEq(
-          c.ensure(_ > 1050, "Must be > 1050.").run(srcs),
+          c.ensure_>(1050).run(srcs),
           ConfigResult.Success(1100))
         'ko - assertEq(
-          c.ensure(_ > 1150, "Must be > 1150.").run(srcs),
+          c.ensure_>(1150).run(srcs),
           ConfigResult.QueryFailure(Map.empty, Set("Must be > 1150." -> Set(\/-(Key("in")), -\/("<function>"))), srcNames))
       }
 
       'read2 {
         val c = (ConfigDef.need[Int]("in") |@| ConfigDef.need[Int]("i2"))(_ + _)
         'ok - assertEq(
-          c.ensure(_ < 150, "Must be < 150.").run(srcs),
+          c.ensure_<(150).run(srcs),
           ConfigResult.Success(122))
         'ko - assertEq(
-          c.ensure(_ > 150, "Must be > 150.").run(srcs),
+          c.ensure_>(150).run(srcs),
           ConfigResult.QueryFailure(Map.empty, Set("Must be > 150." -> Set(\/-(Key("in")), \/-(Key("i2")), -\/("<function>"))), srcNames))
       }
     }

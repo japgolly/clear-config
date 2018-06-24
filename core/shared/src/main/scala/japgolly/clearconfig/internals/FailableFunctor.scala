@@ -19,4 +19,17 @@ trait FailableFunctor[F[_], A] {
 
   def mapOption[B](f: A => Option[B], errorMsg: => String = "Not a recognised value."): F[B] =
     mapAttempt(f(_).fold[String \/ B](-\/(errorMsg))(\/-.apply))
+
+  final def ensure_>=(rhs: A)(implicit o: Ordering[A]): F[A] =
+    ensure(o.gteq(_, rhs), s"Must be ≥ $rhs.")
+
+  final def ensure_>(rhs: A)(implicit o: Ordering[A]): F[A] =
+    ensure(o.gt(_, rhs), s"Must be > $rhs.")
+
+  final def ensure_<=(rhs: A)(implicit o: Ordering[A]): F[A] =
+    ensure(o.lteq(_, rhs), s"Must be ≤ $rhs.")
+
+  final def ensure_<(rhs: A)(implicit o: Ordering[A]): F[A] =
+    ensure(o.lt(_, rhs), s"Must be < $rhs.")
+
 }
