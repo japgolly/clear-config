@@ -15,7 +15,10 @@ private[internals] object Evaluation {
       ReaderWriterStateT.rwstMonad[F, R[F], Unit, S[F]]
 
     def ret[F[_], A](a: A)(implicit F: Applicative[F]): Step[F, A] =
-      RWST((_, s) => F.point(((), a, s)))
+      retF(F.point(a))
+
+    def retF[F[_], A](fa: F[A])(implicit F: Applicative[F]): Step[F, A] =
+      RWST((_, s) => fa.map(((), _, s)))
   }
 
   final case class R[F[_]](highToLowPri: Vector[(SourceName, Store[F])])
@@ -47,7 +50,11 @@ private[internals] object Evaluation {
 
     def obfuscateKeys(keys: TraversableOnce[Key]): S[F] =
       copy(keysToObfuscate = keysToObfuscate ++ keys)
+
+    def queriesSince(previous: S[F]) =
+      queryLog.drop(previous.queryLog.length)
   }
+
   object S {
     def init[F[_]]: S[F] =
       S(Nil, Map.empty, Map.empty, Vector.empty, Set.empty)

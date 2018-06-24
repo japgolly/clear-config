@@ -15,6 +15,12 @@ trait Config[A] extends FailableFunctor[Config, A] {
 
   def chooseAttempt[B](f: A => String \/ Config[B]): Config[B]
 
+  /** Requires at least one key to be externally specified, else `None` is returned.
+    *
+    * If some keys are available and some required others are not, then it is a failure.
+    */
+  def option: Config[Option[A]]
+
   /** When a Report is generated, the config values used by this will be obfuscated. */
   def secret: Config[A]
 
@@ -107,14 +113,14 @@ object Config {
       cs.reduce(applicativeInstance.apply2(_, _)((f, g) => a => { f(a); g(a) }))
 
   // ███████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-  
+
   implicit val applicativeInstance: Applicative[Config] =
     new Applicative[Config] {
       override def point[A](a: => A)                                 = Config.const(a)
       override def map[A, B](fa: Config[A])(f: A => B)               = fa map f
       override def ap[A, B](fa: => Config[A])(ff: => Config[A => B]) = fa.ap(ff)
     }
-  
+
   private implicit def configToInstance[A](c: Config[A]): Instance[A] =
     c match {
       case i: Instance[A] => i
@@ -201,16 +207,59 @@ object Config {
           }
       }
 
+    override final def option: Config[Option[A]] =
+      new Instance[Option[A]] {
+        def step[F[_]](implicit F: Monad[F]) = {
+          val x = Step.monad[F]
+
+          def transform(s1: S[F], s2: S[F], sr: StepResult[A]): F[StepResult[Option[A]]] = {
+            def noKeysSpecifiedF: F[Boolean] =
+              s2.queriesSince(s1).foldLeftM(true)((ok, k) => {
+                if (ok)
+                  s2.queryCache(k).selected.map {
+                    case None | Some(SrcAndVal(_, Lookup.NotFound)) => true
+                    case Some(SrcAndVal(_, _: Lookup.Found | _: Lookup.Error)) => false
+                  }
+                else
+                  F pure false
+              })
+
+            sr match {
+              case StepResult.Success(a, o) =>
+                noKeysSpecifiedF.map(noKeysSpecified =>
+                  if (noKeysSpecified)
+                    StepResult.Success(None, Set.empty)
+                  else
+                    StepResult.Success(Some(a), o))
+
+              case f@StepResult.Failure(keyed, other) =>
+                def noErrors = keyed.valuesIterator.forall(_.isEmpty)
+                noKeysSpecifiedF.map(noKeysSpecified =>
+                  if (noKeysSpecified && noErrors && other.isEmpty)
+                    StepResult.Success(None, Set.empty)
+                  else
+                    f)
+            }
+          }
+
+          for {
+            s1 <- x.get
+            r1 <- self.step(F)
+            s2 <- x.get
+            r2 <- Step.retF(transform(s1, s2, r1))
+          } yield r2
+        }
+      }
+
     override final def secret: Config[A] =
       new Instance[A] {
         def step[F[_]](implicit F: Monad[F]) = {
           val x = Step.monad[F]
-          def keys(s1: S[F], s2: S[F]): Vector[Key] = s2.queryLog.drop(s1.queryLog.length)
           for {
             s <- x.get
-            a <- self.step(F)
-            _ <- x.modify(s2 => s2.obfuscateKeys(keys(s, s2)))
-          } yield a
+            r <- self.step(F)
+            _ <- x.modify(s2 => s2.obfuscateKeys(s2.queriesSince(s)))
+          } yield r
         }
       }
 

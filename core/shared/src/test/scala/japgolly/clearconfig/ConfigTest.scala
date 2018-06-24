@@ -226,5 +226,44 @@ object ConfigTest extends TestSuite {
       }
     }
 
+    'option {
+      val c1 = ConfigDef.need[Int]("c.1")
+      val c2 = ConfigDef.need[String]("c.2")
+      val c3 = ConfigDef.getOrUse[Int]("c.3", 666)
+      val c4 = ConfigDef.get[Int]("c.4")
+
+      val m = Map("c.1" -> "123", "c.2" -> "abc")
+      val s0 = ConfigSource.empty[Id]("S")
+      val s1 = ConfigSource.manual[Id]("S", m - "c.2")
+      val s2 = ConfigSource.manual[Id]("S", m)
+      val s3 = ConfigSource.manual[Id]("S", m.updated("c.3", "3"))
+      val s4 = ConfigSource.manual[Id]("S", m.updated("c.4", "4"))
+
+      'get {
+        val co = c4.option
+        'none - assertEq(co.run(s0), ConfigResult.Success(None))
+        'all - assertEq(co.run(s4), ConfigResult.Success(Some(Some(4))))
+      }
+
+      'getOrUse {
+        val co = c3.option
+        'none - assertEq(co.run(s0), ConfigResult.Success(None))
+        'all - assertEq(co.run(s3), ConfigResult.Success(Some(3)))
+      }
+
+      'need {
+        val co = c1.option
+        'none - assertEq(co.run(s0), ConfigResult.Success(None))
+        'all - assertEq(co.run(s2), ConfigResult.Success(Some(123)))
+      }
+
+      'multi {
+        val co = (c1 |@| c2 |@| c3 |@| c4).tupled.option
+        'none - assertEq(co.run(s0), ConfigResult.Success(None))
+        'all - assertEq(co.run(s2), ConfigResult.Success(Some((123, "abc", 666, None))))
+        'some - assertEq(co.run(s1), ConfigResult.QueryFailure(Map(Key("c.2") -> None), Set.empty, Vector(s1.name)))
+      }
+    }
+
   }
 }
