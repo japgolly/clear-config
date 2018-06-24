@@ -20,7 +20,7 @@ object ClearConfig {
     val KindProjector   = "0.9.7"
     val Microlibs       = "1.16"
     val MTest           = "0.5.4"
-    val Scala211        = "2.11.12"
+    //val Scala211        = "2.11.12"
     val Scala212        = "2.12.6"
     val Scalaz          = "7.2.24"
   }
@@ -48,7 +48,7 @@ object ClearConfig {
       homepage                      := Some(url("https://github.com/japgolly/" + ghProject)),
       licenses                      += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
       scalaVersion                  := Ver.Scala212,
-      crossScalaVersions            := Seq(Ver.Scala211, Ver.Scala212),
+      crossScalaVersions            := Seq(Ver.Scala212),
       scalacOptions                ++= scalacFlags.value,
       scalacOptions in Test        --= Seq("-Ywarn-dead-code", "-Ywarn-unused"),
       shellPrompt in ThisBuild      := ((s: State) => Project.extract(s).currentRef.project + "> "),
