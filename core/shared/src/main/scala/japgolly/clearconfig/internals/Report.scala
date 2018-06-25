@@ -132,7 +132,7 @@ object Report {
       obfuscateSourcesAndKeys(seemsSecret.matcher(_).matches)
 
     val seemsSecret: Pattern =
-      Pattern.compile(".*(?:password|secret).*", Pattern.CASE_INSENSITIVE)
+      Pattern.compile(".*(?:credential|password|secret).*", Pattern.CASE_INSENSITIVE)
   }
 
   // ===================================================================================================================
