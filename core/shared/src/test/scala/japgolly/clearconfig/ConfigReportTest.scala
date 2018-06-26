@@ -21,6 +21,7 @@ object ConfigReportTest extends TestSuite {
         )((_,_,_) => ())
       val expectUsed =
         s"""
+           |Used keys (3):
            |+-----+-----+------+
            || Key | S1  | S2   |
            |+-----+-----+------+
@@ -32,6 +33,7 @@ object ConfigReportTest extends TestSuite {
 
       val expectUnused =
         s"""
+           |Unused keys (4):
            |+-------+-------+-----+
            || Key   | S1    | S2  |
            |+-------+-------+-----+
@@ -53,28 +55,26 @@ object ConfigReportTest extends TestSuite {
 //        }
         'with {
           val (_, k: ConfigReport) = si.withReport.run(srcs).get_!
-          assertMultiline(k.reportUsed, expectUsed)
+          assertMultiline(k.used, expectUsed)
         }
       }
       'unused {
         val k: ConfigReport = si.withReport.map(_._2).run(srcs).get_!
-        assertMultiline(k.reportUnused, expectUnused)
+        assertMultiline(k.unused, expectUnused)
       }
 
       'combined {
 
         'default - assertMultiline(
-          si.withReport.run(srcs > S0).get_!._2.report,
+          si.withReport.run(srcs > S0).get_!._2.full,
           s"""
              !3 sources (highest to lowest priority):
              !  - S1
              !  - S2
              !  - S0
              !
-             !Used keys (3):
              !$expectUsed
              !
-             !Unused keys (4):
              !$expectUnused
            """.stripMargin('!').trim)
 
@@ -91,7 +91,7 @@ object ConfigReportTest extends TestSuite {
       'specified {
         val si = ConfigDef.need[String]("s2") tuple ConfigDef.get[String]("nope") tuple ConfigDef.getOrUse[Int]("i2", 666)
         val k = si.withReport.run(src2).get_!._2
-        assertMultiline(k.report,
+        assertMultiline(k.full,
           s"""
              !2 sources (highest to lowest priority):
              !  - S2
@@ -119,7 +119,7 @@ object ConfigReportTest extends TestSuite {
       'unspecified {
         val si = ConfigDef.need[String]("s") tuple ConfigDef.get[String]("nope") tuple ConfigDef.getOrUse[Int]("i2", 666)
         val k = si.withReport.run(src1).get_!._2
-        assertMultiline(k.report,
+        assertMultiline(k.full,
           s"""
              !2 sources (highest to lowest priority):
              !  - S1
@@ -154,7 +154,7 @@ object ConfigReportTest extends TestSuite {
           .mapKeyQueries(k => List(k, k.replace('.', '_')))
         val c = ConfigDef.need[Int]("db.port") tuple ConfigDef.need[String]("both.1")
         val r = c.withReport.run(s).get_!._2
-        assertMultiline(r.report,
+        assertMultiline(r.full,
           s"""
              !1 source:
              !  - S
@@ -186,7 +186,7 @@ object ConfigReportTest extends TestSuite {
         val s = s1 > s2 > s3
         val c = ConfigDef.need[Int]("db.port") tuple ConfigDef.need[String]("both.1")
         val r = c.withReport.run(s).get_!._2
-        assertMultiline(r.report,
+        assertMultiline(r.full,
           s"""
              !3 sources (highest to lowest priority):
              !  - S1
@@ -224,7 +224,7 @@ object ConfigReportTest extends TestSuite {
       val s = ConfigSource.manual[Id]("S")("C" -> "1", "C1" -> v1, "C2" -> v2)
 
       val r = cc.withReport.run(s).get_!._2
-      assertMultiline(r.report,
+      assertMultiline(r.full,
         s"""
            !1 source:
            !  - S
@@ -253,7 +253,7 @@ object ConfigReportTest extends TestSuite {
       val c = ConfigDef.need[String]("c")
       val s = ConfigSource.manual[Id]("S")("a" -> "1", "b" -> "2", "c" -> "3")
       val r = (a tuple b tuple c withReport).run(s).get_!._2
-      assertMultiline(r.report.removeAnsiEscapeCodes,
+      assertMultiline(r.full.removeAnsiEscapeCodes,
         s"""
            !1 source:
            !  - S
@@ -281,7 +281,7 @@ object ConfigReportTest extends TestSuite {
 
       val r = c.withReport.run(s).get_!._2
 
-      'default - assertMultiline(r.report,
+      'default - assertMultiline(r.full,
         s"""
            !3 sources (highest to lowest priority):
            !  - S1
@@ -301,8 +301,9 @@ object ConfigReportTest extends TestSuite {
            !+-----+----+----+
          """.stripMargin('!').trim)
 
-      'withoutS1 - assertMultiline(r.mapUnused(_.withoutSources(s1.name)).reportUnused,
+      'withoutS1 - assertMultiline(r.mapUnused(_.withoutSources(s1.name)).unused,
         s"""
+           !Unused keys (2):
            !+-----+----+
            !| Key | S2 |
            !+-----+----+
@@ -311,8 +312,9 @@ object ConfigReportTest extends TestSuite {
            !+-----+----+
          """.stripMargin('!').trim)
 
-      'withoutS12 - assertMultiline(r.mapUnused(_.withoutSources(s1.name, s2.name)).reportUnused,
+      'withoutS12 - assertMultiline(r.mapUnused(_.withoutSources(s1.name, s2.name)).unused,
         s"""
+           !Unused keys (0):
            !No data to report.
          """.stripMargin('!').trim)
 

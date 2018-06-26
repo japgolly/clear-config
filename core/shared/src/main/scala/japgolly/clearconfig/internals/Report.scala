@@ -163,7 +163,9 @@ object Report {
                             prepareUnused : SubReport => SubReport,
                             valueDisplay0 : ValueDisplay,
                             maxValueLen   : Option[Int],
-                            showSourceList: Boolean)
+                            showSourceList: Boolean,
+                            usedHeader    : String,
+                            unusedHeader  : String)
   object Settings {
     def default: Settings =
       apply(
@@ -171,7 +173,9 @@ object Report {
         _.withoutKeys("PROMPT", "PS1").filterKeysNot(_ contains "TERMCAP"),
         ValueDisplay.default,
         Some(64),
-        true)
+        true,
+        "Used keys",
+        "Unused keys")
   }
 
   // ===================================================================================================================
@@ -186,7 +190,9 @@ object Report {
       settings.prepareUnused(SubReport(Table(unused))),
       settings.valueDisplay0,
       settings.maxValueLen,
-      settings.showSourceList)
+      settings.showSourceList,
+      settings.usedHeader,
+      settings.unusedHeader)
 }
 
 // █████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
@@ -194,11 +200,13 @@ object Report {
 import Report._
 
 final case class Report(sourcesHighToLowPri: Vector[SourceName],
-                        used               : SubReport,
-                        unused             : SubReport,
+                        usedReport         : SubReport,
+                        unusedReport       : SubReport,
                         valueDisplay0      : ValueDisplay,
                         maxValueLen        : Option[Int],
-                        showSourceList     : Boolean) extends HasTable[Report] {
+                        showSourceList     : Boolean,
+                        usedHeader         : String,
+                        unusedHeader       : String) extends HasTable[Report] {
 
   override def toString = "ConfigReport"
 
@@ -206,33 +214,38 @@ final case class Report(sourcesHighToLowPri: Vector[SourceName],
     maxValueLen.fold(valueDisplay0)(ValueDisplay.limitWidth(_) + valueDisplay0)
 
   override def map(f: Table => Table) =
-    copy(used = used.map(f), unused = unused.map(f))
+    copy(usedReport = usedReport.map(f), unusedReport = unusedReport.map(f))
 
-  def reportUsed: String =
-    used.report(sourcesHighToLowPri, valueDisplay)
+  private def subReport(showHeader: Boolean, header: String, sr: SubReport): String = {
+    val r = sr.report(sourcesHighToLowPri, valueDisplay)
+    if (showHeader) s"$header (${sr.size}):\n$r" else r
+  }
 
-  def reportUnused: String =
-    unused.report(sourcesHighToLowPri, valueDisplay)
+  def sources: String = Util.fmtSourceNameList(sourcesHighToLowPri)
 
-  def report: String =
+  def used: String = used(true)
+  def unused: String = unused(true)
+
+  def used(withHeader: Boolean): String = subReport(withHeader, usedHeader, usedReport)
+  def unused(withHeader: Boolean): String = subReport(withHeader, unusedHeader, unusedReport)
+
+  def full: String =
     s"""
-       !${if (showSourceList) Util.fmtSourceNameList(sourcesHighToLowPri) else ""}
+       !${if (showSourceList) sources else ""}
        !
-       !Used keys (${used.size}):
-       !$reportUsed
+       !${used(true)}
        !
-       !Unused keys (${unused.size}):
-       !$reportUnused
+       !${unused(true)}
      """.stripMargin('!').trim
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // Customisation
 
   def mapUsed(f: SubReport => SubReport): Report =
-    copy(used = f(used))
+    copy(usedReport = f(usedReport))
 
   def mapUnused(f: SubReport => SubReport): Report =
-    copy(unused = f(unused))
+    copy(unusedReport = f(unusedReport))
 
   def withValueDisplay(f: ValueDisplay => ValueDisplay): Report =
     copy(valueDisplay0 = f(valueDisplay0))
