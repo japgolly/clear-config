@@ -317,7 +317,28 @@ object ConfigReportTest extends TestSuite {
            !Unused keys (0):
            !No data to report.
          """.stripMargin('!').trim)
+    }
 
+    'colour {
+      val c = ConfigDef.need[Int]("i").secret
+      val s = ConfigSource.manual[Id]("S")("i" -> "1")
+      val r = c.withReport.run(s).get_!._2
+      'on - assertMultiline(
+        s"""
+          |+-----+----------------+
+          || Key | S              |
+          |+-----+----------------+
+          || i   | ${Console.YELLOW}<# 9C554F15 #>${Console.RESET} |
+          |+-----+----------------+
+        """.stripMargin.trim, r.withColour.used(false))
+      'off - assertMultiline(
+        """
+          |+-----+----------------+
+          || Key | S              |
+          |+-----+----------------+
+          || i   | <# 9C554F15 #> |
+          |+-----+----------------+
+        """.stripMargin.trim, r.withoutColour.used(false))
     }
   }
 }

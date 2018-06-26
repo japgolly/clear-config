@@ -3,7 +3,6 @@ package japgolly.clearconfig.internals
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 import japgolly.microlibs.utils.AsciiTable
 import java.util.regex.Pattern
-import scala.Console._
 import scala.util.hashing.MurmurHash3
 
 object Report {
@@ -18,8 +17,18 @@ object Report {
         .groupBy(_._1)
         .mapValuesNow(_.iterator.map(_._2).toMap)
 
-  final case class Table(byKey: Map[Key, Map[SourceName, Lookup]]) {
+  final case class Colours(secret: String, error: String, reset: String)
 
+  object Colours {
+    def off = apply("", "", "")
+
+    def on = {
+      import scala.Console._
+      apply(YELLOW, RED, RESET)
+    }
+  }
+
+  final case class Table(byKey: Map[Key, Map[SourceName, Lookup]]) {
     val bySource: Map[SourceName, Map[Key, Lookup]] =
       swap(byKey)
 
@@ -67,15 +76,15 @@ object Report {
 
   // ===================================================================================================================
 
-  final case class ValueDisplay(fmt: (SourceName, Key, String) => String) extends AnyVal {
+  final case class ValueDisplay(fmt: (Colours, SourceName, Key, String) => String) {
     def +(f: ValueDisplay): ValueDisplay =
-      ValueDisplay((s, k, v) => f.fmt(s, k, fmt(s, k, v)))
+      ValueDisplay((c, s, k, v) => f.fmt(c, s, k, fmt(c, s, k, v)))
 
     def map(f: String => String): ValueDisplay =
-      ValueDisplay((s, k, v) => f(fmt(s, k, v)))
+      ValueDisplay((c, s, k, v) => f(fmt(c, s, k, v)))
 
     def when(cond: (SourceName, Key, String) => Boolean): ValueDisplay =
-      ValueDisplay((s, k, v) => if (cond(s, k, v)) fmt(s, k, v) else v)
+      ValueDisplay((c, s, k, v) => if (cond(s, k, v)) fmt(c, s, k, v) else v)
 
     def unless(cond: (SourceName, Key, String) => Boolean): ValueDisplay =
       when(!cond)
@@ -83,10 +92,10 @@ object Report {
 
   object ValueDisplay {
     def identity: ValueDisplay =
-      ValueDisplay((_, _, v) => v)
+      ValueDisplay((_, _, _, v) => v)
 
     def escapeCtrlChars: ValueDisplay =
-      ValueDisplay((_, _, v) => v.toIterator.flatMap {
+      ValueDisplay((_, _, _, v) => v.toIterator.flatMap {
         case '\b' => "\\b"
         case '\n' => "\\n"
         case '\r' => "\\r"
@@ -96,10 +105,10 @@ object Report {
       }.mkString)
 
     def limitWidth(maxLen: Int): ValueDisplay =
-      ValueDisplay((_, _, v) => if (v.length <= maxLen) v else v.take(maxLen - 1) + "…")
+      ValueDisplay((_, _, _, v) => if (v.length <= maxLen) v else v.take(maxLen - 1) + "…")
 
     def obfuscate: ValueDisplay =
-      ValueDisplay((_, _, v) => s"$YELLOW<# %08X #>$RESET".format(MurmurHash3 stringHash v))
+      ValueDisplay((c, _, _, v) => "%s<# %08X #>%s".format(c.secret, MurmurHash3 stringHash v, c.reset))
 
     def obfuscateSources(f: SourceName => Boolean): ValueDisplay =
       obfuscate.when((s, _, _) => f(s))
@@ -129,11 +138,11 @@ object Report {
     override def map(f: Table => Table) =
       SubReport(f(table))
 
-    def report(sourcesHighToLowPri: Vector[SourceName], valueDisplay: ValueDisplay): String =
+    def report(sourcesHighToLowPri: Vector[SourceName], c: Colours, vd: ValueDisplay): String =
       if (isEmpty)
         "No data to report."
       else {
-        def fmtError(e: String) = s"$RED$e$RESET"
+        def fmtError(e: String) = s"${c.error}$e${c.reset}"
 
         val sources: Vector[SourceName] =
           sourcesHighToLowPri.filter(table.bySource.contains)
@@ -147,10 +156,10 @@ object Report {
             .sortBy(_._1.value)
             .map { case (k, vs) =>
               k.value +: sources.map(s => vs.getOrElse(s, Lookup.NotFound) match {
-                case Lookup.Found(_, v)         => valueDisplay.fmt(s, k, v)
+                case Lookup.Found(_, v)         => vd.fmt(c, s, k, v)
                 case Lookup.NotFound            => ""
                 case Lookup.Error(err, None)    => fmtError(err)
-                case Lookup.Error(err, Some(v)) => s"${valueDisplay.fmt(s, k, v)} ${fmtError(err)}"
+                case Lookup.Error(err, Some(v)) => s"${vd.fmt(c, s, k, v)} ${fmtError(err)}"
               })
             }
         AsciiTable(header :: valueRows)
@@ -161,6 +170,7 @@ object Report {
 
   final case class Settings(prepareUsed   : SubReport => SubReport,
                             prepareUnused : SubReport => SubReport,
+                            colours       : Colours,
                             valueDisplay0 : ValueDisplay,
                             maxValueLen   : Option[Int],
                             showSourceList: Boolean,
@@ -171,6 +181,7 @@ object Report {
       apply(
         _.withoutEmptySourceCols,
         _.withoutKeys("PROMPT", "PS1").filterKeysNot(_ contains "TERMCAP"),
+        Colours.off,
         ValueDisplay.default,
         Some(64),
         true,
@@ -188,6 +199,7 @@ object Report {
       sourcesHighToLowPri,
       settings.prepareUsed(SubReport(Table(used))),
       settings.prepareUnused(SubReport(Table(unused))),
+      settings.colours,
       settings.valueDisplay0,
       settings.maxValueLen,
       settings.showSourceList,
@@ -202,6 +214,7 @@ import Report._
 final case class Report(sourcesHighToLowPri: Vector[SourceName],
                         usedReport         : SubReport,
                         unusedReport       : SubReport,
+                        colours            : Colours,
                         valueDisplay0      : ValueDisplay,
                         maxValueLen        : Option[Int],
                         showSourceList     : Boolean,
@@ -217,7 +230,7 @@ final case class Report(sourcesHighToLowPri: Vector[SourceName],
     copy(usedReport = usedReport.map(f), unusedReport = unusedReport.map(f))
 
   private def subReport(showHeader: Boolean, header: String, sr: SubReport): String = {
-    val r = sr.report(sourcesHighToLowPri, valueDisplay)
+    val r = sr.report(sourcesHighToLowPri, colours, valueDisplay)
     if (showHeader) s"$header (${sr.size}):\n$r" else r
   }
 
@@ -256,4 +269,20 @@ final case class Report(sourcesHighToLowPri: Vector[SourceName],
   /** Convenient shortcut because this is such a common case. */
   def obfuscateKeys(f: Key => Boolean): Report =
     withValueDisplay(_ + ValueDisplay.obfuscateKeys(f))
+
+  def withColour(enable: Boolean): Report = {
+    val c = enable match {
+      case true if colours == Colours.off => Colours.on
+      case true                           => colours
+      case false                          => Colours.off
+    }
+    copy(colours = c)
+  }
+
+  def withColour: Report =
+    withColour(true)
+
+  def withoutColour: Report =
+    withColour(false)
+
 }
