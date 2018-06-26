@@ -10,4 +10,7 @@ trait Implicits extends ValueParser.Implicits {
 
   implicit def configValuePreprocessor: ValuePreprocessor =
     ValuePreprocessor.default
+
+  implicit def configReportSettings: Report.Settings =
+    Report.Settings.default
 }

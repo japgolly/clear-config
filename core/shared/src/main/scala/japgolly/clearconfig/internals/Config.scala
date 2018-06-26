@@ -31,7 +31,7 @@ trait Config[A] extends FailableFunctor[Config, A] {
     * This should be at the very end of your Config composition,
     * else the unused-keys portion of the report may be inaccurate.
     */
-  def withReport: Config[(A, Report)]
+  def withReport(implicit s: Report.Settings): Config[(A, Report)]
 
   /** Use this method very sparingly as it prevents clarity and config discoverability
     * by introducing configuration keys that only appear in certain conditions.
@@ -266,8 +266,8 @@ object Config {
     override final def withKeyMod(f: String => String): Config[A] =
       Instance.keyModCompose(f) *> this <* Instance.keyModPop
 
-    override final def withReport: Config[(A, Report)] =
-      (this: Config[A]) tuple Config.Instance.reportSoFar
+    override final def withReport(implicit s: Report.Settings): Config[(A, Report)] =
+      (this: Config[A]) tuple Config.Instance.reportSoFar(s)
   }
 
   private object Instance {
@@ -349,10 +349,10 @@ object Config {
           Step((_, s) => (s, s.queryCache.keySet.point[StepResult]).point[F])
       }
 
-    def reportSoFar: Config[Report] =
+    def reportSoFar(settings: Report.Settings): Config[Report] =
       new Instance[Report] {
         def step[F[_]](implicit F: Monad[F]) =
-          Step((r, s) => ReportCreation(r, s).map(a => (s, a.point[StepResult])))
+          Step((r, s) => ReportCreation(settings, r, s).map(a => (s, a.point[StepResult])))
       }
 
   }

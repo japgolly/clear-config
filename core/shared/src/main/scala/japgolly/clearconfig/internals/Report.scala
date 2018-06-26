@@ -159,28 +159,34 @@ object Report {
 
   // ===================================================================================================================
 
-  final case class Settings(display0      : ValueDisplay,
+  final case class Settings(prepareUsed   : SubReport => SubReport,
+                            prepareUnused : SubReport => SubReport,
+                            valueDisplay0 : ValueDisplay,
                             maxValueLen   : Option[Int],
-                            showSourceList: Boolean) {
-    def display: ValueDisplay =
-      maxValueLen.fold(display0)(ValueDisplay.limitWidth(_) + display0)
-  }
-
+                            showSourceList: Boolean)
   object Settings {
     def default: Settings =
-      Settings(ValueDisplay.default, Some(64), true)
+      apply(
+        _.withoutEmptySourceCols,
+        _.withoutKeys("PROMPT", "PS1").filterKeysNot(_ contains "TERMCAP"),
+        ValueDisplay.default,
+        Some(64),
+        true)
   }
 
   // ===================================================================================================================
 
-  def withDefaults(sourcesHighToLowPri: Vector[SourceName],
-                   used               : Map[Key, Map[SourceName, Lookup]],
-                   unused             : Map[Key, Map[SourceName, Lookup]]): Report =
+  def apply(sourcesHighToLowPri: Vector[SourceName],
+            used               : Map[Key, Map[SourceName, Lookup]],
+            unused             : Map[Key, Map[SourceName, Lookup]],
+            settings           : Settings): Report =
     Report(
       sourcesHighToLowPri,
-      SubReport(Table(used)).withoutEmptySourceCols,
-      SubReport(Table(unused)).withoutKeys("PROMPT", "PS1").filterKeysNot(_ contains "TERMCAP"),
-      Settings.default)
+      settings.prepareUsed(SubReport(Table(used))),
+      settings.prepareUnused(SubReport(Table(unused))),
+      settings.valueDisplay0,
+      settings.maxValueLen,
+      settings.showSourceList)
 }
 
 // █████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
@@ -190,21 +196,27 @@ import Report._
 final case class Report(sourcesHighToLowPri: Vector[SourceName],
                         used               : SubReport,
                         unused             : SubReport,
-                        settings           : Settings) extends HasTable[Report] {
-  override def toString = "Report"
+                        valueDisplay0      : ValueDisplay,
+                        maxValueLen        : Option[Int],
+                        showSourceList     : Boolean) extends HasTable[Report] {
+
+  override def toString = "ConfigReport"
+
+  def valueDisplay: ValueDisplay =
+    maxValueLen.fold(valueDisplay0)(ValueDisplay.limitWidth(_) + valueDisplay0)
 
   override def map(f: Table => Table) =
     copy(used = used.map(f), unused = unused.map(f))
 
   def reportUsed: String =
-    used.report(sourcesHighToLowPri, settings.display)
+    used.report(sourcesHighToLowPri, valueDisplay)
 
   def reportUnused: String =
-    unused.report(sourcesHighToLowPri, settings.display)
+    unused.report(sourcesHighToLowPri, valueDisplay)
 
   def report: String =
     s"""
-       !${if (settings.showSourceList) Util.fmtSourceNameList(sourcesHighToLowPri) else ""}
+       !${if (showSourceList) Util.fmtSourceNameList(sourcesHighToLowPri) else ""}
        !
        !Used keys (${used.size}):
        !$reportUsed
@@ -222,14 +234,11 @@ final case class Report(sourcesHighToLowPri: Vector[SourceName],
   def mapUnused(f: SubReport => SubReport): Report =
     copy(unused = f(unused))
 
-  def withSettings(f: Settings => Settings): Report =
-    copy(settings = f(settings))
-
   def withValueDisplay(f: ValueDisplay => ValueDisplay): Report =
-    copy(settings = settings.copy(display0 = f(settings.display0)))
+    copy(valueDisplay0 = f(valueDisplay0))
 
   def withMaxValueLength(i: Int): Report =
-    withSettings(_.copy(maxValueLen = Some(i)))
+    copy(maxValueLen = Some(i))
 
   /** Convenient shortcut because this is such a common case. */
   def obfuscateKeys(f: Key => Boolean): Report =

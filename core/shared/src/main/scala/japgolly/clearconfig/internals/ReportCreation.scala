@@ -9,7 +9,7 @@ private[internals] object ReportCreation {
 
   private def sourceName = SourceName.default
 
-  def apply[F[_]](r: R[F], s: S[F])(implicit F: Applicative[F]): F[Report] = {
+  def apply[F[_]](settings: Report.Settings, r: R[F], s: S[F])(implicit F: Applicative[F]): F[Report] = {
     type M = Map[Key, Map[SourceName, Lookup]]
     def emptyM: M = Map.empty
     implicit def semigroupLookup: Semigroup[Lookup] =
@@ -79,7 +79,7 @@ private[internals] object ReportCreation {
         val keysToObfuscate: Set[Key] =
           s.keysToObfuscate.map(_.toLowerCase)
 
-        Report.withDefaults(srcs, used, unused)
+        Report(srcs, used, unused, settings)
           .obfuscateKeys(k => keysToObfuscate.contains(k.toLowerCase))
       }
 
