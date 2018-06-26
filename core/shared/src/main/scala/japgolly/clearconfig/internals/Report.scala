@@ -8,78 +8,61 @@ import scala.util.hashing.MurmurHash3
 
 object Report {
 
-  private def isValueMapEmpty(m: Map[_, Lookup]): Boolean =
-    !m.exists(_._2 != Lookup.NotFound)
+  private def isBlank(m: Map[_, Lookup]): Boolean =
+    m.forall(_._2 == Lookup.NotFound)
 
-  final case class RowFilter(allow: (Key, Map[SourceName, Lookup]) => Boolean) extends AnyVal {
-    def unary_! : RowFilter = RowFilter(!allow)
-    def &&(f: RowFilter): RowFilter = RowFilter(allow && f.allow)
-    def ||(f: RowFilter): RowFilter = RowFilter(allow || f.allow)
-    def addExclusion(f: RowFilter): RowFilter = RowFilter(allow && !f.allow)
+  private def swap[A, B, V](m: Map[A, Map[B, V]]): Map[B, Map[A, V]] =
+      m.iterator
+        .flatMap { case (a, bv) => bv.iterator.map { case (s, v) => (s, (a, v)) } }
+        .toList
+        .groupBy(_._1)
+        .mapValuesNow(_.iterator.map(_._2).toMap)
+
+  final case class Table(byKey: Map[Key, Map[SourceName, Lookup]]) {
+
+    val bySource: Map[SourceName, Map[Key, Lookup]] =
+      swap(byKey)
+
+    def isEmpty = byKey.isEmpty
+    def nonEmpty = !isEmpty
+
+    def modByKey(f: Map[Key, Map[SourceName, Lookup]] => Map[Key, Map[SourceName, Lookup]]): Table =
+      Table(f(byKey))
+
+    def modBySource(f: Map[SourceName, Map[Key, Lookup]] => Map[SourceName, Map[Key, Lookup]]): Table =
+      Table(swap(f(bySource)))
   }
 
-  object RowFilter {
-    def allowAll: RowFilter =
-      RowFilter((_, _) => true)
+  trait HasTable[A <: HasTable[A]] {
+    def map(f: Table => Table): A
 
-    def exclude(f: (Key, Map[SourceName, Lookup]) => Boolean): RowFilter =
-      RowFilter(!f)
+    final def filterKeys(f: String => Boolean): A =
+      map(_.modByKey(_.filterKeys(k => f(k.value))))
 
-    def excludeEmpty: RowFilter =
-      exclude((_, vs) => isValueMapEmpty(vs))
+    final def filterKeysNot(f: String => Boolean): A =
+      filterKeys(!f(_))
 
-    def excludeKeys(keys: String*): RowFilter =
-      excludeByKey(keys.toIterator.map(Key).toSet.contains)
+    final def withoutKeys(keys: String*): A = {
+      val keySet = keys.toSet
+      filterKeys(!keySet.contains(_))
+    }
 
-    def excludeByKey(f: Key => Boolean): RowFilter =
-      exclude((k, _) => f(k))
+    final def filterSources(f: SourceName => Boolean): A =
+      map(_.modBySource(_.filterKeys(f)))
 
-    /** Exclude rows where a key is only provided by a specified single source. */
-    def excludeWhereSingleSource(s: SourceName): RowFilter =
-      excludeWhereSingleSource(_ == s)
+    final def filterSourcesNot(f: SourceName => Boolean): A =
+      filterSources(!f(_))
 
-    /** Exclude rows where a key is only provided by a single source, and that source matches given criteria. */
-    def excludeWhereSingleSource(f: SourceName => Boolean): RowFilter =
-      exclude((_, vs) => vs.size == 1 && f(vs.keysIterator.next()))
+    final def withoutSources(sources: SourceName*): A = {
+      val excludeSet = sources.toSet
+      filterSources(!excludeSet.contains(_))
+    }
 
-    def defaultForUsedReport: RowFilter =
-      allowAll
+    final def withoutEmptySourceCols: A =
+      map(_.modBySource(_.filter(x => !isBlank(x._2))))
 
-    def defaultForUnusedReport: RowFilter =
-      excludeByKey(_.value contains "TERMCAP") &&
-      excludeKeys("PROMPT", "PS1")
-  }
-
-  // ===================================================================================================================
-
-  final case class ColFilter(allow: (SourceName, Map[Key, Lookup]) => Boolean) extends AnyVal {
-    def unary_! : ColFilter = ColFilter(!allow)
-    def &&(f: ColFilter): ColFilter = ColFilter(allow && f.allow)
-    def ||(f: ColFilter): ColFilter = ColFilter(allow || f.allow)
-    def addExclusion(f: ColFilter): ColFilter = ColFilter(allow && !f.allow)
-  }
-
-  object ColFilter {
-    def allowAll: ColFilter =
-      ColFilter((_, _) => true)
-
-    def exclude(f: (SourceName, Map[Key, Lookup]) => Boolean): ColFilter =
-      ColFilter(!f)
-
-    def excludeEmpty: ColFilter =
-      exclude((_, vs) => isValueMapEmpty(vs))
-
-    def excludeSources(sources: SourceName*): ColFilter =
-      excludeBySource(sources.toSet.contains)
-
-    def excludeBySource(f: SourceName => Boolean): ColFilter =
-      exclude((s, _) => f(s))
-
-    def defaultForUsedReport: ColFilter =
-      excludeEmpty
-
-    def defaultForUnusedReport: ColFilter =
-      excludeEmpty
+    final def withoutEmptyKeyRows: A =
+      map(_.modByKey(_.filter(x => !isBlank(x._2))))
   }
 
   // ===================================================================================================================
@@ -137,32 +120,29 @@ object Report {
 
   // ===================================================================================================================
 
-  final case class SubReport(data     : Map[Key, Map[SourceName, Lookup]],
-                             rowFilter: RowFilter,
-                             colFilter: ColFilter) {
+  final case class SubReport(table: Table) extends HasTable[SubReport] {
+
+    def isEmpty = table.isEmpty
+    def nonEmpty = !isEmpty
+    def size = table.byKey.size
+
+    override def map(f: Table => Table) =
+      SubReport(f(table))
 
     def report(sourcesHighToLowPri: Vector[SourceName], valueDisplay: ValueDisplay): String =
-      if (data.isEmpty)
+      if (isEmpty)
         "No data to report."
       else {
         def fmtError(e: String) = s"$RED$e$RESET"
 
-        val dataBySource: Map[SourceName, Map[Key, Lookup]] =
-          data.iterator
-            .flatMap { case (k, sv) => sv.iterator.map { case (s, v) => (s, (k, v)) } }
-            .toList
-            .groupBy(_._1)
-            .mapValuesNow(_.iterator.map(_._2).toMap)
-
         val sources: Vector[SourceName] =
-          sourcesHighToLowPri.filter(s => colFilter.allow(s, dataBySource.getOrElse(s, Map.empty)))
+          sourcesHighToLowPri.filter(table.bySource.contains)
 
         val header: Vector[String] =
           "Key" +: sources.map(_.value)
 
         val valueRows: List[Vector[String]] =
-          data.iterator
-            .filter(rowFilter.allow.tupled)
+          table.byKey.iterator
             .toList
             .sortBy(_._1.value)
             .map { case (k, vs) =>
@@ -175,12 +155,6 @@ object Report {
             }
         AsciiTable(header :: valueRows)
       }
-
-    def withColFilter(f: ColFilter => ColFilter): SubReport =
-      copy(colFilter = f(colFilter))
-
-    def withRowFilter(f: RowFilter => RowFilter): SubReport =
-      copy(rowFilter = f(rowFilter))
   }
 
   // ===================================================================================================================
@@ -204,8 +178,8 @@ object Report {
                    unused             : Map[Key, Map[SourceName, Lookup]]): Report =
     Report(
       sourcesHighToLowPri,
-      SubReport(used, RowFilter.defaultForUsedReport, ColFilter.defaultForUsedReport),
-      SubReport(unused, RowFilter.defaultForUnusedReport, ColFilter.defaultForUnusedReport),
+      SubReport(Table(used)).withoutEmptySourceCols,
+      SubReport(Table(unused)).withoutKeys("PROMPT", "PS1").filterKeysNot(_ contains "TERMCAP"),
       Settings.default)
 }
 
@@ -214,10 +188,13 @@ object Report {
 import Report._
 
 final case class Report(sourcesHighToLowPri: Vector[SourceName],
-                              used               : SubReport,
-                              unused             : SubReport,
-                              settings           : Settings) {
+                        used               : SubReport,
+                        unused             : SubReport,
+                        settings           : Settings) extends HasTable[Report] {
   override def toString = "Report"
+
+  override def map(f: Table => Table) =
+    copy(used = used.map(f), unused = unused.map(f))
 
   def reportUsed: String =
     used.report(sourcesHighToLowPri, settings.display)
@@ -229,27 +206,21 @@ final case class Report(sourcesHighToLowPri: Vector[SourceName],
     s"""
        !${if (settings.showSourceList) Util.fmtSourceNameList(sourcesHighToLowPri) else ""}
        !
-       !Used keys (${used.data.size}):
+       !Used keys (${used.size}):
        !$reportUsed
        !
-       !Unused keys (${unused.data.size}):
+       !Unused keys (${unused.size}):
        !$reportUnused
      """.stripMargin('!').trim
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // Customisation
 
-  def withUsedSettings(f: SubReport => SubReport): Report =
+  def mapUsed(f: SubReport => SubReport): Report =
     copy(used = f(used))
 
-  def withUnusedSettings(f: SubReport => SubReport): Report =
+  def mapUnused(f: SubReport => SubReport): Report =
     copy(unused = f(unused))
-
-  def withColFilter(f: ColFilter => ColFilter): Report =
-    copy(unused = unused.withColFilter(f), used = used.withColFilter(f))
-
-  def withRowFilter(f: RowFilter => RowFilter): Report =
-    copy(unused = unused.withRowFilter(f), used = used.withRowFilter(f))
 
   def withSettings(f: Settings => Settings): Report =
     copy(settings = f(settings))

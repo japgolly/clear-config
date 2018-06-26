@@ -271,5 +271,51 @@ object ConfigReportTest extends TestSuite {
            !No data to report.
          """.stripMargin('!').trim)
     }
+
+    'filtering {
+      val s1 = ConfigSource.manual[Id]("S1")("a" -> "a1", "s" -> "s1")
+      val s2 = ConfigSource.manual[Id]("S2")("b" -> "b2", "s" -> "s2")
+      val s3 = ConfigSource.manual[Id]("S3")()
+      val s = s1 > s2 > s3
+      val c = ConfigDef.const(1)
+
+      val r = c.withReport.run(s).get_!._2
+
+      'default - assertMultiline(r.report,
+        s"""
+           !3 sources (highest to lowest priority):
+           !  - S1
+           !  - S2
+           !  - S3
+           !
+           !Used keys (0):
+           !No data to report.
+           !
+           !Unused keys (3):
+           !+-----+----+----+
+           !| Key | S1 | S2 |
+           !+-----+----+----+
+           !| a   | a1 |    |
+           !| b   |    | b2 |
+           !| s   | s1 | s2 |
+           !+-----+----+----+
+         """.stripMargin('!').trim)
+
+      'withoutS1 - assertMultiline(r.mapUnused(_.withoutSources(s1.name)).reportUnused,
+        s"""
+           !+-----+----+
+           !| Key | S2 |
+           !+-----+----+
+           !| b   | b2 |
+           !| s   | s2 |
+           !+-----+----+
+         """.stripMargin('!').trim)
+
+      'withoutS12 - assertMultiline(r.mapUnused(_.withoutSources(s1.name, s2.name)).reportUnused,
+        s"""
+           !No data to report.
+         """.stripMargin('!').trim)
+
+    }
   }
 }
