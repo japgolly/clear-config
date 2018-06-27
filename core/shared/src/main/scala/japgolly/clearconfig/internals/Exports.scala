@@ -23,8 +23,8 @@ trait Exports extends Implicits {
   final type ConfigValuePreprocessor = japgolly.clearconfig.internals.ValuePreprocessor
   final val  ConfigValuePreprocessor = japgolly.clearconfig.internals.ValuePreprocessor
 
-  final type ConfigDef[A] = japgolly.clearconfig.internals.Config[A]
-  final val  ConfigDef    = japgolly.clearconfig.internals.Config
+  final type ConfigDef[A] = japgolly.clearconfig.internals.ConfigDef[A]
+  final val  ConfigDef    = japgolly.clearconfig.internals.ConfigDef
 
   final type ConfigResult[+A] = japgolly.clearconfig.internals.Result[A]
   final val  ConfigResult     = japgolly.clearconfig.internals.Result
