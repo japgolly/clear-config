@@ -94,6 +94,13 @@ object Report {
     def identity: ValueDisplay =
       ValueDisplay((_, _, _, v) => v)
 
+    def quoteBlanks: ValueDisplay =
+      ValueDisplay((_, _, _, v) =>
+        if (v.forall(_.isWhitespace))
+          "\"" + v + '"'
+        else
+          v)
+
     def escapeCtrlChars: ValueDisplay =
       ValueDisplay((_, _, _, v) => v.toIterator.flatMap {
         case '\b' => "\\b"
@@ -120,6 +127,7 @@ object Report {
       obfuscate.when((s, k, _) => f(s.value) || f(k.value))
 
     def default: ValueDisplay =
+      quoteBlanks +
       escapeCtrlChars +
       obfuscateSourcesAndKeys(seemsSecret.matcher(_).matches)
 

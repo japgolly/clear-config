@@ -146,6 +146,23 @@ object ConfigReportTest extends TestSuite {
       }
     }
 
+    'blankValues {
+      implicit val configValuePreprocessor = ConfigValuePreprocessor.id
+      val c = ConfigDef.need[String]("a").tuple(ConfigDef.need[String]("b")).withReport.map(_._2)
+      val s = ConfigSource.manual[Id]("S")("a" -> "", "b" -> " \t ")
+      val r = c.run(s).get_!
+      assertMultiline(
+        """
+          |Used keys (2):
+          |+-----+--------+
+          || Key | S      |
+          |+-----+--------+
+          || a   | ""     |
+          || b   | " \t " |
+          |+-----+--------+
+        """.stripMargin.trim, r.used)
+    }
+
     'mapKeyQueries {
       'oneSource {
         val s = ConfigSource.manual[Id]("S")(
@@ -252,7 +269,7 @@ object ConfigReportTest extends TestSuite {
       val b = ConfigDef.need[String]("b").secret
       val c = ConfigDef.need[String]("c")
       val s = ConfigSource.manual[Id]("S")("a" -> "1", "b" -> "2", "c" -> "3")
-      val r = (a tuple b tuple c withReport).run(s).get_!._2
+      val r = (a tuple b tuple c).withReport.run(s).get_!._2
       assertMultiline(r.full.removeAnsiEscapeCodes,
         s"""
            !1 source:

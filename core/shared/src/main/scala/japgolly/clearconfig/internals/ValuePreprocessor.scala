@@ -7,6 +7,9 @@ final case class ValuePreprocessor(run: String => String) extends AnyVal {
 
 object ValuePreprocessor {
 
+  def id: ValuePreprocessor =
+    apply(identity)
+
   def trim: ValuePreprocessor =
     apply(_.trim)
 
