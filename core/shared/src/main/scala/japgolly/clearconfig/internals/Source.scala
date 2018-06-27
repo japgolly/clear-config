@@ -6,12 +6,15 @@ final case class Source[F[_]](name: SourceName, prepare: F[String \/ Store[F]]) 
   override def toString: String =
     s"Source(${name.value})"
 
+  def withSuffix(s: String): Source[F] =
+    copy(name.withSuffix(s))
+
   def toSources: Sources[F] =
     Sources(Vector.empty :+ this)
 
   /** Expands each key query into multiple, and chooses the first that returns a result. */
   def mapKeyQueries(f: Key => List[Key])(implicit F: Monad[F]): Source[F] =
-    Source(name, F.map(prepare)(_.map(_.mapKeyQueries(f)(F))))
+    copy(prepare = F.map(prepare)(_.map(_.mapKeyQueries(f)(F))))
 
   def trans[G[_]](t: F ~> G)(implicit G: Functor[G]): Source[G] =
     copy(prepare = G.map(t(prepare))(_.map(_ trans t)))
