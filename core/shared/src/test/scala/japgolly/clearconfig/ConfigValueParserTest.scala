@@ -76,6 +76,19 @@ object ConfigValueParserTest extends TestSuite {
         testBad[Boolean]("")
       }
 
+      'oneOf {
+        sealed trait X
+        case object A extends X
+        case object B extends X
+        implicit val eq = Equal.equalA[X]
+        implicit val v = ConfigValueParser.oneOf[X]("A" -> A, "B" -> B).preprocessValue(_.toUpperCase)
+        testOk[X]("a", A)
+        testOk[X]("A", A)
+        testOk[X]("b", B)
+        testOk[X]("B", B)
+        assertEq(v.parse(Lookup.Found(k, "c")).swap.toOption, Some("Legal values are: A, B."))
+      }
+
 //      'url {
 //        testOk("http://google.com", new URL("http://google.com"))
 //        testBad[URL]("x")

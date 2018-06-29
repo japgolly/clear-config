@@ -18,6 +18,9 @@ final class ValueParser[A](val parse: Lookup.Found => String \/ A) extends Faila
 
   def orElse(other: => ValueParser[A]): ValueParser[A] =
     new ValueParser(v => parse(v) orElse other.parse(v))
+
+  def preprocessValue(f: String => String): ValueParser[A] =
+    new ValueParser(v => parse(v.copy(value = f(v.value))))
 }
 
 object ValueParser {
@@ -39,6 +42,16 @@ object ValueParser {
 
   def fail[A](reason: => String): ValueParser[A] =
     new ValueParser(_ => -\/(reason))
+
+  def oneOf[A](values: (String, A)*): ValueParser[A] = {
+    var m = Map.empty[String, A]
+    for ((k, v) <- values) {
+      for (v2 <- m.get(k))
+        throw new IllegalArgumentException(s"Config value '$k' has multiple values: $v and $v2")
+      m = m.updated(k, v)
+    }
+    id.mapOption(m.get, m.keys.toList.sorted.mkString("Legal values are: ", ", ", "."))
+  }
 
   implicit def scalazInstance: Monad[ValueParser] with Alternative[ValueParser] =
     new Monad[ValueParser] with Alternative[ValueParser] {
