@@ -48,9 +48,6 @@ trait ConfigDef[A] extends FailableFunctor[ConfigDef, A] {
   final def chooseWhenDefined[B, C](f: B => ConfigDef[C])(implicit ev: A =:= Option[B]): ConfigDef[Option[C]] =
     choose(ev(_).fold(Option.empty[C].point[ConfigDef])(f(_).map(Some(_))))
 
-  //  final def withCaseInsensitiveKeys: Config[A] =
-  //    withKeyMod(_.toLowerCase)
-
   final def withPrefix(prefix: String): ConfigDef[A] =
     withKeyMod(prefix + _)
 }
