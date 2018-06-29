@@ -81,6 +81,12 @@ object ConfigDef {
       case None              => StepResult.Failure(Map(k -> None), Set.empty)
     })
 
+  /** Mark keys as being used externally so that they appear in the used portion of the ConfigReport,
+    * instead of unused.
+    */
+  def external(keys: String*): ConfigDef[Unit] =
+    keys.foldLeft(unit)(_ <* get[String](_)(ValueParser.id))
+
   def consumerFn[B] = new ConsumerFn[B]
   final class ConsumerFn[B] extends {
     def get[A](k: String, f: B => A => Unit)(implicit r: ValueParser[A]): ConfigDef[B => Unit] =
