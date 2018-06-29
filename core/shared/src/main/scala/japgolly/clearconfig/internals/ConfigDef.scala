@@ -54,6 +54,9 @@ trait ConfigDef[A] extends FailableFunctor[ConfigDef, A] {
 
 object ConfigDef {
 
+  def unit: ConfigDef[Unit] =
+    const(())
+
   def const[A](a: A): ConfigDef[A] =
     new Instance[A] {
       override def step[F[_]](implicit F: Monad[F]) =
