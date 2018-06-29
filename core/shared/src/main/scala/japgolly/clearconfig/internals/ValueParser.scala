@@ -1,6 +1,7 @@
 package japgolly.clearconfig.internals
 
 import japgolly.microlibs.stdlib_ext._
+import java.net.{URI, URL}
 import java.time._
 import java.time.temporal.ChronoUnit
 import java.util.regex.Pattern
@@ -133,6 +134,12 @@ object ValueParser {
       }
       d.map(toScala)
     }
+
+    implicit def configValueParserURI: ValueParser[URI] =
+      id.mapCatch(new URI(_))
+
+    implicit def configValueParserURL: ValueParser[URL] =
+      id.mapCatch(new URL(_))
   }
 
 }

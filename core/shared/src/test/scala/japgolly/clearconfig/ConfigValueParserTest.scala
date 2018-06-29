@@ -1,6 +1,7 @@
 package japgolly.clearconfig
 
 import japgolly.microlibs.testutil.TestUtil._
+import java.net.URL
 import scalaz.std.AllInstances._
 import scalaz.{-\/, Equal, \/-}
 import utest._
@@ -74,6 +75,11 @@ object ConfigValueParserTest extends TestSuite {
         testBad[Boolean]("what")
         testBad[Boolean]("")
       }
+
+//      'url {
+//        testOk("http://google.com", new URL("http://google.com"))
+//        testBad[URL]("x")
+//      }
 
       'whitespace {
         testOk(" a b c  ", "a b c")
