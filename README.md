@@ -186,6 +186,12 @@ From the above report we can immediately observe the following:
 * Shell-style Comments (beginning with `#`) are automatically removed from config values.
   Create your own implicit `ConfigValuePreprocessor` to customise this behaviour.
 
+* Keys can be modified after the fact. Eg. `ConfigDef.get("A").withPrefix("P_").withKeyMod(_.replace('_', '.'))`
+  is equivalent to `ConfigDef.get("P.A")`. This also works when a `ConfigDef` is a composition of more than
+  one key, in which case they'll all be modified.
+
+* More... (explore the source)
+
 # Can I use this with Cats?
 
 Yes and I do on some projects. Add [shims](https://github.com/djspiewak/shims) and it's as simple as:
