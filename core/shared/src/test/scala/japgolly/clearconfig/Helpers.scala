@@ -27,10 +27,8 @@ object Helpers extends internals.Exports {
   val srcs: ConfigSources[Id] = src1 > src2
   val srcNames = srcs.highToLowPri.map(_.name)
 
-  val srcE = ConfigSource.point[Id]("SE", new ConfigStore[Id] {
-    override def apply(key: Key) = Lookup.Error("This source is fake!", None)
-    override val all = Map.empty
-  })
+  val srcE = ConfigSource.point[Id]("SE",
+    ConfigStore[Id](Map.empty[Key, String], (_: Key) => Lookup.Error("This source is fake!", None)))
 
   implicit class ResultXExt[A](private val self: ConfigResult[A]) extends AnyVal {
     def get_! : A = self match {

@@ -1,6 +1,6 @@
 package japgolly.clearconfig.internals
 
-import scalaz.{Functor, ~>}
+import scalaz.{Applicative, ~>}
 
 final case class Sources[F[_]](highToLowPri: Vector[Source[F]]) extends AnyVal {
   override def toString: String =
@@ -15,7 +15,7 @@ final case class Sources[F[_]](highToLowPri: Vector[Source[F]]) extends AnyVal {
   def reverse: Sources[F] =
     Sources(highToLowPri.reverse)
 
-  def trans[G[_]: Functor](f: F ~> G): Sources[G] =
+  def trans[G[_]: Applicative](f: F ~> G): Sources[G] =
     Sources(highToLowPri.map(_ trans f))
 }
 
