@@ -1,6 +1,6 @@
 package japgolly.clearconfig.internals
 
-final case class Key(value: String) extends AnyVal {
+final case class Key(value: String) {
 
   def map(f: String => String): Key =
     Key(f(value))

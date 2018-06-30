@@ -8,7 +8,7 @@ import japgolly.microlibs.stdlib_ext.StdlibExt._
 trait Store[F[_]] { self =>
 
   def apply(key: Key): F[Lookup]
-  def getBulk(filter: Key => Boolean): F[Map[Key, String]]
+  val all: F[Map[Key, String]]
 
   /** Expands each key query into multiple, and chooses the first that returns a result. */
   def mapKeyQueries(f: Key => List[Key])(implicit F: Applicative[F]): Store[F] =
@@ -17,7 +17,7 @@ trait Store[F[_]] { self =>
         f(origKey)
           .traverse(self.apply)
           .map(_.find(_ != Lookup.NotFound) getOrElse Lookup.NotFound)
-      override def getBulk(f: Key => Boolean) = self.getBulk(f)
+      override val all = self.all
       override def toString = self.toString + "*"
       override def hashCode = self.##
     }
@@ -32,8 +32,7 @@ trait Store[F[_]] { self =>
           case Lookup.Found(k, v) => Lookup.Found(k, f(k, v))
           case l@(Lookup.NotFound | Lookup.Error(_, _)) => l
         }
-      override def getBulk(g: Key => Boolean) =
-        self.getBulk(g).map(_.mapEntriesNow((k, v) => k -> f(k, v)))
+      override val all = self.all.map(_.mapEntriesNow((k, v) => k -> f(k, v)))
       override def toString = self.toString
       override def hashCode = self.##
     }
@@ -41,7 +40,7 @@ trait Store[F[_]] { self =>
   def trans[G[_]](t: F ~> G): Store[G] =
     new Store[G] {
       override def apply(key: Key) = t(self(key))
-      override def getBulk(f: Key => Boolean) = t(self.getBulk(f))
+      override val all = t(self.all)
       override def toString = self.toString + ".trans"
       override def hashCode = self.##
     }
@@ -55,7 +54,7 @@ trait StoreObject {
       override def toString = s"$objName.empty"
       override def hashCode = 0
       override def apply(key: Key) = F.pure(Lookup.NotFound)
-      override def getBulk(f: Key => Boolean) = F.pure(Map.empty)
+      override val all = F.pure(Map.empty)
     }
 
   final def ofMap[F[_]](m: Map[String, String])(implicit F: Applicative[F]): Store[F] =
@@ -67,12 +66,8 @@ trait StoreObject {
         val r = Lookup.fromOption(key, o)
         F.pure(r)
       }
-      override def getBulk(f: Key => Boolean) =
-        F.pure(m
-          .toIterator
-          .map { case (k, v) => (Key(k), v) }
-          .filter(x => f(x._1))
-          .toMap)
+      override val all =
+        F.pure(m.mapKeysNow(Key))
     }
 }
 

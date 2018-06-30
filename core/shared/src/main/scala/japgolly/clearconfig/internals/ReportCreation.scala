@@ -65,8 +65,9 @@ private[internals] object ReportCreation {
 
     val fProbablyUnused: F[M] =
       r.highToLowPri.traverse { case (src, store) =>
-        store.getBulk(!usedKeys.contains(_))
-          .map(_.map(kv => kv._1 -> Map(src -> Lookup.Found(kv._1, kv._2))))
+        store.all.map(
+          _.filterKeys(!usedKeys.contains(_))
+            .map(kv => kv._1 -> Map(src -> Lookup.Found(kv._1, kv._2))))
       }.map(_.foldLeft(emptyM)(_ |+| _))
 
     val fReport: F[Report] =

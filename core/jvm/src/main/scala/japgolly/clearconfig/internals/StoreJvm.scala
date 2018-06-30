@@ -17,12 +17,11 @@ trait StoreObjectJvm extends StoreObject {
         val r = Lookup.fromOption(key, o)
         F.pure(r)
       }
-      override def getBulk(f: Key => Boolean) =
+      override val all =
         F.pure(
           p.keys()
             .asScala
             .map(k => Key(k.toString))
-            .filter(f)
             .map(k => k -> p.getProperty(k.value))
             .toMap)
     }

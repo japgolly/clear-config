@@ -29,7 +29,7 @@ object Helpers extends internals.Exports {
 
   val srcE = ConfigSource.point[Id]("SE", new ConfigStore[Id] {
     override def apply(key: Key) = Lookup.Error("This source is fake!", None)
-    override def getBulk(f: Key => Boolean) = Map.empty
+    override val all = Map.empty
   })
 
   implicit class ResultXExt[A](private val self: ConfigResult[A]) extends AnyVal {
