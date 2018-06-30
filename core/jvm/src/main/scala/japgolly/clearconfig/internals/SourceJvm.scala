@@ -14,7 +14,15 @@ object SourceJvm extends SourceObjectJvm
 trait SourceObjectJvm extends SourceObject {
 
   def environment[F[_]](implicit F: Applicative[F]): Source[F] =
-    point(SourceNameJvm.environment.value, StoreJvm.ofMap(sys.env))
+    environment(true)
+
+  def environment[F[_]](replaceDotsWithUnderscores: Boolean)(implicit F: Applicative[F]): Source[F] = {
+    val s = point(SourceNameJvm.environment.value, StoreJvm.ofMap(sys.env))
+    if (replaceDotsWithUnderscores)
+      s.mapKeyQueries(k => k :: k.replace('.', '_') :: Nil)
+    else
+      s
+  }
 
   def system[F[_]](implicit F: Applicative[F]): Source[F] =
     Source[F](SourceNameJvm.system, F.point {

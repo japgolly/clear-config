@@ -12,6 +12,11 @@ object ConfigJvmTest extends TestSuite {
 
   override def tests = Tests {
 
+    'environment {
+      val s = ConfigSource.environment[Id]
+      println(ConfigDef.get[String]("JAVA.HOME").withReport.run(s).getOrDie()._2.obfuscateKeys(_.value.toUpperCase.contains("PASS")).full)
+    }
+
     'propFileOnClasspath {
 
       'notFoundMandatory - {
