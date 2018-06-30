@@ -34,7 +34,7 @@ When you get an instance of your config, you also get a report that describes:
 * what values each config source provided
 * what config keys are in use
 * what the total, resulting config is
-* which config is still hanging around is actually stale and no longer in use
+* which config is still hanging around but is actually stale and no longer in use
 
 *(sample report below)*
 
