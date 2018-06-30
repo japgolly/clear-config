@@ -1,15 +1,19 @@
 # ClearConfig
-[![Build Status](https://travis-ci.org/japgolly/clear-config.svg?branch=master)](https://travis-ci.org/japgolly/clear-config)
+[![Build Status](https://travis-ci.org/japgolly/clear-config.svg?branch=master)](https://travis-ci.org/japgolly/clear-config) [![Latest version](https://index.scala-lang.org/japgolly/clearconfig/core/latest.svg?color=orange)](https://index.scala-lang.org/japgolly/clearconfig/core)
 
-Doc coming soon...
+A type-safe, FP, Scala config library.
 
-# What's special about this Config library?
+```scala
+libraryDependencies += "com.github.japgolly.clearconfig" %%% "core" % "<ver>"
+```
+
+# What's special about this?
 
 There are plenty of config libraries out there, right?
 This library is pure FP, type-safe, super-simple to use, highly composable and powerful, yada yada yada...
 All true but it's biggest and most unique feature is actually:
 
-**<span style="color:#d00">CLARITY.</span>**
+**CLARITY.**
 
 Haven't we all had enough of crap like:
 
@@ -19,19 +23,20 @@ Haven't we all had enough of crap like:
 
 * after hours of frustration: "That setting isn't even used any more?!
   Why the hell is it still all over our deployment config?!
-  Why didn't person X remove this specific piece of text in this big blob of text in this completely
+  Why didn't person X magically know to remove this specific piece of text in this big blob of text in this completely
   separate deployment repo at the same time they made their code change?"
 
 This library endeavours to provide **clarity**.
 When you get an instance of your config, you also get a report that describes:
 
 * where config comes from
-* what values each config source provides
 * how config sources override other sources
+* what values each config source provided
 * what config keys are in use
-* what the ultimate config (value) is
+* what the total, resulting config is
 * which config is still hanging around is actually stale and no longer in use
 
+*(sample report below)*
 
 # Walkthrough
 
@@ -69,19 +74,18 @@ object DatabaseConfig {
 }
 ```
 
-Great, now let's define where we want to reading config from.
-At this point you also need to decide which effect to use.
-For simplicity, we'll just use `Id` and opt-out of safe FP.
+Great, now let's define where we want to read config from.
+At this point you also need to decide which effect type to use.
+You'd typically use something like `IO` but for simplicity,
+we'll just use `Id` and opt-out of safe FP.
 
 ```scala
 import scalaz.Scalaz.Id
 
 def configSources: ConfigSources[Id] =
-  // Highest priority
-  ConfigSource.environment[Id] >
-  ConfigSource.propFileOnClasspath[Id]("/database.props", optional = true) >
-  ConfigSource.system[Id]
-  // Lowest priority
+  ConfigSource.environment[Id] >                                             // Highest priority
+  ConfigSource.propFileOnClasspath[Id]("/database.props", optional = true) > //
+  ConfigSource.system[Id]                                                    // Lowest priority
 ```
 
 Now we're ready to create a real instance based on the real environment.
@@ -144,6 +148,7 @@ From the above report we can immediately observe the following:
 * Which sources override other sources; the report columns (left-to-right) respect this
 * We'll be running at port 4000 and the reason for that is there's an override set by the environment
 * There's a typo in our `database.properties`; `POSTGRES_SCHMA` should be `POSTGRES_SCHEMA`
+* The password value has been hashed for the report. This still allows you to compare the hash between envs or time to determine change without compromising the value.
 
 # Usage
 
