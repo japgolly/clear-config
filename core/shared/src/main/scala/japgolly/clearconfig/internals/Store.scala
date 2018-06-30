@@ -7,17 +7,35 @@ import japgolly.microlibs.stdlib_ext.StdlibExt._
 
 final class Store[F[_]](val all : F[Map[Key, String]],
                         lookup  : Key => F[Lookup],
-                        queryMap: Key => List[Key])(implicit F: Applicative[F]) {self =>
+                        queryMap: Key => List[Key],
+                        keyNorm: Option[Key => Key])(implicit F: Applicative[F]) {self =>
 
   def apply(key: Key): F[Lookup] =
-    queryMap(key)
-      .traverse(lookup)
-      .map(_.find(_ != Lookup.NotFound) getOrElse Lookup.NotFound)
+    keyNorm match {
+      case None =>
+        queryMap(key)
+          .traverse(lookup)
+          .map(_.find(_ != Lookup.NotFound) getOrElse Lookup.NotFound)
+
+      case Some(n) =>
+        all.map(m =>
+          // quadratic but will never be large
+          queryMap(key)
+            .iterator
+            .map(n)
+            .map(q => m.find(kv => n(kv._1) == q))
+            .firstDefined match {
+            case Some((k, v)) => Lookup.Found(k, v)
+            case None => Lookup.NotFound
+          }
+        )
+    }
 
   private def copy(all: F[Map[Key, String]] = self.all,
-                    lookup: Key => F[Lookup] = self.lookup,
-                    queryMap: Key => List[Key] = self.queryMap): Store[F] =
-    new Store(all, lookup, queryMap)
+                   lookup: Key => F[Lookup] = self.lookup,
+                   queryMap: Key => List[Key] = self.queryMap,
+                   keyNorm: Option[Key => Key] = self.keyNorm): Store[F] =
+    new Store(all, lookup, queryMap, keyNorm)
 
   /** Expands each key query into multiple, and chooses the first that returns a result. */
   def mapKeyQueries(f: Key => List[Key]): Store[F] =
@@ -34,8 +52,14 @@ final class Store[F[_]](val all : F[Map[Key, String]],
       },
       all = self.all.map(_.mapEntriesNow((k, v) => k -> f(k, v))))
 
+  def normaliseKeys(f: Key => Key): Store[F] =
+    copy(keyNorm = Some(keyNorm.fold(f)(f.compose)))
+
+  def caseInsensitive: Store[F] =
+    normaliseKeys(_.toLowerCase)
+
   def trans[G[_]: Applicative](t: F ~> G): Store[G] =
-    new Store(t(all), lookup.andThen(t.apply), queryMap)
+    new Store(t(all), lookup.andThen(t.apply), queryMap, keyNorm)
 }
 
 trait StoreObject {
@@ -46,7 +70,7 @@ trait StoreObject {
 
   final def apply[F[_]](all: F[Map[Key, String]],
                   lookup: Key => F[Lookup])(implicit F: Applicative[F]): Store[F] =
-    new Store(all, lookup, _ :: Nil)
+    new Store(all, lookup, _ :: Nil, None)
 
   final def empty[F[_]](implicit F: Applicative[F]): Store[F] =
     apply(F.pure(Map.empty))

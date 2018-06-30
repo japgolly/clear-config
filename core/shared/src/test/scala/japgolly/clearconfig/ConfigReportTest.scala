@@ -3,6 +3,7 @@ package japgolly.clearconfig
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 import japgolly.microlibs.testutil.TestUtil._
 import scalaz.Scalaz.Id
+import scalaz.std.string._
 import scalaz.syntax.applicative._
 import utest._
 import Helpers._
@@ -340,22 +341,50 @@ object ConfigReportTest extends TestSuite {
       val c = ConfigDef.need[Int]("i").secret
       val s = ConfigSource.manual[Id]("S")("i" -> "1")
       val r = c.withReport.run(s).get_!._2
-      'on - assertMultiline(
+      'on - assertMultiline(r.withColour.used(false),
         s"""
           |+-----+----------------+
           || Key | S              |
           |+-----+----------------+
           || i   | ${Console.YELLOW}<# 9C554F15 #>${Console.RESET} |
           |+-----+----------------+
-        """.stripMargin.trim, r.withColour.used(false))
-      'off - assertMultiline(
+        """.stripMargin.trim)
+      'off - assertMultiline(r.withoutColour.used(false),
         """
           |+-----+----------------+
           || Key | S              |
           |+-----+----------------+
           || i   | <# 9C554F15 #> |
           |+-----+----------------+
-        """.stripMargin.trim, r.withoutColour.used(false))
+        """.stripMargin.trim)
+    }
+
+    'caseInsensitiveSource {
+      val s = ConfigSource.manual[Id]("S")("a" -> "no", "Ab" -> "@", "p" -> "no").caseInsensitive
+      val c = ConfigDef.need[String]("ab")
+      val (a, r) = c.withReport.run(s).getOrDie()
+      assertEq(a, "@")
+      assertMultiline(r.full,
+        """
+          |1 source:
+          |  - S
+          |
+          |Used keys (2):
+          |+-----+---+
+          || Key | S |
+          |+-----+---+
+          || Ab  | @ |
+          || ab  |   |
+          |+-----+---+
+          |
+          |Unused keys (2):
+          |+-----+----+
+          || Key | S  |
+          |+-----+----+
+          || a   | no |
+          || p   | no |
+          |+-----+----+
+        """.stripMargin.trim)
     }
   }
 }
