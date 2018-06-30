@@ -1,7 +1,8 @@
 package japgolly.clearconfig.internals
 
-import scalaz.{Applicative, Functor, Monad, ~>}
-import scalaz.syntax.functor._
+import scalaz.{Applicative, Functor, ~>}
+import scalaz.std.list._
+import scalaz.syntax.traverse._
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 
 trait Store[F[_]] { self =>
@@ -10,15 +11,12 @@ trait Store[F[_]] { self =>
   def getBulk(filter: Key => Boolean): F[Map[Key, String]]
 
   /** Expands each key query into multiple, and chooses the first that returns a result. */
-  def mapKeyQueries(f: Key => List[Key])(implicit F: Monad[F]): Store[F] =
+  def mapKeyQueries(f: Key => List[Key])(implicit F: Applicative[F]): Store[F] =
     new Store[F] {
       override def apply(origKey: Key) =
-        f(origKey).foldLeft(F pure Lookup.notFound)((plan, key) =>
-          F.bind(plan) {
-            case Lookup.NotFound => self(key)
-            case other           => F pure other
-          }
-        )
+        f(origKey)
+          .traverse(self.apply)
+          .map(_.find(_ != Lookup.NotFound) getOrElse Lookup.NotFound)
       override def getBulk(f: Key => Boolean) = self.getBulk(f)
       override def toString = self.toString + "*"
       override def hashCode = self.##
