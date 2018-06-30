@@ -102,9 +102,16 @@ Done! But so far we're not using the most important feature of the library: the 
 Let's get and print out a report at the end.
 
 1. We'll remove env & system from unused keys to keep the report small seeing as it's just a demo.
-1. We'll also prefix all keys by `POSTGRES` to make it look a bit more realistic.
+1. We'll also prefix all keys by `POSTGRES_` to make it look a bit more realistic.
 
 ```scala
+val (dbCfg, report) =
+  DatabaseConfig.config
+    .withPrefix("POSTGRES_")
+    .withReport
+    .run(configSources)
+    .getOrDie() // Just throw an exception if necessary config is missing
+
 println(report
 
   // Remove env & system columns from the unused section of the report
