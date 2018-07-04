@@ -7,6 +7,7 @@ A type-safe, FP, Scala config library.
 libraryDependencies += "com.github.japgolly.clearconfig" %%% "core" % "<ver>"
 ```
 
+
 # What's special about this?
 
 There are plenty of config libraries out there, right?
@@ -37,6 +38,7 @@ When you get an instance of your config, you also get a report that describes:
 * which config is still hanging around but is actually stale and no longer in use
 
 *(sample report below)*
+
 
 # Walkthrough
 
@@ -157,6 +159,7 @@ From the above report we can immediately observe the following:
 * There's a typo in our `database.properties`; `POSTGRES_SCHMA` should be `POSTGRES_SCHEMA`
 * The password value has been hashed for the report. This still allows you to compare the hash between envs or time to determine change without compromising the value.
 
+
 # Usage
 
 * Simplest and most common methods:
@@ -190,7 +193,11 @@ From the above report we can immediately observe the following:
   is equivalent to `ConfigDef.get("P.A")`. This also works when a `ConfigDef` is a composition of more than
   one key, in which case they'll all be modified.
 
+* There is special DSL to create `A => Unit` functions to configure a mutable object (which you typically use when working with a Java library)
+  `ConfigDef.consumerFn[A](...)`. There is an example below:
+
 * More... (explore the source)
+
 
 # Can I use this with Cats?
 
@@ -198,4 +205,131 @@ Yes and I do on some projects. Add [shims](https://github.com/djspiewak/shims) a
 
 ```scala
 import shims._
+```
+
+
+# Larger Example
+
+You typically compose using `Applicative`, give the composite a prefix,
+then use (nest) it in some higher-level config.
+
+For example, this Scala code...
+
+```scala
+import japgolly.clearconfig._
+import java.net.{URI, URL}
+import redis.clients.jedis.JedisPoolConfig
+import scalaz.syntax.applicative._
+
+case class AppConfig(postgres: PostgresConfig, redis: RedisConfig, logLevel: LogLevel)
+
+object AppConfig {
+  def config: ConfigDef[AppConfig] =
+    ( PostgresConfig.config |@|
+      RedisConfig.config |@|
+      ConfigDef.getOrUse("log_level", LogLevel.Info)
+    ) (apply)
+      .withPrefix("myapp.")
+}
+
+case class PostgresConfig(url: URL, credential: Credential, schema: Option[String])
+
+object PostgresConfig {
+  def config: ConfigDef[PostgresConfig] =
+    ( ConfigDef.need[URL]("url") |@|
+      Credential.config |@|
+      ConfigDef.get[String]("schema")
+    ) (apply)
+      .withPrefix("postgres.")
+}
+
+case class Credential(username: String, password: String)
+
+object Credential {
+  def config: ConfigDef[Credential] =
+    ( ConfigDef.need[String]("username") |@|
+      ConfigDef.need[String]("password")
+    ) (apply)
+}
+
+case class RedisConfig(uri: URI, credential: Credential, configurePool: JedisPoolConfig => Unit)
+
+object RedisConfig {
+
+  def poolConfig: ConfigDef[JedisPoolConfig => Unit] =
+    ConfigDef.consumerFn[JedisPoolConfig](
+      _.get("block_when_exhausted", _.setBlockWhenExhausted),
+      _.get("eviction_policy_class_name", _.setEvictionPolicyClassName),
+      _.getOrUse("fairness", _.setFairness)(true),
+      _.get("jmx_enabled", _.setJmxEnabled),
+      _.get("jmx_name_base", _.setJmxNameBase),
+      _.get("jmx_name_prefix", _.setJmxNamePrefix),
+      _.get("lifo", _.setLifo),
+      _.get("max_idle", _.setMaxIdle),
+      _.get("max_total", _.setMaxTotal),
+      _.get("max_wait_millis", _.setMaxWaitMillis),
+      _.get("min_evictable_idle_time_millis", _.setMinEvictableIdleTimeMillis),
+      _.getOrUse("min_idle", _.setMinIdle)(2),
+      _.get("num_tests_per_eviction_run", _.setNumTestsPerEvictionRun),
+      _.get("soft_min_evictable_idle_time_millis", _.setSoftMinEvictableIdleTimeMillis),
+      _.get("test_on_borrow", _.setTestOnBorrow),
+      _.get("test_on_create", _.setTestOnCreate),
+      _.get("test_on_return", _.setTestOnReturn),
+      _.get("test_while_idle", _.setTestWhileIdle),
+      _.get("time_between_eviction_runs_millis", _.setTimeBetweenEvictionRunsMillis)
+    )
+
+  def config: ConfigDef[RedisConfig] =
+    ( ConfigDef.need[URI]("uri") |@|
+      Credential.config |@|
+      poolConfig.withPrefix("pool.")
+    )(apply)
+      .withPrefix("redis.")
+}
+
+sealed trait LogLevel
+object LogLevel {
+  case object Debug extends LogLevel
+  case object Info extends LogLevel
+  case object Warn extends LogLevel
+
+  implicit def configValueParser: ConfigValueParser[LogLevel] =
+    ConfigValueParser.oneOf[LogLevel]("debug" -> Debug, "info" -> Info, "warn" -> Warn)
+      .preprocessValue(_.toLowerCase)
+}
+```
+
+will read the following properties:
+
+```
+myapp.postgres.password
+myapp.postgres.schema
+myapp.postgres.url
+myapp.postgres.username
+
+myapp.redis.password
+myapp.redis.uri
+myapp.redis.username
+
+myapp.redis.pool.block_when_exhausted
+myapp.redis.pool.eviction_policy_class_name
+myapp.redis.pool.fairness
+myapp.redis.pool.jmx_enabled
+myapp.redis.pool.jmx_name_base
+myapp.redis.pool.jmx_name_prefix
+myapp.redis.pool.lifo
+myapp.redis.pool.max_idle
+myapp.redis.pool.max_total
+myapp.redis.pool.max_wait_millis
+myapp.redis.pool.min_evictable_idle_time_millis
+myapp.redis.pool.min_idle
+myapp.redis.pool.num_tests_per_eviction_run
+myapp.redis.pool.soft_min_evictable_idle_time_millis
+myapp.redis.pool.test_on_borrow
+myapp.redis.pool.test_on_create
+myapp.redis.pool.test_on_return
+myapp.redis.pool.test_while_idle
+myapp.redis.pool.time_between_eviction_runs_millis
+
+myapp.log_level
 ```
