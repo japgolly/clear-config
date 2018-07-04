@@ -92,8 +92,8 @@ object ConfigDef {
     def get[A](k: String, f: B => A => Unit)(implicit r: ValueParser[A]): ConfigDef[B => Unit] =
       ConfigDef.get(k)(r).map(oa => b => oa.fold(())(f(b)))
 
-    def getOrUse[A](k: String, f: B => A => Unit)(default: => A)(implicit r: ValueParser[A]): ConfigDef[B => Unit] =
-      ConfigDef.get(k)(r).map(oa => f(_)(oa getOrElse default))
+    def getOrUse[A](k: String, f: B => A => Unit)(default: A)(implicit r: ValueParser[A]): ConfigDef[B => Unit] =
+      ConfigDef.getOrUse(k, default).map(a => f(_)(a))
 
     def need[A](k: String, f: B => A => Unit)(implicit r: ValueParser[A]): ConfigDef[B => Unit] =
       ConfigDef.need(k)(r).map(a => f(_)(a))
@@ -101,7 +101,7 @@ object ConfigDef {
     def getC[A](k: String, f: (B, A) => Unit)(implicit r: ValueParser[A]): ConfigDef[B => Unit] =
       get[A](k, f.curried)
 
-    def getOrUseC[A](k: String, f: (B, A) => Unit)(default: => A)(implicit r: ValueParser[A]): ConfigDef[B => Unit] =
+    def getOrUseC[A](k: String, f: (B, A) => Unit)(default: A)(implicit r: ValueParser[A]): ConfigDef[B => Unit] =
       getOrUse[A](k, f.curried)(default)
 
     def needC[A](k: String, f: (B, A) => Unit)(implicit r: ValueParser[A]): ConfigDef[B => Unit] =
