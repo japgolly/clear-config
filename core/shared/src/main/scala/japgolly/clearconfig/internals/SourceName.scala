@@ -7,6 +7,7 @@ final case class SourceName(value: String) extends AnyVal {
 
 trait SourceNameObject {
 
+  final def apply(name: String) = new SourceName(name)
   final def default = SourceName("Default")
 
 }

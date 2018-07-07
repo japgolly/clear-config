@@ -37,6 +37,9 @@ final case class Source[F[_]](name: SourceName, prepare: F[String \/ Store[F]])(
 
 trait SourceObject {
 
+  final def apply[F[_]](name: SourceName, prepare: F[String \/ Store[F]])(implicit F: Applicative[F]): Source[F] =
+    Source(name, prepare)(F)
+
   final def point[F[_]](name: String, store: => Store[F])(implicit F: Applicative[F]): Source[F] =
     Source[F](SourceName(name), F.point(\/-(store)))
 
