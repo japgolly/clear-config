@@ -1,6 +1,7 @@
 package japgolly.clearconfig.internals
 
 import japgolly.microlibs.stdlib_ext._
+import java.io.File
 import java.net.{URI, URL}
 import java.time._
 import java.time.temporal.ChronoUnit
@@ -153,6 +154,9 @@ object ValueParser {
 
     implicit def configValueParserURL: ValueParser[URL] =
       id.mapCatch(new URL(_))
+
+    implicit def configValueParserFile: ValueParser[File] =
+      id.mapCatch(new File(_))
   }
 
 }
