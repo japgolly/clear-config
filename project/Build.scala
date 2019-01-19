@@ -16,13 +16,13 @@ object ClearConfig {
     Lib.publicationSettings(ghProject)
 
   object Ver {
-    val JavaTimeScalaJs = "0.2.4"
-    val KindProjector   = "0.9.7"
-    val Microlibs       = "1.16"
-    val MTest           = "0.5.4"
+    val JavaTimeScalaJs = "0.2.5"
+    val KindProjector   = "0.9.9"
+    val Microlibs       = "1.18"
+    val MTest           = "0.6.6"
     //val Scala211        = "2.11.12"
-    val Scala212        = "2.12.6"
-    val Scalaz          = "7.2.24"
+    val Scala212        = "2.12.8"
+    val Scalaz          = "7.2.27"
   }
 
   def scalacFlags = Def.setting(
