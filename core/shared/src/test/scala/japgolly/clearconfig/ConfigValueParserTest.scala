@@ -13,10 +13,10 @@ object ConfigValueParserTest extends TestSuite {
   val pp = implicitly[ConfigValuePreprocessor]
 
   def testOk[A: ConfigValueParser: Equal](origValue: String, expect: A): Unit =
-    assertEq(ConfigValueParser[A].parse(Lookup.Found(k, pp.run(origValue))), \/-(expect))
+    assertEq(ConfigValueParser[A].parse(pp.run(origValue)), \/-(expect))
 
   def testBad[A: ConfigValueParser : Equal](origValue: String, errorFrag: String = ""): Unit =
-    ConfigValueParser[A].parse(Lookup.Found(k, pp.run(origValue))) match {
+    ConfigValueParser[A].parse(pp.run(origValue)) match {
       case -\/(e) => assertContainsCI(e, errorFrag)
       case \/-(a) => fail(s"Error expected containing '$errorFrag', instead it passed with $a.")
     }
@@ -86,7 +86,7 @@ object ConfigValueParserTest extends TestSuite {
         testOk[X]("A", A)
         testOk[X]("b", B)
         testOk[X]("B", B)
-        assertEq(v.parse(Lookup.Found(k, "c")).swap.toOption, Some("Legal values are: A, B."))
+        assertEq(v.parse("c").swap.toOption, Some("Legal values are: A, B."))
       }
 
 //      'url {

@@ -9,7 +9,7 @@ import java.util.regex.Pattern
 import scala.concurrent.duration.FiniteDuration
 import scalaz.{-\/, Alternative, Monad, \/, \/-}
 
-final class ValueParser[A](val parse: Lookup.Found => String \/ A) extends FailableFunctor[ValueParser, A] {
+final class ValueParser[A](val parse: String => String \/ A) extends FailableFunctor[ValueParser, A] {
 
   override def mapAttempt[B](f: A => String \/ B): ValueParser[B] =
     new ValueParser(parse(_) flatMap f)
@@ -21,22 +21,19 @@ final class ValueParser[A](val parse: Lookup.Found => String \/ A) extends Faila
     new ValueParser(v => parse(v) orElse other.parse(v))
 
   def preprocessValue(f: String => String): ValueParser[A] =
-    new ValueParser(v => parse(v.copy(value = f(v.value))))
+    new ValueParser(v => parse(f(v)))
 }
 
 object ValueParser {
 
   def id: ValueParser[String] =
-    new ValueParser(l => \/-(l.value))
+    new ValueParser(\/-(_))
 
   def apply[A](implicit i: ValueParser[A]): ValueParser[A] =
     i
 
   def apply[A](parse: String => String \/ A): ValueParser[A] =
-    new ValueParser(l => parse(l.value))
-
-  def withKey[A](parse: (Key, String) => String \/ A): ValueParser[A] =
-    new ValueParser(l => parse(l.key, l.value))
+    new ValueParser(parse)
 
   def point[A](a: => A): ValueParser[A] =
     new ValueParser[A](_ => \/-(a))

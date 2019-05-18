@@ -326,7 +326,7 @@ object ConfigDef {
       baseGet(key, apiMethod, (k, oo) =>
         oo match {
           case Some(o) =>
-            v.parse(o.sourceValue) match {
+            v.parse(o.sourceValue.value) match {
               case \/-(a) => doIt(k, Some((o, a)))
               case -\/(e) => StepResult.Failure(Map(k -> Some((o.sourceName, Lookup.Error(e, Some(o.sourceValue.value))))), Set.empty)
             }
