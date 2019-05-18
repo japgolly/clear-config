@@ -21,6 +21,7 @@ object Helpers extends internals.Exports {
   implicit def equalResultX[A] = scalaz.Equal.equalA[ConfigResult[A]]
   implicit def equalURL = scalaz.Equal.equalA[java.net.URL]
 
+  val src0 = ConfigSource.manual[Id]("S0")()
   val src1 = ConfigSource.manual[Id]("S1")("in" -> "100", "i" -> "3", "s" -> "hey", "dur3m" -> "3 min")
   val src2 = ConfigSource.manual[Id]("S2")("in" -> "200", "i" -> "X300", "i2" -> "22", "s2" -> "ah")
 

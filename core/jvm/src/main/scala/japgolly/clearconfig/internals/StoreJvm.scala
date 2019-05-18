@@ -10,7 +10,7 @@ trait StoreObjectJvm extends StoreObject {
 
   private def propsToMap(p: Properties): Map[Key, String] =
     p.keys().asScala.map { kx =>
-      val k = kx.toString
+      val k = "" + kx
       Key(k) -> p.getProperty(k)
     }.toMap
 
