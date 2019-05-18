@@ -110,7 +110,7 @@ private[internals] object Evaluation {
       new Monad[StepResult] {
         override def point[A](aa: => A) = {
           lazy val a = aa
-          Success(a, Set(Origin.Point(() => a.toString)))
+          Success(a, Set(Origin.Point(() => "" + a)))
         }
         override def ap[A, B](fa: => StepResult[A])(ff: => StepResult[A => B]) =
           (fa, ff) match {

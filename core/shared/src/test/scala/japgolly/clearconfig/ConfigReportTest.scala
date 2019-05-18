@@ -145,6 +145,27 @@ object ConfigReportTest extends TestSuite {
              !+-------+-------+
            """.stripMargin('!').trim)
       }
+
+      'null {
+        val c = ConfigDef.getOrUse[String]("x", null)
+        val k = c.withReport.run(src0).get_!._2
+        assertMultiline(k.full,
+          s"""
+             !2 sources (highest to lowest priority):
+             !  - S0
+             !  - Default
+             !
+             !Used keys (1):
+             !+-----+---------+
+             !| Key | Default |
+             !+-----+---------+
+             !| x   | null    |
+             !+-----+---------+
+             !
+             !Unused keys (0):
+             !No data to report.
+           """.stripMargin('!').trim)
+      }
     }
 
     'blankValues {

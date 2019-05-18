@@ -70,7 +70,7 @@ object ConfigDef {
     })
 
   def getOrUse[A: ValueParser](key: String, default: A): ConfigDef[A] =
-    Instance.baseGetA[A, A](key, ApiMethod.GetOrUse(default.toString), (_, o) => o match {
+    Instance.baseGetA[A, A](key, ApiMethod.GetOrUse("" + default), (_, o) => o match {
       case Some((origin, a)) => StepResult.Success(a, Set(origin))
       case None              => StepResult.Success(default, Set.empty)
     })

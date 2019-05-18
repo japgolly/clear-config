@@ -41,7 +41,7 @@ object Result {
       }
       val eachO = other.toVector.map {
         case (desc, s1) =>
-          val constituents = s1.toList.map(_.fold(_.toString, fmtKey)).sorted.mkString(", ")
+          val constituents = s1.toList.map(_.fold("" + _, fmtKey)).sorted.mkString(", ")
           s"Error using $constituents: $desc"
       }
       val errors = (eachK ++ eachO).sorted
