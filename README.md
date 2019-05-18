@@ -201,7 +201,10 @@ From the above report we can immediately observe the following:
 
 # Can I use this with Cats?
 
-Yes and I do on some projects. Add [shims](https://github.com/djspiewak/shims) and it's as simple as:
+I plan to switch this over to using Cats by default, instead of Scalaz.
+
+Until then, yes, you can use this with Cats today (and I do on some projects).
+Add [shims](https://github.com/djspiewak/shims) and it's as simple as:
 
 ```scala
 import shims._
