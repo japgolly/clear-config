@@ -18,7 +18,7 @@ object ClearConfig {
   object Ver {
     val JavaTimeScalaJs = "0.2.5"
     val KindProjector   = "0.9.10"
-    val Microlibs       = "1.18"
+    val Microlibs       = "1.20"
     val MTest           = "0.6.6"
     //val Scala211        = "2.11.12"
     val Scala212        = "2.12.8"
