@@ -22,7 +22,7 @@ object ClearConfig {
     val MTest           = "0.6.6"
     //val Scala211        = "2.11.12"
     val Scala212        = "2.12.8"
-    val Scalaz          = "7.2.27"
+    val Scalaz          = "7.2.28"
   }
 
   def scalacFlags = Def.setting(
