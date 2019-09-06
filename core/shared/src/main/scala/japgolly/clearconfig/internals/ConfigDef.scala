@@ -1,6 +1,6 @@
 package japgolly.clearconfig.internals
 
-import scalaz._
+import scalaz.{Store => _, _}
 import Scalaz._
 import Evaluation._
 
@@ -143,11 +143,11 @@ object ConfigDef {
           val xf = ff.step(F).getF[S[F], R[F]](F) // : X[A => B]
           Step[F, StepResult[B]] { (r, s0) =>
             for {
-              gf          ← xf
-              ga          ← xa
-              hf          ← gf(r, s0)
+              gf          <- xf
+              ga          <- xa
+              hf          <- gf(r, s0)
               (_, ff, s1) = hf
-              ha          ← ga(r, s1)
+              ha          <- ga(r, s1)
               (_, fa, s2) = ha
             } yield (s2, StepResult.scalazInstance.ap(fa)(ff))
           }
@@ -292,7 +292,7 @@ object ConfigDef {
 
                 case None =>
                   val results: F[Vector[SrcAndVal]] =
-                    r.highToLowPri.toIterator
+                    r.highToLowPri.iterator
                       .map { case (name, store) => store(k).map(SrcAndVal(name, _)) }
                       .toVector
                       .sequence

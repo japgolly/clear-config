@@ -17,39 +17,38 @@ object ClearConfig {
 
   object Ver {
     val JavaTimeScalaJs = "0.2.5"
-    val KindProjector   = "0.9.10"
-    val Microlibs       = "1.21"
-    val MTest           = "0.6.6"
-    //val Scala211        = "2.11.12"
+    val KindProjector   = "0.10.3"
+    val Microlibs       = "2.0-RC1"
+    val MTest           = "0.7.1"
     val Scala212        = "2.12.8"
-    val Scalaz          = "7.2.27"
+    val Scala213        = "2.13.0"
+    val ScalaCollCompat = "2.1.2"
+    val Scalaz          = "7.2.28"
   }
 
-  def scalacFlags = Def.setting(
+  def scalacFlags =
     Seq(
       "-deprecation",
       "-unchecked",
-      "-Ywarn-dead-code",
-      "-Ywarn-unused",
-      "-Ywarn-value-discard",
       "-feature",
       "-language:postfixOps",
       "-language:implicitConversions",
       "-language:higherKinds",
-      "-language:existentials")
-    ++ (scalaVersion.value match {
-      case x if x startsWith "2.11." => "-target:jvm-1.6" :: Nil
-      case x if x startsWith "2.12." => "-target:jvm-1.8" :: "-opt:l:method" :: Nil
-    }))
+      "-language:existentials",
+      "-opt:l:inline",
+      "-opt-inline-from:japgolly.clearconfig.**",
+      "-Ywarn-dead-code",
+      "-Ywarn-unused",
+      "-Ywarn-value-discard")
 
   val commonSettings = ConfigureBoth(
     _.settings(
       organization                  := "com.github.japgolly.clearconfig",
       homepage                      := Some(url("https://github.com/japgolly/" + ghProject)),
       licenses                      += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
-      scalaVersion                  := Ver.Scala212,
-      crossScalaVersions            := Seq(Ver.Scala212),
-      scalacOptions                ++= scalacFlags.value,
+      scalaVersion                  := Ver.Scala213,
+      crossScalaVersions            := Seq(Ver.Scala212, Ver.Scala213),
+      scalacOptions                ++= scalacFlags,
       scalacOptions in Test        --= Seq("-Ywarn-dead-code", "-Ywarn-unused"),
       shellPrompt in ThisBuild      := ((s: State) => Project.extract(s).currentRef.project + "> "),
       triggeredMessage              := Watched.clearWhenTriggered,
@@ -57,7 +56,7 @@ object ClearConfig {
       releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       releaseTagComment             := s"v${(version in ThisBuild).value}",
       releaseVcsSign                := true,
-      addCompilerPlugin("org.spire-math" %% "kind-projector" % Ver.KindProjector)))
+      addCompilerPlugin("org.typelevel" %% "kind-projector" % Ver.KindProjector)))
 
   def utestSettings = ConfigureBoth(
     _.settings(
@@ -78,10 +77,11 @@ object ClearConfig {
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
       libraryDependencies ++= Seq(
-        "org.scalaz"                    %%% "scalaz-core" % Ver.Scalaz,
-        "com.github.japgolly.microlibs" %%% "stdlib-ext"  % Ver.Microlibs,
-        "com.github.japgolly.microlibs" %%% "test-util"   % Ver.Microlibs % Test,
-        "com.github.japgolly.microlibs" %%% "utils"       % Ver.Microlibs))
+        "org.scala-lang.modules"        %%% "scala-collection-compat" % Ver.ScalaCollCompat,
+        "org.scalaz"                    %%% "scalaz-core"             % Ver.Scalaz,
+        "com.github.japgolly.microlibs" %%% "stdlib-ext"              % Ver.Microlibs,
+        "com.github.japgolly.microlibs" %%% "test-util"               % Ver.Microlibs % Test,
+        "com.github.japgolly.microlibs" %%% "utils"                   % Ver.Microlibs))
     .jsSettings(
       libraryDependencies ++= Seq(
         "org.scala-js" %%% "scalajs-java-time" % Ver.JavaTimeScalaJs % Test))

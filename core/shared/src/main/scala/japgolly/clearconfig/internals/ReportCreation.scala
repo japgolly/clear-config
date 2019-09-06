@@ -66,15 +66,18 @@ private[internals] object ReportCreation {
     val fProbablyUnused: F[M] =
       r.highToLowPri.traverse { case (src, store) =>
         store.all.map(
-          _.filterKeys(!usedKeys.contains(_))
-            .map(kv => kv._1 -> Map(src -> Lookup.Found(kv._1, kv._2))))
+          _.iterator
+          .filter(kv => !usedKeys.contains(kv._1))
+          .map(kv => kv._1 -> Map(src -> Lookup.Found(kv._1, kv._2)))
+          .toMap
+        )
       }.map(_.foldLeft(emptyM)(_ |+| _))
 
     val fReport: F[Report] =
       F.apply2(fUsed, fProbablyUnused) { (used, probablyUnused) =>
         val unused: M =
           used.foldLeft(probablyUnused) { case (m, (k, usedValues)) =>
-            m.modifyValueOption(k, _.map(_.filterKeys(s => !usedValues.contains(s))).filter(_.nonEmpty))
+            m.modifyValueOption(k, _.map(_.iterator.filter(kv => !usedValues.contains(kv._1)).toMap).filter(_.nonEmpty))
           }
 
         val keysToObfuscate: Set[Key] =

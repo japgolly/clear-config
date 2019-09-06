@@ -1,6 +1,7 @@
 package japgolly.clearconfig.internals
 
-import scalaz._
+import scala.collection.compat._
+import scalaz.{Store => _, _}
 import Scalaz._
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 
@@ -48,7 +49,7 @@ private[internals] object Evaluation {
     def addApi(key: Key, apiMethod: ApiMethod): S[F] =
       copy(apiData = apiData.initAndModifyValue(key, Set.empty, _ + apiMethod))
 
-    def obfuscateKeys(keys: TraversableOnce[Key]): S[F] =
+    def obfuscateKeys(keys: IterableOnce[Key]): S[F] =
       copy(keysToObfuscate = keysToObfuscate ++ keys)
 
     def queriesSince(previous: S[F]) =

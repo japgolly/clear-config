@@ -2,7 +2,7 @@ package japgolly.clearconfig.internals
 
 import java.io.InputStream
 import java.util.Properties
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scalaz.Applicative
 
 object StoreJvm extends StoreObjectJvm

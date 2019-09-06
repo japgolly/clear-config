@@ -12,35 +12,35 @@ object ConfigTest extends TestSuite {
 
   override def tests = Tests {
 
-    'findFirst -
+    "findFirst" -
       assertEq(ConfigDef.need[String]("s").run(srcs), ConfigResult.Success("hey"))
 
-    'findSecond -
+    "findSecond" -
       assertEq(ConfigDef.need[Int]("i2").run(srcs), ConfigResult.Success(22))
 
-    'notFound -
+    "notFound" -
       assertEq(ConfigDef.get[Int]("notfound").run(srcs), ConfigResult.Success(Option.empty[Int]))
 
-    'missing1 -
+    "missing1" -
       assertEq(ConfigDef.need[Int]("missing").run(srcs), ConfigResult.QueryFailure(Map(Key("missing") -> None), Set.empty, srcNames))
 
-    'missing2 -
+    "missing2" -
       assertEq(
         (ConfigDef.need[Int]("no1") tuple ConfigDef.need[Int]("no2")).run(srcs),
         ConfigResult.QueryFailure(Map(Key("no1") -> None, Key("no2") -> None), Set.empty, srcNames))
 
-    'valueFail1 -
+    "valueFail1" -
       assertEq(
         ConfigDef.need[Int]("s").run(srcs),
         ConfigResult.QueryFailure(Map(Key("s") -> Some((src1.name, Lookup.Error("Int expected.", Some("hey"))))), Set.empty, srcNames))
 
-    'valueFail2 -
+    "valueFail2" -
       assertEq(
         ConfigDef.need[Int]("s2").run(srcs),
         ConfigResult.QueryFailure(Map(Key("s2") -> Some((src2.name, Lookup.Error("Int expected.", Some("ah"))))), Set.empty, srcNames))
 
-    'errorMsg {
-      'notFound - assertEq(ConfigDef.need[Int]("QQ").run(srcs).toDisjunction, -\/(
+    "errorMsg" - {
+      "notFound" - assertEq(ConfigDef.need[Int]("QQ").run(srcs).toDisjunction, -\/(
         """
           |1 error:
           |  - No value for key [QQ]
@@ -50,7 +50,7 @@ object ConfigTest extends TestSuite {
           |  - S2
         """.stripMargin.trim))
 
-      'notFound2 - {
+      "notFound2" - {
         val c = ConfigDef.need[Int]("QQ") tuple ConfigDef.get[Int]("X") tuple ConfigDef.need[Int]("i") tuple ConfigDef.need[Int]("M")
         assertEq(c.run(srcs).toDisjunction, -\/(
           """
@@ -64,7 +64,7 @@ object ConfigTest extends TestSuite {
           """.stripMargin.trim))
       }
 
-      'errors2 - {
+      "errors2" - {
         val c = ConfigDef.need[Int]("s") tuple ConfigDef.get[Int]("X")
         assertEq(c.run(srcs > srcE).toDisjunction, -\/(
           """
@@ -79,7 +79,7 @@ object ConfigTest extends TestSuite {
           """.stripMargin.trim))
       }
 
-      'unkeyedErrors {
+      "unkeyedErrors" - {
         val c1 = ConfigDef.need[Int]("in").map(_ + 1000).ensure(_ > 1150, "Must be > 1150.")
         val c2 = 7.point[ConfigDef].ensure(_ > 10, "Must be > 10.")
         val c3 = (ConfigDef.need[Int]("in") |@| ConfigDef.need[Int]("i2"))(_ + _).ensure(_ > 150, "Must be > 150.")
@@ -99,40 +99,40 @@ object ConfigTest extends TestSuite {
       }
     }
 
-    'ensure {
-      'read1 {
+    "ensure" - {
+      "read1" - {
         val c = ConfigDef.need[Int]("in")
-        'ok - assertEq(
+        "ok" - assertEq(
           c.ensure_<(150).run(srcs),
           ConfigResult.Success(100))
-        'ko - assertEq(
+        "ko" - assertEq(
           c.ensure_>(150).run(srcs),
           ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, Lookup.Error("Must be > 150.", Some("100"))))), Set.empty, srcNames))
       }
 
-      'readMap1 {
+      "readMap1" - {
         val c = ConfigDef.need[Int]("in").map(_ + 1000)
-        'ok - assertEq(
+        "ok" - assertEq(
           c.ensure_>(1050).run(srcs),
           ConfigResult.Success(1100))
-        'ko - assertEq(
+        "ko" - assertEq(
           c.ensure_>(1150).run(srcs),
           ConfigResult.QueryFailure(Map.empty, Set("Must be > 1150." -> Set(\/-(Key("in")), -\/("<function>"))), srcNames))
       }
 
-      'read2 {
+      "read2" - {
         val c = (ConfigDef.need[Int]("in") |@| ConfigDef.need[Int]("i2"))(_ + _)
-        'ok - assertEq(
+        "ok" - assertEq(
           c.ensure_<(150).run(srcs),
           ConfigResult.Success(122))
-        'ko - assertEq(
+        "ko" - assertEq(
           c.ensure_>(150).run(srcs),
           ConfigResult.QueryFailure(Map.empty, Set("Must be > 150." -> Set(\/-(Key("in")), \/-(Key("i2")), -\/("<function>"))), srcNames))
       }
     }
 
-    'keyMod {
-      'prefix {
+    "keyMod" - {
+      "prefix" - {
         val s = ConfigSource.manual[Id]("S")(
           "a.b.1" -> "AB-1", "a.1" -> "A!", "b.1" -> "B!", "1" -> "I",
           "a.b.2" -> "AB-2", "a.2" -> "A@", "b.2" -> "B@", "2" -> "II")
@@ -144,7 +144,7 @@ object ConfigTest extends TestSuite {
         * - assertEq((one tuple two).withPrefix("b.").run(s).get_!, ("B!", "B@"))
         * - assertEq((one tuple two.withPrefix("b.")).withPrefix("a.").run(s).get_!, ("A!", "AB-2"))
 
-        'missing - assertEq(
+        "missing" - assertEq(
           one.withPrefix("omg.").run(s),
           ConfigResult.QueryFailure(Map(Key("omg.1") -> None), Set.empty, Vector(s.name)))
       }
@@ -155,7 +155,7 @@ object ConfigTest extends TestSuite {
 //      }
     }
 
-    'consumerFn {
+    "consumerFn" - {
       class Mutable {
         var a = 1
         var b = 2
@@ -177,7 +177,7 @@ object ConfigTest extends TestSuite {
       assertEq((m.a, m.b, m.name), (100, 2, "hey"))
     }
 
-    'consumerFnC {
+    "consumerFnC" - {
       class Mutable {
         var a = 1
         var b = 2
@@ -196,17 +196,17 @@ object ConfigTest extends TestSuite {
       assertEq((m.a, m.b, m.name), (100, 2, "hey"))
     }
 
-    'mapKeyQueries {
+    "mapKeyQueries" - {
       val s = ConfigSource.manual[Id]("S")(
         "both.1" -> "YAY", "both_1" -> "NOPE",
         "db_port" -> "1234")
         .mapKeyQueries(k => List(k, k.replace('.', '_')))
 
-      'alternate - assertEq(ConfigDef.need[Int]("db.port").run(s).get_!, 1234)
-      'priority - assertEq(ConfigDef.need[String]("both.1").run(s).get_!, "YAY")
+      "alternate" - assertEq(ConfigDef.need[Int]("db.port").run(s).get_!, 1234)
+      "priority" - assertEq(ConfigDef.need[String]("both.1").run(s).get_!, "YAY")
     }
 
-    'choice {
+    "choice" - {
       val ci = ConfigDef.need[Int]("C").ensure(1.to(2).contains, "Choose 1 or 2")
       val c1 = ConfigDef.need[String]("C1")
       val c2 = ConfigDef.need[String]("C2")
@@ -216,17 +216,17 @@ object ConfigTest extends TestSuite {
       val s1 = ConfigSource.manual[Id]("S1")("C" -> "1", "C1" -> v1)
       val s2 = ConfigSource.manual[Id]("S2")("C" -> "2", "C2" -> v2)
 
-      'c1 {
+      "c1" - {
         assertEq(cc.run(s1).get_!, v1)
         assertEq(cc.run(s1 > s2).get_!, v1)
       }
-      'c2 {
+      "c2" - {
         assertEq(cc.run(s2).get_!, v2)
         assertEq(cc.run(s2 > s1).get_!, v2)
       }
     }
 
-    'option {
+    "option" - {
       val c1 = ConfigDef.need[Int]("c.1")
       val c2 = ConfigDef.need[String]("c.2")
       val c3 = ConfigDef.getOrUse[Int]("c.3", 666)
@@ -239,29 +239,29 @@ object ConfigTest extends TestSuite {
       val s3 = ConfigSource.manual[Id]("S", m.updated("c.3", "3"))
       val s4 = ConfigSource.manual[Id]("S", m.updated("c.4", "4"))
 
-      'get {
+      "get" - {
         val co = c4.option
-        'none - assertEq(co.run(s0), ConfigResult.Success(None))
-        'all - assertEq(co.run(s4), ConfigResult.Success(Some(Some(4))))
+        "none" - assertEq(co.run(s0), ConfigResult.Success(None))
+        "all" - assertEq(co.run(s4), ConfigResult.Success(Some(Some(4))))
       }
 
-      'getOrUse {
+      "getOrUse" - {
         val co = c3.option
-        'none - assertEq(co.run(s0), ConfigResult.Success(None))
-        'all - assertEq(co.run(s3), ConfigResult.Success(Some(3)))
+        "none" - assertEq(co.run(s0), ConfigResult.Success(None))
+        "all" - assertEq(co.run(s3), ConfigResult.Success(Some(3)))
       }
 
-      'need {
+      "need" - {
         val co = c1.option
-        'none - assertEq(co.run(s0), ConfigResult.Success(None))
-        'all - assertEq(co.run(s2), ConfigResult.Success(Some(123)))
+        "none" - assertEq(co.run(s0), ConfigResult.Success(None))
+        "all" - assertEq(co.run(s2), ConfigResult.Success(Some(123)))
       }
 
-      'multi {
+      "multi" - {
         val co = (c1 |@| c2 |@| c3 |@| c4).tupled.option
-        'none - assertEq(co.run(s0), ConfigResult.Success(None))
-        'all - assertEq(co.run(s2), ConfigResult.Success(Some((123, "abc", 666, None))))
-        'some - assertEq(co.run(s1), ConfigResult.QueryFailure(Map(Key("c.2") -> None), Set.empty, Vector(s1.name)))
+        "none" - assertEq(co.run(s0), ConfigResult.Success(None))
+        "all" - assertEq(co.run(s2), ConfigResult.Success(Some((123, "abc", 666, None))))
+        "some" - assertEq(co.run(s1), ConfigResult.QueryFailure(Map(Key("c.2") -> None), Set.empty, Vector(s1.name)))
       }
     }
 
