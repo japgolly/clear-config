@@ -23,13 +23,13 @@ object ConfigValueParserTest extends TestSuite {
 
   override def tests = Tests {
 
-    'defaults {
+    "defaults" - {
 
-      'string {
+      "string" - {
         testOk("qWe", "qWe")
       }
 
-      'double {
+      "double" - {
         testOk[Double]("123", 123)
         testOk[Double]("-3", -3.0)
         testOk[Double]("1.2", 1.2)
@@ -41,7 +41,7 @@ object ConfigValueParserTest extends TestSuite {
         testBad[Double]("")
       }
 
-      'int {
+      "int" - {
         testOk("123", 123)
         testOk("-3", -3)
         testBad[Int]("X")
@@ -51,13 +51,13 @@ object ConfigValueParserTest extends TestSuite {
         testBad[Int]("")
       }
 
-      'long {
+      "long" - {
         testOk("123", 123L)
         testOk("-3", -3L)
         testBad[Long]("X")
       }
 
-      'boolean {
+      "boolean" - {
         testOk("1", true)
         testOk("true", true)
         testOk("TRUE", true)
@@ -76,7 +76,7 @@ object ConfigValueParserTest extends TestSuite {
         testBad[Boolean]("")
       }
 
-      'oneOf {
+      "oneOf" - {
         sealed trait X
         case object A extends X
         case object B extends X
@@ -94,12 +94,12 @@ object ConfigValueParserTest extends TestSuite {
 //        testBad[URL]("x")
 //      }
 
-      'whitespace {
+      "whitespace" - {
         testOk(" a b c  ", "a b c")
         testOk("   124  ", 124)
       }
 
-      'comments {
+      "comments" - {
         testOk("x # y # z", "x")
         testOk(" # y # z", "")
         testOk("# y # z", "")
@@ -111,12 +111,12 @@ object ConfigValueParserTest extends TestSuite {
       }
     }
 
-    'ensure {
-      'ok - assertEq(
+    "ensure" - {
+      "ok" - assertEq(
         ConfigDef.need("in")(ConfigValueParser[Int].ensure(_ < 150, "Must be < 150.")).run(srcs),
         ConfigResult.Success(100))
 
-      'ko - assertEq(
+      "ko" - assertEq(
         ConfigDef.need("in")(ConfigValueParser[Int].ensure(_ > 150, "Must be > 150.")).run(srcs),
         ConfigResult.QueryFailure(Map(Key("in") -> Some((src1.name, Lookup.Error("Must be > 150.", Some("100"))))), Set.empty, srcNames))
     }

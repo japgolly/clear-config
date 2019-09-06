@@ -46,7 +46,7 @@ object Report {
     def map(f: Table => Table): A
 
     final def filterKeys(f: String => Boolean): A =
-      map(_.modByKey(_.filterKeys(k => f(k.value))))
+      map(_.modByKey(_.iterator.filter(kv => f(kv._1.value)).toMap))
 
     final def filterKeysNot(f: String => Boolean): A =
       filterKeys(!f(_))
@@ -57,7 +57,7 @@ object Report {
     }
 
     final def filterSources(f: SourceName => Boolean): A =
-      map(_.modBySource(_.filterKeys(f)))
+      map(_.modBySource(_.iterator.filter(kv => f(kv._1)).toMap))
 
     final def filterSourcesNot(f: SourceName => Boolean): A =
       filterSources(!f(_))
@@ -102,7 +102,7 @@ object Report {
           v)
 
     def escapeCtrlChars: ValueDisplay =
-      ValueDisplay((_, _, _, v) => v.toIterator.flatMap {
+      ValueDisplay((_, _, _, v) => v.iterator.flatMap {
         case '\b' => "\\b"
         case '\n' => "\\n"
         case '\r' => "\\r"

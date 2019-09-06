@@ -14,7 +14,7 @@ object ConfigReportTest extends TestSuite {
 
   override def tests = Tests {
 
-    'getNeed {
+    "getNeed" - {
       val si: ConfigDef[Unit] =
         (ConfigDef.need[String]("s")
           |@| ConfigDef.need[Int]("i")
@@ -45,7 +45,7 @@ object ConfigReportTest extends TestSuite {
            |+-------+-------+-----+
          """.stripMargin.trim
 
-      'used {
+      "used" - {
 //        "*>" - {
 //          val k: ConfigReport = (si *> ConfigDef.reportSoFar).run(srcs).get_!
 //          assertMultiline(k.reportUsed, expectUsed)
@@ -54,19 +54,19 @@ object ConfigReportTest extends TestSuite {
 //          val k: ConfigReport = (si *> ConfigDef.reportSoFar <* ConfigDef.need[Int]("i2")).run(srcs).get_!
 //          assertMultiline(k.reportUsed, expectUsed)
 //        }
-        'with {
+        "with" - {
           val (_, k: ConfigReport) = si.withReport.run(srcs).get_!
           assertMultiline(k.used, expectUsed)
         }
       }
-      'unused {
+      "unused" - {
         val k: ConfigReport = si.withReport.map(_._2).run(srcs).get_!
         assertMultiline(k.unused, expectUnused)
       }
 
-      'combined {
+      "combined" - {
 
-        'default - assertMultiline(
+        "default" - assertMultiline(
           si.withReport.run(srcs > S0).get_!._2.full,
           s"""
              !3 sources (highest to lowest priority):
@@ -87,9 +87,9 @@ object ConfigReportTest extends TestSuite {
       }
     }
 
-    'getOrUse {
+    "getOrUse" - {
 
-      'specified {
+      "specified" - {
         val si = ConfigDef.need[String]("s2") tuple ConfigDef.get[String]("nope") tuple ConfigDef.getOrUse[Int]("i2", 666)
         val k = si.withReport.run(src2).get_!._2
         assertMultiline(k.full,
@@ -117,7 +117,7 @@ object ConfigReportTest extends TestSuite {
            """.stripMargin('!').trim)
       }
 
-      'unspecified {
+      "unspecified" - {
         val si = ConfigDef.need[String]("s") tuple ConfigDef.get[String]("nope") tuple ConfigDef.getOrUse[Int]("i2", 666)
         val k = si.withReport.run(src1).get_!._2
         assertMultiline(k.full,
@@ -146,7 +146,7 @@ object ConfigReportTest extends TestSuite {
            """.stripMargin('!').trim)
       }
 
-      'null {
+      "null" - {
         val c = ConfigDef.getOrUse[String]("x", null)
         val k = c.withReport.run(src0).get_!._2
         assertMultiline(k.full,
@@ -168,7 +168,7 @@ object ConfigReportTest extends TestSuite {
       }
     }
 
-    'blankValues {
+    "blankValues" - {
       implicit val configValuePreprocessor = ConfigValuePreprocessor.id
       val c = ConfigDef.need[String]("a").tuple(ConfigDef.need[String]("b")).withReport.map(_._2)
       val s = ConfigSource.manual[Id]("S")("a" -> "", "b" -> " \t ")
@@ -185,8 +185,8 @@ object ConfigReportTest extends TestSuite {
         """.stripMargin.trim, r.used)
     }
 
-    'mapKeyQueries {
-      'oneSource {
+    "mapKeyQueries" - {
+      "oneSource" - {
         val s = ConfigSource.manual[Id]("S")(
           "both.1" -> "YAY", "both_1" -> "NOPE",
           "db_port" -> "1234")
@@ -215,7 +215,7 @@ object ConfigReportTest extends TestSuite {
              !+--------+------+
            """.stripMargin('!').trim)
       }
-      'multipleSources {
+      "multipleSources" - {
         val s1 = ConfigSource.manual[Id]("S1")(
           "both.1" -> "YAY", "both_1" -> "NOPE",
           "db_port" -> "1234")
@@ -253,7 +253,7 @@ object ConfigReportTest extends TestSuite {
       }
     }
 
-    'choice {
+    "choice" - {
       val ci = ConfigDef.need[Int]("C").ensure(1.to(2).contains, "Choose 1 or 2")
       val c1 = ConfigDef.need[String]("C1")
       val c2 = ConfigDef.need[String]("C2")
@@ -286,7 +286,7 @@ object ConfigReportTest extends TestSuite {
          """.stripMargin('!').trim)
     }
 
-    'secret {
+    "secret" - {
       val a = ConfigDef.need[String]("a")
       val b = ConfigDef.need[String]("b").secret
       val c = ConfigDef.need[String]("c")
@@ -311,7 +311,7 @@ object ConfigReportTest extends TestSuite {
          """.stripMargin('!').trim)
     }
 
-    'filtering {
+    "filtering" - {
       val s1 = ConfigSource.manual[Id]("S1")("a" -> "a1", "s" -> "s1")
       val s2 = ConfigSource.manual[Id]("S2")("b" -> "b2", "s" -> "s2")
       val s3 = ConfigSource.manual[Id]("S3")()
@@ -320,7 +320,7 @@ object ConfigReportTest extends TestSuite {
 
       val r = c.withReport.run(s).get_!._2
 
-      'default - assertMultiline(r.full,
+      "default" - assertMultiline(r.full,
         s"""
            !3 sources (highest to lowest priority):
            !  - S1
@@ -340,7 +340,7 @@ object ConfigReportTest extends TestSuite {
            !+-----+----+----+
          """.stripMargin('!').trim)
 
-      'withoutS1 - assertMultiline(r.mapUnused(_.withoutSources(s1.name)).unused,
+      "withoutS1" - assertMultiline(r.mapUnused(_.withoutSources(s1.name)).unused,
         s"""
            !Unused keys (2):
            !+-----+----+
@@ -351,18 +351,18 @@ object ConfigReportTest extends TestSuite {
            !+-----+----+
          """.stripMargin('!').trim)
 
-      'withoutS12 - assertMultiline(r.mapUnused(_.withoutSources(s1.name, s2.name)).unused,
+      "withoutS12" - assertMultiline(r.mapUnused(_.withoutSources(s1.name, s2.name)).unused,
         s"""
            !Unused keys (0):
            !No data to report.
          """.stripMargin('!').trim)
     }
 
-    'colour {
+    "colour" - {
       val c = ConfigDef.need[Int]("i").secret
       val s = ConfigSource.manual[Id]("S")("i" -> "1")
       val r = c.withReport.run(s).get_!._2
-      'on - assertMultiline(r.withColour.used(false),
+      "on" - assertMultiline(r.withColour.used(false),
         s"""
           |+-----+----------------+
           || Key | S              |
@@ -370,7 +370,7 @@ object ConfigReportTest extends TestSuite {
           || i   | ${Console.YELLOW}<# 9C554F15 #>${Console.RESET} |
           |+-----+----------------+
         """.stripMargin.trim)
-      'off - assertMultiline(r.withoutColour.used(false),
+      "off" - assertMultiline(r.withoutColour.used(false),
         """
           |+-----+----------------+
           || Key | S              |
@@ -380,7 +380,7 @@ object ConfigReportTest extends TestSuite {
         """.stripMargin.trim)
     }
 
-    'caseInsensitiveSource {
+    "caseInsensitiveSource" - {
       val s = ConfigSource.manual[Id]("S")("a" -> "no", "Ab" -> "@", "p" -> "no").caseInsensitive
       val c = ConfigDef.need[String]("ab")
       val (a, r) = c.withReport.run(s).getOrDie()
