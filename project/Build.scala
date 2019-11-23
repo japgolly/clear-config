@@ -16,7 +16,7 @@ object ClearConfig {
     Lib.publicationSettings(ghProject)
 
   object Ver {
-    val JavaTimeScalaJs = "0.2.5"
+    val JavaTimeScalaJs = "0.2.6"
     val KindProjector   = "0.10.3"
     val Microlibs       = "2.0-RC1"
     val MTest           = "0.7.1"
