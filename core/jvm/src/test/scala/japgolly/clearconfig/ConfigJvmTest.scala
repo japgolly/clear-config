@@ -4,8 +4,9 @@ import japgolly.microlibs.testutil.TestUtil._
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
-import scalaz.Equal
+import scalaz.{-\/, Equal}
 import scalaz.Scalaz.Id
+import scalaz.syntax.applicative._
 import utest._
 
 object ConfigJvmTest extends TestSuite {
@@ -61,6 +62,50 @@ object ConfigJvmTest extends TestSuite {
         assertEq(r, ConfigResult.Success(None))(Equal.equalA, implicitly)
       }
 
+    }
+
+    "inlineProps" - {
+
+      "ok" - {
+        val src1 = ConfigSource.manual[Id]("a")(
+          "x.1" -> "hehe",
+          "INLINE" ->
+            s"""
+               |# hehe
+               | x.2      = 123
+               | x.3    = good stuff # nice
+               |""".stripMargin
+        )
+        val src = ConfigSource.expandInlineProperties(src1, "INLINE")
+
+        val cfgDef = (
+          ConfigDef.need[String]("x.1") |@|
+            ConfigDef.need[String]("x.2") |@|
+            ConfigDef.need[String]("x.3")
+          ) ((_, _, _)).withReport
+
+        val (xs, report) = cfgDef.run(src).getOrDie()
+        assert(xs == (("hehe", "123", "good stuff")))
+        assert(!report.full.contains("INLINE"))
+        report.full
+      }
+
+      "ko" - {
+        val src1 = ConfigSource.manual[Id]("a")(
+          "x.1" -> "hehe",
+          "INLINE" ->
+            s"""
+               |# hehe
+               | x.1      = 123
+               |""".stripMargin
+        )
+        val src = ConfigSource.expandInlineProperties(src1, "INLINE")
+
+        val cfgDef = ConfigDef.need[String]("x.1")
+
+        val result = cfgDef.run(src).toDisjunction
+        assert(result == -\/("Error preparing source [SourceName(a)]: The following keys are defined at both the top-level and in INLINE: x.1."))
+      }
     }
 
   }
