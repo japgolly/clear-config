@@ -2,6 +2,13 @@
 
 * Scala 2.13 support
 
+* Added `ConfigSource.expandInlineProperties` to accept an entire properties file as the value of a single key. (JVM only)
+
+  For example, you could have Terraform read an entire file and `jsonencode` it as a single environment variable key
+  so that your entire config is in an AWS ECS task definition, and you don't need to update any Terraform code when
+  you add/remove/modify property keys.
+
+
 ### 1.3.0
 
 * Support users passing in null values (eg. you're configuring a Java library) without crashing
