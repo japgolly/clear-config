@@ -16,14 +16,14 @@ object ClearConfig {
     Lib.publicationSettings(ghProject)
 
   object Ver {
-    val JavaTimeScalaJs = "0.2.5"
+    val JavaTimeScalaJs = "0.2.6"
     val KindProjector   = "0.10.3"
     val Microlibs       = "2.0-RC1"
     val MTest           = "0.7.1"
-    val Scala212        = "2.12.8"
-    val Scala213        = "2.13.0"
+    val Scala212        = "2.12.10"
+    val Scala213        = "2.13.1"
     val ScalaCollCompat = "2.1.2"
-    val Scalaz          = "7.2.28"
+    val Scalaz          = "7.2.29"
   }
 
   def scalacFlags =
@@ -51,7 +51,6 @@ object ClearConfig {
       scalacOptions                ++= scalacFlags,
       scalacOptions in Test        --= Seq("-Ywarn-dead-code", "-Ywarn-unused"),
       shellPrompt in ThisBuild      := ((s: State) => Project.extract(s).currentRef.project + "> "),
-      triggeredMessage              := Watched.clearWhenTriggered,
       updateOptions                 := updateOptions.value.withCachedResolution(true),
       releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       releaseTagComment             := s"v${(version in ThisBuild).value}",

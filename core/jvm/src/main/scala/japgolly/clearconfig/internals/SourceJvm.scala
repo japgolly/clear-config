@@ -1,7 +1,8 @@
 package japgolly.clearconfig.internals
 
-import java.io.{File, FileInputStream}
-import scalaz.{-\/, Applicative, \/, \/-}
+import java.io.{ByteArrayInputStream, File, FileInputStream}
+import scalaz.{-\/, Applicative, Monad, \/, \/-}
+import scalaz.syntax.monad._
 
 object SourceNameJvm extends SourceNameObjectJvm
 trait SourceNameObjectJvm extends SourceNameObject {
@@ -66,4 +67,59 @@ trait SourceObjectJvm extends SourceObject {
     })
   }
 
+  /** If a value is provided at the specified key, treat it as the contents of a properties file, expand it by merging
+    * it with all the top-level properties, then remove it.
+    *
+    * Eg. if you expand the "INLINE" key below
+    *
+    * {{{
+    *   A = 1
+    *   INLINE = B = 2
+    *            C = 3
+    * }}}
+    *
+    * then you get the following result
+    *
+    * {{{
+    *   A = 1
+    *   B = 2
+    *   C = 3
+    * }}}
+    */
+  def expandInlineProperties[F[_]](source: Source[F], key: String)(implicit F: Monad[F]): Source[F] = {
+    val k = Key(key)
+
+    val prepare2: F[String \/ Store[F]] =
+      source.prepare.flatMap {
+
+        case \/-(store) =>
+          store.all.flatMap { map =>
+            map.get(k) match {
+
+              case Some(value) =>
+                val is = new ByteArrayInputStream(value.getBytes("UTF-8"))
+                val store2 = StoreJvm.ofJavaPropsFromInputStream[F](is, close = true)
+                for {
+                  map2 <- store2.all
+                } yield {
+                  val common = (map.keySet & map2.keySet).filter(k => map(k) != map2(k))
+                  if (common.nonEmpty) {
+                    val hdr = s"The following keys are defined at both the top-level and in ${k.value}: "
+                    val keys = common.iterator.map(_.value).toList.sorted
+                    -\/(keys.mkString(hdr, ", ", "."))
+                  } else
+                    \/-(StoreObject[F](F.pure(map ++ map2 - k)))
+                }
+
+              case None =>
+                F.pure(\/-(store))
+            }
+          }
+
+        case e@ -\/(_) =>
+          F.pure(e)
+      }
+
+    source.copy(prepare = prepare2)
+  }
 }
