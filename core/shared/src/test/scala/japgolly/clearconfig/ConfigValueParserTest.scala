@@ -2,8 +2,6 @@ package japgolly.clearconfig
 
 import japgolly.microlibs.testutil.TestUtil._
 import java.net.URL
-import scalaz.std.AllInstances._
-import scalaz.{-\/, Equal, \/-}
 import utest._
 import Helpers._
 
@@ -12,13 +10,13 @@ object ConfigValueParserTest extends TestSuite {
   val k = Key("k")
   val pp = implicitly[ConfigValuePreprocessor]
 
-  def testOk[A: ConfigValueParser: Equal](origValue: String, expect: A): Unit =
-    assertEq(ConfigValueParser[A].parse(pp.run(origValue)), \/-(expect))
+  def testOk[A: ConfigValueParser: Eq](origValue: String, expect: A): Unit =
+    assertEq(ConfigValueParser[A].parse(pp.run(origValue)), Right(expect))
 
-  def testBad[A: ConfigValueParser : Equal](origValue: String, errorFrag: String = ""): Unit =
+  def testBad[A: ConfigValueParser : Eq](origValue: String, errorFrag: String = ""): Unit =
     ConfigValueParser[A].parse(pp.run(origValue)) match {
-      case -\/(e) => assertContainsCI(e, errorFrag)
-      case \/-(a) => fail(s"Error expected containing '$errorFrag', instead it passed with $a.")
+      case Left(e) => assertContainsCI(e, errorFrag)
+      case Right(a) => fail(s"Error expected containing '$errorFrag', instead it passed with $a.")
     }
 
   override def tests = Tests {
@@ -80,7 +78,7 @@ object ConfigValueParserTest extends TestSuite {
         sealed trait X
         case object A extends X
         case object B extends X
-        implicit val eq = Equal.equalA[X]
+        implicit val eq = Eq.equalA[X]
         implicit val v = ConfigValueParser.oneOf[X]("A" -> A, "B" -> B).preprocessValue(_.toUpperCase)
         testOk[X]("a", A)
         testOk[X]("A", A)

@@ -61,18 +61,18 @@ Let's define how we populate our config from the outside world...
 
 ```scala
 import japgolly.clearconfig._
-import scalaz.syntax.applicative._
+import cats.implicits._
 
 object DatabaseConfig {
 
   def config: ConfigDef[DatabaseConfig] =
     (
-      ConfigDef.getOrUse("PORT", 8080)   |@|
-      ConfigDef.need[URL]("URL")         |@|
-      ConfigDef.need[String]("USERNAME") |@|
-      ConfigDef.need[String]("PASSWORD") |@|
+      ConfigDef.getOrUse("PORT", 8080),
+      ConfigDef.need[URL]("URL"),
+      ConfigDef.need[String]("USERNAME"),
+      ConfigDef.need[String]("PASSWORD"),
       ConfigDef.get[String]("SCHEMA")
-    )(apply)
+    ).mapN(apply)
 }
 ```
 
@@ -82,7 +82,7 @@ You'd typically use something like `IO` but for simplicity,
 we'll just use `Id` and opt-out of safe FP.
 
 ```scala
-import scalaz.Scalaz.Id
+import cats.Id
 
 def configSources: ConfigSources[Id] =
   ConfigSource.environment[Id] >                                             // Highest priority
@@ -198,19 +198,6 @@ From the above report we can immediately observe the following:
 
 * More... (explore the source)
 
-
-# Can I use this with Cats?
-
-I plan to switch this over to using Cats by default, instead of Scalaz.
-
-Until then, yes, you can use this with Cats today (and I do on some projects).
-Add [shims](https://github.com/djspiewak/shims) and it's as simple as:
-
-```scala
-import shims._
-```
-
-
 # Larger Example
 
 You typically compose using `Applicative`, give the composite a prefix,
@@ -222,16 +209,16 @@ For example, this Scala code...
 import japgolly.clearconfig._
 import java.net.{URI, URL}
 import redis.clients.jedis.JedisPoolConfig
-import scalaz.syntax.applicative._
+import cats.implicits._
 
 case class AppConfig(postgres: PostgresConfig, redis: RedisConfig, logLevel: LogLevel)
 
 object AppConfig {
   def config: ConfigDef[AppConfig] =
-    ( PostgresConfig.config |@|
-      RedisConfig.config |@|
+    ( PostgresConfig.config,
+      RedisConfig.config,
       ConfigDef.getOrUse("log_level", LogLevel.Info)
-    ) (apply)
+    ).mapN(apply)
       .withPrefix("myapp.")
 }
 

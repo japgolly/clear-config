@@ -1,25 +1,32 @@
 package japgolly.clearconfig.internals
 
 import scala.collection.compat._
-import scalaz.{Store => _, _}
-import Scalaz._
+import cats._
+import cats.implicits._
 import japgolly.microlibs.stdlib_ext.StdlibExt._
+import cats.data.ReaderWriterStateT
 
 private[internals] object Evaluation {
 
-  type Step[F[_], A] = RWST[F, R[F], Unit, S[F], A]
+  type Step[F[_], A] = ReaderWriterStateT[F, R[F], Unit, S[F], A]
   object Step {
-    def apply[F[_], A](f: (R[F], S[F]) => F[(S[F], A)])(implicit F: Functor[F]): Step[F, A] =
-      RWST((r, s) => F.map(f(r, s))(x => ((), x._2, x._1)))
+    def apply[F[_], A](f: (R[F], S[F]) => F[(S[F], A)])(implicit F: Applicative[F]): Step[F, A] =
+      ReaderWriterStateT((r, s) => F.map(f(r, s))(x => ((), x._1, x._2)))
 
     def monad[F[_]: Monad] =
-      ReaderWriterStateT.rwstMonad[F, R[F], Unit, S[F]]
+      Monad[ReaderWriterStateT[F, R[F], Unit, S[F], *]]
+
+    def get[F[_]: Applicative] =
+      ReaderWriterStateT.get[F, R[F], Unit, S[F]]
+
+    def modify[F[_]: Applicative](f: S[F] => S[F]) =
+      ReaderWriterStateT.modify[F, R[F], Unit, S[F]](f)
 
     def ret[F[_], A](a: A)(implicit F: Applicative[F]): Step[F, A] =
-      retF(F.point(a))
+      retF(F.pure(a))
 
     def retF[F[_], A](fa: F[A])(implicit F: Applicative[F]): Step[F, A] =
-      RWST((_, s) => fa.map(((), _, s)))
+      ReaderWriterStateT((_, s) => fa.map(((), s, _)))
   }
 
   final case class R[F[_]](highToLowPri: Vector[(SourceName, Store[F])])
@@ -68,21 +75,21 @@ private[internals] object Evaluation {
 
   sealed abstract class Origin
   object Origin {
-    final case class Point(value: () => String) extends Origin
+    final case class Pure(value: () => String) extends Origin
     final case class Read(key: Key, sourceName: SourceName, sourceValue: Lookup.Found) extends Origin
     case object Map extends Origin
   }
 
   final case class UnkeyedError(error: String, origins: Set[Origin]) {
-    def public: (String, Set[String \/ Key]) =
+    def public: (String, Set[Either[String, Key]]) =
       (error, origins.map {
-        case Origin.Map => -\/("<function>")
-        case Origin.Point(f) =>
-          -\/(f() match {
+        case Origin.Map => Left("<function>")
+        case Origin.Pure(f) =>
+          Left(f() match {
             case s if s.matches("^<function\\d+>$") | s.contains("$Lambda$") => "<function>"
             case s => s"runtime value [$s]"
           })
-        case Origin.Read(k, _, _) => \/-(k)
+        case Origin.Read(k, _, _) => Right(k)
       })
   }
 
@@ -107,13 +114,12 @@ private[internals] object Evaluation {
       override def addOrigins(o: Set[Origin]) = Success(value, origins ++ o)
     }
 
-    implicit val scalazInstance: Monad[StepResult] =
-      new Monad[StepResult] {
-        override def point[A](aa: => A) = {
-          lazy val a = aa
-          Success(a, Set(Origin.Point(() => "" + a)))
+    implicit val scalazInstance: StackSafeMonad[StepResult] =
+      new StackSafeMonad[StepResult] {
+        override def pure[A](a: A): StepResult[A] = {
+          Success(a, Set(Origin.Pure(() => "" + a)))
         }
-        override def ap[A, B](fa: => StepResult[A])(ff: => StepResult[A => B]) =
+        override def ap[A, B](ff: StepResult[A => B])(fa: StepResult[A]) =
           (fa, ff) match {
             case (Success(a, o1) , Success(ab, o2)) => Success(ab(a), o1 ++ o2)
             case (f: Failure     , Success(_, _)  ) => f
@@ -122,7 +128,7 @@ private[internals] object Evaluation {
           }
         override def map[A, B](fa: StepResult[A])(f: A => B) =
           fa map f
-        override def bind[A, B](fa: StepResult[A])(f: A => StepResult[B]) =
+        override def flatMap[A, B](fa: StepResult[A])(f: A => StepResult[B]) =
           fa flatMap f
       }
 

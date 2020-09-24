@@ -1,6 +1,6 @@
 package japgolly.clearconfig.internals
 
-import scalaz.{Applicative, ~>}
+import cats.{Applicative, ~>}
 
 final case class Sources[F[_]](highToLowPri: Vector[Source[F]]) extends AnyVal {
   override def toString: String =

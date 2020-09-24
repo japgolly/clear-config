@@ -16,9 +16,11 @@ target
 
 .idea
 .idea_modules
+.vscode/settings.json
 .cache
 .classpath
 .metadata
 .bloop
 .metals
-
+project/metals.sbt
+project/project/

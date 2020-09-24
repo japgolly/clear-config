@@ -1,10 +1,8 @@
 package japgolly.clearconfig
 
 import japgolly.microlibs.testutil.TestUtil._
-import scalaz.{-\/, \/-}
-import scalaz.Scalaz.Id
-import scalaz.std.AllInstances._
-import scalaz.syntax.applicative._
+import cats.Id
+import cats.implicits._
 import utest._
 import Helpers._
 
@@ -40,7 +38,7 @@ object ConfigTest extends TestSuite {
         ConfigResult.QueryFailure(Map(Key("s2") -> Some((src2.name, Lookup.Error("Int expected.", Some("ah"))))), Set.empty, srcNames))
 
     "errorMsg" - {
-      "notFound" - assertEq(ConfigDef.need[Int]("QQ").run(srcs).toDisjunction, -\/(
+      "notFound" - assertEq(ConfigDef.need[Int]("QQ").run(srcs).toEither, Left(
         """
           |1 error:
           |  - No value for key [QQ]
@@ -52,7 +50,7 @@ object ConfigTest extends TestSuite {
 
       "notFound2" - {
         val c = ConfigDef.need[Int]("QQ") tuple ConfigDef.get[Int]("X") tuple ConfigDef.need[Int]("i") tuple ConfigDef.need[Int]("M")
-        assertEq(c.run(srcs).toDisjunction, -\/(
+        assertEq(c.run(srcs).toEither, Left(
           """
             |2 errors:
             |  - No value for key [M]
@@ -66,7 +64,7 @@ object ConfigTest extends TestSuite {
 
       "errors2" - {
         val c = ConfigDef.need[Int]("s") tuple ConfigDef.get[Int]("X")
-        assertEq(c.run(srcs > srcE).toDisjunction, -\/(
+        assertEq(c.run(srcs > srcE).toEither, Left(
           """
             |2 errors:
             |  - Error reading key [X] from source [SE]: This source is fake!
@@ -81,10 +79,10 @@ object ConfigTest extends TestSuite {
 
       "unkeyedErrors" - {
         val c1 = ConfigDef.need[Int]("in").map(_ + 1000).ensure(_ > 1150, "Must be > 1150.")
-        val c2 = 7.point[ConfigDef].ensure(_ > 10, "Must be > 10.")
+        val c2 = 7.pure[ConfigDef].ensure(_ > 10, "Must be > 10.")
         val c3 = (ConfigDef.need[Int]("in") |@| ConfigDef.need[Int]("i2"))(_ + _).ensure(_ > 150, "Must be > 150.")
         val c = c1 tuple c2 tuple c3
-        assertEq(c.run(srcs > srcE).toDisjunction, -\/(
+        assertEq(c.run(srcs > srcE).toEither, Left(
           """
             |3 errors:
             |  - Error using <function>, key [i2], key [in]: Must be > 150.
@@ -117,7 +115,7 @@ object ConfigTest extends TestSuite {
           ConfigResult.Success(1100))
         "ko" - assertEq(
           c.ensure_>(1150).run(srcs),
-          ConfigResult.QueryFailure(Map.empty, Set("Must be > 1150." -> Set(\/-(Key("in")), -\/("<function>"))), srcNames))
+          ConfigResult.QueryFailure(Map.empty, Set("Must be > 1150." -> Set(Right(Key("in")), Left("<function>"))), srcNames))
       }
 
       "read2" - {
@@ -127,7 +125,7 @@ object ConfigTest extends TestSuite {
           ConfigResult.Success(122))
         "ko" - assertEq(
           c.ensure_>(150).run(srcs),
-          ConfigResult.QueryFailure(Map.empty, Set("Must be > 150." -> Set(\/-(Key("in")), \/-(Key("i2")), -\/("<function>"))), srcNames))
+          ConfigResult.QueryFailure(Map.empty, Set("Must be > 150." -> Set(Right(Key("in")), Right(Key("i2")), Left("<function>"))), srcNames))
       }
     }
 

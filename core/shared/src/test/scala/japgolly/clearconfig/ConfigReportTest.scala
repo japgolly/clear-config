@@ -2,9 +2,8 @@ package japgolly.clearconfig
 
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 import japgolly.microlibs.testutil.TestUtil._
-import scalaz.Scalaz.Id
-import scalaz.std.string._
-import scalaz.syntax.applicative._
+import cats.Id
+import cats.implicits._
 import utest._
 import Helpers._
 

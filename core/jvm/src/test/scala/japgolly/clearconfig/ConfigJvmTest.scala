@@ -4,9 +4,8 @@ import japgolly.microlibs.testutil.TestUtil._
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
-import scalaz.{-\/, Equal}
-import scalaz.Scalaz.Id
-import scalaz.syntax.applicative._
+import cats.Id
+import cats.implicits._
 import utest._
 
 object ConfigJvmTest extends TestSuite {
@@ -23,17 +22,17 @@ object ConfigJvmTest extends TestSuite {
       "notFoundMandatory" - {
         val src = ConfigSource.propFileOnClasspath[Id]("what.props", optional = false)
         val r = ConfigDef.get[String]("x").run(src)
-        assertEq(r, ConfigResult.PreparationFailure(src.name, "File not found."))(Equal.equalA, implicitly)
+        assertEq(r, ConfigResult.PreparationFailure(src.name, "File not found."))(Eq.equalA, implicitly)
       }
 
       "notFoundOptional" - {
         val r = ConfigDef.get[String]("x").run(ConfigSource.propFileOnClasspath[Id]("what.props", optional = true))
-        assertEq(r, ConfigResult.Success(None))(Equal.equalA, implicitly)
+        assertEq(r, ConfigResult.Success(None))(Eq.equalA, implicitly)
       }
 
       "found" - {
         val r = ConfigDef.need[String]("from.file.2").run(ConfigSource.propFileOnClasspath[Id]("blah.props", optional = false))
-        assertEq(r, ConfigResult.Success("really good"))(Equal.equalA, implicitly)
+        assertEq(r, ConfigResult.Success("really good"))(Eq.equalA, implicitly)
       }
 
     }
@@ -47,19 +46,19 @@ object ConfigJvmTest extends TestSuite {
         Files.write(tmpFile.toPath, content)
         val src = ConfigSource.propFile[Id](tmpFile.getAbsolutePath, optional = false)
         val r = ConfigDef.get[Int]("a").run(src)
-        assertEq(r, ConfigResult.Success(Option(172)))(Equal.equalA, implicitly)
+        assertEq(r, ConfigResult.Success(Option(172)))(Eq.equalA, implicitly)
       }
 
       "notFoundMandatory" - {
         val src = ConfigSource.propFile[Id](tmpFile.getAbsolutePath, optional = false)
         val r = ConfigDef.get[String]("x").run(src)
-        assertEq(r, ConfigResult.PreparationFailure(src.name, "File not found."))(Equal.equalA, implicitly)
+        assertEq(r, ConfigResult.PreparationFailure(src.name, "File not found."))(Eq.equalA, implicitly)
       }
 
       "notFoundOptional" - {
         val src = ConfigSource.propFile[Id](tmpFile.getAbsolutePath, optional = true)
         val r = ConfigDef.get[String]("x").run(src)
-        assertEq(r, ConfigResult.Success(None))(Equal.equalA, implicitly)
+        assertEq(r, ConfigResult.Success(None))(Eq.equalA, implicitly)
       }
 
     }
@@ -103,8 +102,8 @@ object ConfigJvmTest extends TestSuite {
 
         val cfgDef = ConfigDef.need[String]("x.1")
 
-        val result = cfgDef.run(src).toDisjunction
-        assert(result == -\/("Error preparing source [SourceName(a)]: The following keys are defined at both the top-level and in INLINE: x.1."))
+        val result = cfgDef.run(src).toEither
+        assert(result == Left("Error preparing source [SourceName(a)]: The following keys are defined at both the top-level and in INLINE: x.1."))
       }
     }
 

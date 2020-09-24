@@ -1,8 +1,8 @@
 package japgolly.clearconfig.internals
 
-import scalaz.{Applicative, \/, \/-, ~>}
+import cats.{Applicative, ~>}
 
-final case class Source[F[_]](name: SourceName, prepare: F[String \/ Store[F]])(implicit F: Applicative[F]) {
+final case class Source[F[_]](name: SourceName, prepare: F[Either[String, Store[F]]])(implicit F: Applicative[F]) {
   override def toString: String =
     s"Source(${name.value})"
 
@@ -37,11 +37,11 @@ final case class Source[F[_]](name: SourceName, prepare: F[String \/ Store[F]])(
 
 trait SourceObject {
 
-  final def apply[F[_]](name: SourceName, prepare: F[String \/ Store[F]])(implicit F: Applicative[F]): Source[F] =
+  final def apply[F[_]](name: SourceName, prepare: F[Either[String, Store[F]]])(implicit F: Applicative[F]): Source[F] =
     Source(name, prepare)(F)
 
-  final def point[F[_]](name: String, store: => Store[F])(implicit F: Applicative[F]): Source[F] =
-    Source[F](SourceName(name), F.point(\/-(store)))
+  final def pure[F[_]](name: String, store: => Store[F])(implicit F: Applicative[F]): Source[F] =
+    Source[F](SourceName(name), F.pure(Right(store)))
 
   final def empty[F[_]](name: String)(implicit F: Applicative[F]): Source[F] =
     manual(name)()
@@ -50,6 +50,6 @@ trait SourceObject {
     manual(name, kvs.toMap)
 
   final def manual[F[_]](name: String, kvs: Map[String, String])(implicit F: Applicative[F]): Source[F] =
-    point(name, StoreObject.ofMap(kvs))
+    pure(name, StoreObject.ofMap(kvs))
 
 }
