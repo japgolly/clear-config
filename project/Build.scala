@@ -16,14 +16,14 @@ object ClearConfig {
     Lib.publicationSettings(ghProject)
 
   object Ver {
+    val Cats            = "2.1.1"
     val JavaTimeScalaJs = "0.2.6"
     val KindProjector   = "0.10.3"
     val Microlibs       = "2.0"
     val MTest           = "0.7.1"
-    val Scala212        = "2.12.10"
+    val Scala212        = "2.12.12"
     val Scala213        = "2.13.1"
     val ScalaCollCompat = "2.1.3"
-    val Scalaz          = "7.2.30"
   }
 
   def scalacFlags =
@@ -49,6 +49,7 @@ object ClearConfig {
       scalaVersion                  := Ver.Scala213,
       crossScalaVersions            := Seq(Ver.Scala212, Ver.Scala213),
       scalacOptions                ++= scalacFlags,
+      scalacOptions                ++= {if (scalaVersion.value.startsWith("2.12")) Seq("-Ypartial-unification") else Seq.empty},
       scalacOptions in Test        --= Seq("-Ywarn-dead-code", "-Ywarn-unused"),
       shellPrompt in ThisBuild      := ((s: State) => Project.extract(s).currentRef.project + "> "),
       updateOptions                 := updateOptions.value.withCachedResolution(true),
@@ -76,8 +77,8 @@ object ClearConfig {
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
       libraryDependencies ++= Seq(
+        "org.typelevel"                 %%% "cats-core"               % Ver.Cats,
         "org.scala-lang.modules"        %%% "scala-collection-compat" % Ver.ScalaCollCompat,
-        "org.scalaz"                    %%% "scalaz-core"             % Ver.Scalaz,
         "com.github.japgolly.microlibs" %%% "stdlib-ext"              % Ver.Microlibs,
         "com.github.japgolly.microlibs" %%% "test-util"               % Ver.Microlibs % Test,
         "com.github.japgolly.microlibs" %%% "utils"                   % Ver.Microlibs))

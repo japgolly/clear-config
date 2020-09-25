@@ -7,11 +7,12 @@ import java.time._
 import java.time.temporal.ChronoUnit
 import java.util.regex.Pattern
 import scala.concurrent.duration.FiniteDuration
-import scalaz.{-\/, Alternative, Monad, \/, \/-}
+import cats.Alternative
+import cats.StackSafeMonad
 
-final class ValueParser[A](val parse: String => String \/ A) extends FailableFunctor[ValueParser, A] {
+final class ValueParser[A](val parse: String => Either[String, A]) extends FailableFunctor[ValueParser, A] {
 
-  override def mapAttempt[B](f: A => String \/ B): ValueParser[B] =
+  override def mapAttempt[B](f: A => Either[String, B]): ValueParser[B] =
     new ValueParser(parse(_) flatMap f)
 
   def flatMap[B](f: A => ValueParser[B]): ValueParser[B] =
@@ -27,19 +28,19 @@ final class ValueParser[A](val parse: String => String \/ A) extends FailableFun
 object ValueParser {
 
   def id: ValueParser[String] =
-    new ValueParser(\/-(_))
+    new ValueParser(Right(_))
 
   def apply[A](implicit i: ValueParser[A]): ValueParser[A] =
     i
 
-  def apply[A](parse: String => String \/ A): ValueParser[A] =
+  def apply[A](parse: String => Either[String, A]): ValueParser[A] =
     new ValueParser(parse)
 
-  def point[A](a: => A): ValueParser[A] =
-    new ValueParser[A](_ => \/-(a))
+  def pure[A](a: => A): ValueParser[A] =
+    new ValueParser[A](_ => Right(a))
 
   def fail[A](reason: => String): ValueParser[A] =
-    new ValueParser(_ => -\/(reason))
+    new ValueParser(_ => Left(reason))
 
   def oneOf[A](values: (String, A)*): ValueParser[A] = {
     var m = Map.empty[String, A]
@@ -51,12 +52,12 @@ object ValueParser {
     id.mapOption(m.get, m.keys.toList.sorted.mkString("Legal values are: ", ", ", "."))
   }
 
-  implicit def scalazInstance: Monad[ValueParser] with Alternative[ValueParser] =
-    new Monad[ValueParser] with Alternative[ValueParser] {
-      override def point[A](a: => A)                                      = ValueParser.point(a)
-      override def bind[A, B](fa: ValueParser[A])(f: A => ValueParser[B]) = fa flatMap f
-      override def empty[A]                                               = ValueParser.fail("Value not specified")
-      override def plus[A](a: ValueParser[A], b: => ValueParser[A])       = a orElse b
+  implicit def scalazInstance: StackSafeMonad[ValueParser] with Alternative[ValueParser] =
+    new StackSafeMonad[ValueParser] with Alternative[ValueParser] {
+      override def pure[A](a: A)                                             = ValueParser.pure(a)
+      override def flatMap[A, B](fa: ValueParser[A])(f: A => ValueParser[B]) = fa flatMap f
+      override def empty[A]                                                  = ValueParser.fail("Value not specified")
+      override def combineK[A](a: ValueParser[A], b: ValueParser[A])         = a orElse b
     }
 
   private val RegexTrue = Pattern.compile("^(?:t(?:rue)?|y(?:es)?|1|on|enabled?)$", Pattern.CASE_INSENSITIVE)
@@ -69,30 +70,30 @@ object ValueParser {
 
     implicit def configValueParserDouble: ValueParser[Double] =
       apply(_ match {
-        case ParseDouble(d) => \/-(d)
-        case _ => -\/("Double expected.")
+        case ParseDouble(d) => Right(d)
+        case _ => Left("Double expected.")
       })
 
     implicit def configValueParserInt: ValueParser[Int] =
       apply(_ match {
-        case ParseInt(i) => \/-(i)
-        case _ => -\/("Int expected.")
+        case ParseInt(i) => Right(i)
+        case _ => Left("Int expected.")
       })
 
     implicit def configValueParserLong: ValueParser[Long] =
       apply(_ match {
-        case ParseLong(l) => \/-(l)
-        case _ => -\/("Long expected.")
+        case ParseLong(l) => Right(l)
+        case _ => Left("Long expected.")
       })
 
     implicit def configValueParserBoolean: ValueParser[Boolean] =
       apply(s =>
         if (RegexTrue.matcher(s).matches)
-          \/-(true)
+          Right(true)
         else if (RegexFalse.matcher(s).matches)
-          \/-(false)
+          Right(false)
         else
-          -\/("Boolean expected.")
+          Left("Boolean expected.")
       )
 
     implicit def configValueParserJavaTimeChronoUnit: ValueParser[ChronoUnit] =

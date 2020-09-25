@@ -1,7 +1,7 @@
 package japgolly.clearconfig.internals
 
-import scalaz.{Store => _, _}
-import Scalaz._
+import cats._
+import cats.implicits._
 import Evaluation._
 
 /**
@@ -13,7 +13,7 @@ trait ConfigDef[A] extends FailableFunctor[ConfigDef, A] {
 
   def run[F[_]](sources: Sources[F])(implicit pp: ValuePreprocessor, F: Monad[F]): F[Result[A]]
 
-  def chooseAttempt[B](f: A => String \/ ConfigDef[B]): ConfigDef[B]
+  def chooseAttempt[B](f: A => Either[String, ConfigDef[B]]): ConfigDef[B]
 
   /** Requires at least one key to be externally specified, else `None` is returned.
     *
@@ -37,7 +37,7 @@ trait ConfigDef[A] extends FailableFunctor[ConfigDef, A] {
     * by introducing configuration keys that only appear in certain conditions.
     */
   final def choose[B](f: A => ConfigDef[B]): ConfigDef[B] = // DO NOT call this flatMap.
-    chooseAttempt(a => \/-(f(a)))
+    chooseAttempt(a => Right(f(a)))
 
   /** Opens up a new bunch of config opens when some other option config value is defined.
     *
@@ -46,7 +46,7 @@ trait ConfigDef[A] extends FailableFunctor[ConfigDef, A] {
     * potentially-mandatory options are. This function makes that an unclear, two-step process.
     */
   final def chooseWhenDefined[B, C](f: B => ConfigDef[C])(implicit ev: A =:= Option[B]): ConfigDef[Option[C]] =
-    choose(ev(_).fold(Option.empty[C].point[ConfigDef])(f(_).map(Some(_))))
+    choose(ev(_).fold(Option.empty[C].pure[ConfigDef])(f(_).map(Some(_))))
 
   final def withPrefix(prefix: String): ConfigDef[A] =
     withKeyMod(prefix + _)
@@ -60,7 +60,7 @@ object ConfigDef {
   def const[A](a: A): ConfigDef[A] =
     new Instance[A] {
       override def step[F[_]](implicit F: Monad[F]) =
-        Step.ret(a.point[StepResult])
+        Step.ret(a.pure[StepResult])
     }
 
   def get[A: ValueParser](key: String): ConfigDef[Option[A]] =
@@ -116,15 +116,15 @@ object ConfigDef {
     if (cs.isEmpty)
       ((_: A) => ()).pure[ConfigDef]
     else
-      cs.reduce(applicativeInstance.apply2(_, _)((f, g) => a => { f(a); g(a) }))
+      cs.reduce(applicativeInstance.map2(_, _)((f, g) => a => { f(a); g(a) }))
 
   // ███████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 
   implicit val applicativeInstance: Applicative[ConfigDef] =
     new Applicative[ConfigDef] {
-      override def point[A](a: => A)                                 = ConfigDef.const(a)
-      override def map[A, B](fa: ConfigDef[A])(f: A => B)               = fa map f
-      override def ap[A, B](fa: => ConfigDef[A])(ff: => ConfigDef[A => B]) = fa.ap(ff)
+      override def pure[A](a: A)                                     = ConfigDef.const(a)
+      override def map[A, B](fa: ConfigDef[A])(f: A => B)            = fa map f
+      override def ap[A, B](ff: ConfigDef[A => B])(fa: ConfigDef[A]) = fa.ap(ff)
     }
 
   private implicit def configToInstance[A](c: ConfigDef[A]): Instance[A] =
@@ -139,17 +139,17 @@ object ConfigDef {
       new Instance[B] {
         def step[F[_]](implicit F: Monad[F]) = {
           // type X[Y] = F[(R[F], S[F]) => F[(Unit, StepResult[Y], S[F])]]
-          val xa = self.step(F).getF[S[F], R[F]](F) // : X[A]
-          val xf = ff.step(F).getF[S[F], R[F]](F) // : X[A => B]
+          val xa = self.step(F).runF // : X[A]
+          val xf = ff.step(F).runF // : X[A => B]
           Step[F, StepResult[B]] { (r, s0) =>
             for {
               gf          <- xf
               ga          <- xa
               hf          <- gf(r, s0)
-              (_, ff, s1) = hf
+              (_, s1, ff) = hf
               ha          <- ga(r, s1)
-              (_, fa, s2) = ha
-            } yield (s2, StepResult.scalazInstance.ap(fa)(ff))
+              (_, s2, fa) = ha
+            } yield (s2, StepResult.scalazInstance.ap(ff)(fa))
           }
         }
       }
@@ -159,36 +159,36 @@ object ConfigDef {
       type KO = (SourceName, String)
 
       // Prepare sources
-      val r1: Vector[F[KO \/ OK]] = sources.highToLowPri.map(s => F.map(s.prepare)(_.bimap(s.name -> _, s.name -> _.mapValues(pp.run))))
-      val r2: F[Vector[KO \/ OK]] = r1.sequence
-      val r3: F[KO \/ Vector[OK]] = F.map(r2)(_.sequenceU)
+      val r1: Vector[F[Either[KO, OK]]] = sources.highToLowPri.map(s => F.map(s.prepare)(_.bimap(s.name -> _, s.name -> _.mapValues(pp.run))))
+      val r2: F[Vector[Either[KO, OK]]] = r1.sequence
+      val r3: F[Either[KO, Vector[OK]]] = F.map(r2)(_.sequence)
 
-      F.bind(r3) {
-        case \/-(stores) =>
+      F.flatMap(r3) {
+        case Right(stores) =>
 
           // Read config
-          step(F).run(R(stores), S.init).map { case (_, stepResult, _) =>
+          step(F).run(R(stores), S.init).map { case (_, _, stepResult) =>
             stepResult match {
               case StepResult.Success(a, _) => Result.Success(a)
               case StepResult.Failure(x, y) => Result.QueryFailure(x, y.map(_.public), sources.highToLowPri.map(_.name))
             }
           }
 
-        case -\/((s, err)) => F.pure(Result.PreparationFailure(s, err))
+        case Left((s, err)) => F.pure(Result.PreparationFailure(s, err))
       }
     }
 
     override final def map[B](f: A => B): ConfigDef[B] =
       stepMap(ra => ra.flatMap(a => StepResult.Success(f(a), Set(Origin.Map))))
 
-    override final def mapAttempt[B](f: A => String \/ B): ConfigDef[B] =
+    override final def mapAttempt[B](f: A => Either[String, B]): ConfigDef[B] =
       new Instance[B] {
         def step[F[_]](implicit F: Monad[F]) =
           self.step(F) map {
             case StepResult.Success(a, originsA) =>
               f(a) match {
-                case \/-(b) => StepResult.Success(b, originsA)
-                case -\/(e) => StepResult.fail(e, originsA)
+                case Right(b) => StepResult.Success(b, originsA)
+                case Left(e) => StepResult.fail(e, originsA)
               }
             case f: StepResult.Failure => f
           }
@@ -200,14 +200,14 @@ object ConfigDef {
           self.step(F).map(f)
       }
 
-    override final def chooseAttempt[B](f: A => String \/ ConfigDef[B]): ConfigDef[B] =
+    override final def chooseAttempt[B](f: A => Either[String, ConfigDef[B]]): ConfigDef[B] =
       new Instance[B] {
         def step[F[_]](implicit F: Monad[F]): Step[F, StepResult[B]] =
           self.step(F).flatMap {
             case StepResult.Success(a, originsA) =>
               f(a) match {
-                case \/-(cb) => cb.step(F)
-                case -\/(e)  => Step.ret(StepResult.fail(e, originsA))
+                case Right(cb) => cb.step(F)
+                case Left(e)  => Step.ret(StepResult.fail(e, originsA))
               }
             case f: StepResult.Failure => Step.ret(f)
           }
@@ -216,8 +216,6 @@ object ConfigDef {
     override final def option: ConfigDef[Option[A]] =
       new Instance[Option[A]] {
         def step[F[_]](implicit F: Monad[F]) = {
-          val x = Step.monad[F]
-
           def transform(s1: S[F], s2: S[F], sr: StepResult[A]): F[StepResult[Option[A]]] = {
             def noKeysSpecifiedF: F[Boolean] =
               s2.queriesSince(s1).foldLeftM(true)((ok, k) => {
@@ -249,9 +247,9 @@ object ConfigDef {
           }
 
           for {
-            s1 <- x.get
+            s1 <- Step.get[F]
             r1 <- self.step(F)
-            s2 <- x.get
+            s2 <- Step.get[F]
             r2 <- Step.retF(transform(s1, s2, r1))
           } yield r2
         }
@@ -260,11 +258,10 @@ object ConfigDef {
     override final def secret: ConfigDef[A] =
       new Instance[A] {
         def step[F[_]](implicit F: Monad[F]) = {
-          val x = Step.monad[F]
           for {
-            s <- x.get
+            s <- Step.get[F]
             r <- self.step(F)
-            _ <- x.modify(s2 => s2.obfuscateKeys(s2.queriesSince(s)))
+            _ <- Step.modify[F](s2 => s2.obfuscateKeys(s2.queriesSince(s)))
           } yield r
         }
       }
@@ -273,7 +270,7 @@ object ConfigDef {
       Instance.keyModCompose(f) *> this <* Instance.keyModPop
 
     override final def withReport(implicit s: Report.Settings): ConfigDef[(A, Report)] =
-      (this: ConfigDef[A]) tuple ConfigDef.Instance.reportSoFar(s)
+      ((this: ConfigDef[A]), ConfigDef.Instance.reportSoFar(s)).tupled
   }
 
   private object Instance {
@@ -327,8 +324,8 @@ object ConfigDef {
         oo match {
           case Some(o) =>
             v.parse(o.sourceValue.value) match {
-              case \/-(a) => doIt(k, Some((o, a)))
-              case -\/(e) => StepResult.Failure(Map(k -> Some((o.sourceName, Lookup.Error(e, Some(o.sourceValue.value))))), Set.empty)
+              case Right(a) => doIt(k, Some((o, a)))
+              case Left(e) => StepResult.Failure(Map(k -> Some((o.sourceName, Lookup.Error(e, Some(o.sourceValue.value))))), Set.empty)
             }
           case None => doIt(k, None)
         }
@@ -337,7 +334,7 @@ object ConfigDef {
     def keyModUpdate(f: (String => String) => String => String): ConfigDef[Unit] =
       new Instance[Unit] {
         override def step[F[_]](implicit F: Monad[F]) =
-          Step((_, s) => (s.keyModPush(keyModFS(f(keyModTS(s.keyMod)))), ().point[StepResult]).point[F])
+          Step((_, s) => (s.keyModPush(keyModFS(f(keyModTS(s.keyMod)))), ().pure[StepResult]).pure[F])
       }
 
     def keyModCompose(f: String => String): ConfigDef[Unit] =
@@ -346,19 +343,19 @@ object ConfigDef {
     def keyModPop: ConfigDef[Unit] =
       new Instance[Unit] {
         override def step[F[_]](implicit F: Monad[F]) =
-          Step((_, s) => (s.keyModPop, ().point[StepResult]).point[F])
+          Step((_, s) => (s.keyModPop, ().pure[StepResult]).pure[F])
       }
 
     def keysUsed: ConfigDef[Set[Key]] =
       new Instance[Set[Key]] {
         override def step[F[_]](implicit F: Monad[F]) =
-          Step((_, s) => (s, s.queryCache.keySet.point[StepResult]).point[F])
+          Step((_, s) => (s, s.queryCache.keySet.pure[StepResult]).pure[F])
       }
 
     def reportSoFar(settings: Report.Settings): ConfigDef[Report] =
       new Instance[Report] {
         def step[F[_]](implicit F: Monad[F]) =
-          Step((r, s) => ReportCreation(settings, r, s).map(a => (s, a.point[StepResult])))
+          Step((r, s) => ReportCreation(settings, r, s).map(a => (s, a.pure[StepResult])))
       }
 
   }

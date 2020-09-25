@@ -1,33 +1,29 @@
 package japgolly.clearconfig.internals
 
-import scalaz.{-\/, \/, \/-}
-
 sealed abstract class Result[+A] {
-  def toDisjunction: String \/ A
 
-  def toEither: Either[String, A] =
-    toDisjunction.toEither
+  def toEither: Either[String, A]
 
   def getOrDie(): A =
-    toDisjunction match {
-      case \/-(a) => a
-      case -\/(e) => sys error e
+    toEither match {
+      case Right(a) => a
+      case Left(e) => sys.error(e)
     }
 }
 
 object Result {
 
   final case class Success[+A](value: A) extends Result[A] {
-    override def toDisjunction = \/-(value)
+    override def toEither = Right(value)
   }
 
   final case class PreparationFailure(sourceName: SourceName, error: String) extends Result[Nothing] {
     def errorMsg: String = s"Error preparing source [$sourceName]: $error"
-    override def toDisjunction = -\/(errorMsg)
+    override def toEither = Left(errorMsg)
   }
 
   final case class QueryFailure(keyed: Map[Key, Option[(SourceName, Lookup.Error)]],
-                                other: Set[(String, Set[String \/ Key])],
+                                other: Set[(String, Set[Either[String, Key]])],
                                 sourcesHighToLowPri: Vector[SourceName]) extends Result[Nothing] {
     def errorMsg: String = {
       def fmtKey(k: Key) = s"key [${k.value}]"
@@ -52,6 +48,6 @@ object Result {
          |${Util.fmtSourceNameList(sourcesHighToLowPri)}
        """.stripMargin.trim
     }
-    override def toDisjunction = -\/(errorMsg)
+    override def toEither = Left(errorMsg)
   }
 }

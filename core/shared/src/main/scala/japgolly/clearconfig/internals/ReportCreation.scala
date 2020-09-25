@@ -1,8 +1,8 @@
 package japgolly.clearconfig.internals
 
 import japgolly.microlibs.stdlib_ext.StdlibExt._
-import scalaz._
-import Scalaz._
+import cats._
+import cats.implicits._
 import Evaluation._
 
 private[internals] object ReportCreation {
@@ -12,8 +12,8 @@ private[internals] object ReportCreation {
   def apply[F[_]](settings: Report.Settings, r: R[F], s: S[F])(implicit F: Applicative[F]): F[Report] = {
     type M = Map[Key, Map[SourceName, Lookup]]
     def emptyM: M = Map.empty
-    implicit def semigroupLookup: Semigroup[Lookup] =
-      Semigroup.firstSemigroup // There will never be overlap
+    implicit val semigroupLookup: Semigroup[Lookup] =
+      (l1, _) => l1 // There will never be overlap
 
     val defaultProps: Option[Map[Key, String]] = {
       val m: Map[Key, String] =
@@ -74,7 +74,7 @@ private[internals] object ReportCreation {
       }.map(_.foldLeft(emptyM)(_ |+| _))
 
     val fReport: F[Report] =
-      F.apply2(fUsed, fProbablyUnused) { (used, probablyUnused) =>
+      F.map2(fUsed, fProbablyUnused) { (used, probablyUnused) =>
         val unused: M =
           used.foldLeft(probablyUnused) { case (m, (k, usedValues)) =>
             m.modifyValueOption(k, _.map(_.iterator.filter(kv => !usedValues.contains(kv._1)).toMap).filter(_.nonEmpty))

@@ -3,7 +3,7 @@ package japgolly.clearconfig.internals
 import java.io.InputStream
 import java.util.Properties
 import scala.jdk.CollectionConverters._
-import scalaz.Applicative
+import cats.Applicative
 
 object StoreJvm extends StoreObjectJvm
 trait StoreObjectJvm extends StoreObject {
@@ -16,7 +16,7 @@ trait StoreObjectJvm extends StoreObject {
 
   final def ofJavaProps[F[_]](p: Properties)(implicit F: Applicative[F]): Store[F] = {
     lazy val m = propsToMap(p)
-    apply(F.point(m))
+    apply(F.pure(m))
   }
 
   final def ofJavaPropsFromInputStream[F[_]](is: InputStream, close: Boolean = true)(implicit F: Applicative[F]): Store[F] = {
@@ -28,7 +28,7 @@ trait StoreObjectJvm extends StoreObject {
       } finally
         if (close)
           is.close()
-    apply(F.point(m))
+    apply(F.pure(m))
   }
 
 }

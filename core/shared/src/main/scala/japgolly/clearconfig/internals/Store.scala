@@ -1,8 +1,7 @@
 package japgolly.clearconfig.internals
 
-import scalaz.{Applicative, ~>}
-import scalaz.std.list._
-import scalaz.syntax.traverse._
+import cats.{Applicative, ~>}
+import cats.implicits._
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 
 final class Store[F[_]](val all : F[Map[Key, String]],
@@ -77,7 +76,7 @@ trait StoreObject {
 
   final def ofMap[F[_]](m: => Map[String, String])(implicit F: Applicative[F]): Store[F] = {
     lazy val m2 = m.mapKeysNow(Key)
-    apply(F.point(m2))
+    apply(F.pure(m2))
   }
 }
 

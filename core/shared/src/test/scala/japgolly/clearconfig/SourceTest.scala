@@ -1,6 +1,6 @@
 package japgolly.clearconfig
 
-import scalaz.Scalaz.Id
+import cats.Id
 import utest._
 import Helpers._
 

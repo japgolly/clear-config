@@ -1,7 +1,7 @@
 package japgolly.clearconfig
 
 import japgolly.microlibs.testutil.TestUtil._
-import scalaz.Scalaz.Id
+import cats.Id
 
 object Helpers extends internals.Exports {
   type Key = internals.Key
@@ -18,8 +18,8 @@ object Helpers extends internals.Exports {
   override type ConfigSourceNameObject = internals.SourceNameObject
   override val ConfigSourceName = internals.SourceName
 
-  implicit def equalResultX[A] = scalaz.Equal.equalA[ConfigResult[A]]
-  implicit def equalURL = scalaz.Equal.equalA[java.net.URL]
+  implicit def equalResultX[A] = cats.Eq.equalA[ConfigResult[A]]
+  implicit def equalURL = cats.Eq.equalA[java.net.URL]
 
   val src0 = ConfigSource.manual[Id]("S0")()
   val src1 = ConfigSource.manual[Id]("S1")("in" -> "100", "i" -> "3", "s" -> "hey", "dur3m" -> "3 min")
@@ -28,7 +28,7 @@ object Helpers extends internals.Exports {
   val srcs: ConfigSources[Id] = src1 > src2
   val srcNames = srcs.highToLowPri.map(_.name)
 
-  val srcE = ConfigSource.point[Id]("SE",
+  val srcE = ConfigSource.pure[Id]("SE",
     ConfigStore[Id](Map.empty[Key, String], (_: Key) => Lookup.Error("This source is fake!", None)))
 
   implicit class ResultXExt[A](private val self: ConfigResult[A]) extends AnyVal {
