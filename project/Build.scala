@@ -21,7 +21,7 @@ object ClearConfig {
     val Microlibs       = "2.0"
     val MTest           = "0.7.1"
     val Scala212        = "2.12.10"
-    val Scala213        = "2.13.1"
+    val Scala213        = "2.13.6"
     val ScalaCollCompat = "2.1.3"
     val Scalaz          = "7.2.30"
   }
