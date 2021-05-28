@@ -20,7 +20,7 @@ object ClearConfig {
     val KindProjector   = "0.10.3"
     val Microlibs       = "2.0"
     val MTest           = "0.7.1"
-    val Scala212        = "2.12.10"
+    val Scala212        = "2.12.14"
     val Scala213        = "2.13.1"
     val ScalaCollCompat = "2.1.3"
     val Scalaz          = "7.2.30"
