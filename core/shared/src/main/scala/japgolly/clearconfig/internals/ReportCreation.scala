@@ -1,9 +1,9 @@
 package japgolly.clearconfig.internals
 
+import japgolly.clearconfig.internals.Evaluation._
 import japgolly.microlibs.stdlib_ext.StdlibExt._
+import scalaz.Scalaz._
 import scalaz._
-import Scalaz._
-import Evaluation._
 
 private[internals] object ReportCreation {
 

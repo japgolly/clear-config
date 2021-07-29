@@ -1,8 +1,8 @@
 package japgolly.clearconfig.internals
 
+import japgolly.clearconfig.internals.Evaluation._
+import scalaz.Scalaz._
 import scalaz.{Store => _, _}
-import Scalaz._
-import Evaluation._
 
 /**
   * Representation the desire to read `A` from some as-of-yet-unspecified config.

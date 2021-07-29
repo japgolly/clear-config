@@ -1,9 +1,9 @@
 package japgolly.clearconfig.internals
 
-import scala.collection.compat._
-import scalaz.{Store => _, _}
-import Scalaz._
 import japgolly.microlibs.stdlib_ext.StdlibExt._
+import scala.collection.compat._
+import scalaz.Scalaz._
+import scalaz.{Store => _, _}
 
 private[internals] object Evaluation {
 

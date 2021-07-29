@@ -1,8 +1,8 @@
 package japgolly.clearconfig.internals
 
 import java.io.{ByteArrayInputStream, File, FileInputStream}
-import scalaz.{-\/, Applicative, Monad, \/, \/-}
 import scalaz.syntax.monad._
+import scalaz.{-\/, Applicative, Monad, \/, \/-}
 
 object SourceNameJvm extends SourceNameObjectJvm
 trait SourceNameObjectJvm extends SourceNameObject {
