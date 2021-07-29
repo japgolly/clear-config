@@ -9,7 +9,7 @@ object Dependencies {
     // Externally observable
     val microlibs             = "2.6"
     val scala2                = "2.13.6"
-    val scalaz                = "7.2.30"
+    val scalaz                = "7.2.33"
 
     // Internal
     val betterMonadicFor      = "0.3.1"
