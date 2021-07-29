@@ -1,11 +1,12 @@
 import sbt._
 import sbt.Keys._
-import com.typesafe.sbt.pgp.PgpKeys
+import com.jsuereth.sbtpgp.PgpKeys
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
-import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.{crossProject => _, CrossType => _, _}
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
 import sbtcrossproject.CrossPlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
 import sbtrelease.ReleasePlugin.autoImport._
+import Dependencies._
 import Lib._
 
 object ClearConfig {
@@ -15,52 +16,53 @@ object ClearConfig {
   private val publicationSettings =
     Lib.publicationSettings(ghProject)
 
-  object Ver {
-    val JavaTimeScalaJs = "0.2.6"
-    val KindProjector   = "0.10.3"
-    val Microlibs       = "2.0"
-    val MTest           = "0.7.1"
-    val Scala212        = "2.12.10"
-    val Scala213        = "2.13.1"
-    val ScalaCollCompat = "2.1.3"
-    val Scalaz          = "7.2.30"
-  }
+  def scalacCommonFlags: Seq[String] = Seq(
+    "-deprecation",
+    "-unchecked",
+    "-feature",
+    "-language:postfixOps",
+    "-language:implicitConversions",
+    "-language:higherKinds",
+    "-language:existentials",
+  )
 
-  def scalacFlags =
-    Seq(
-      "-deprecation",
-      "-unchecked",
-      "-feature",
-      "-language:postfixOps",
-      "-language:implicitConversions",
-      "-language:higherKinds",
-      "-language:existentials",
-      "-opt:l:inline",
-      "-opt-inline-from:japgolly.clearconfig.**",
-      "-Ywarn-dead-code",
-      "-Ywarn-unused",
-      "-Ywarn-value-discard")
+  def scalac2Flags = Seq(
+    "-opt:l:inline",
+    "-opt-inline-from:japgolly.clearconfig.**",
+    "-Ywarn-dead-code",
+    "-Ywarn-unused",
+    "-Ywarn-value-discard",
+  )
+
+  def scalac3Flags = Seq(
+    "-source:3.0-migration",
+    "-Ykind-projector",
+  )
 
   val commonSettings = ConfigureBoth(
     _.settings(
-      organization                  := "com.github.japgolly.clearconfig",
-      homepage                      := Some(url("https://github.com/japgolly/" + ghProject)),
-      licenses                      += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
-      scalaVersion                  := Ver.Scala213,
-      crossScalaVersions            := Seq(Ver.Scala212, Ver.Scala213),
-      scalacOptions                ++= scalacFlags,
-      scalacOptions in Test        --= Seq("-Ywarn-dead-code", "-Ywarn-unused"),
-      shellPrompt in ThisBuild      := ((s: State) => Project.extract(s).currentRef.project + "> "),
+      scalaVersion                  := Ver.scala2,
+      crossScalaVersions            := Seq(Ver.scala2),
+      scalacOptions                ++= scalacCommonFlags,
+      scalacOptions                ++= byScalaVersion {
+                                         case (2, _) => scalac2Flags
+                                         case (3, _) => scalac3Flags
+                                       }.value,
+      Test / scalacOptions         --= Seq("-Ywarn-dead-code", "-Ywarn-unused"),
       updateOptions                 := updateOptions.value.withCachedResolution(true),
       releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-      releaseTagComment             := s"v${(version in ThisBuild).value}",
+      releaseTagComment             := s"v${(ThisBuild / version).value}",
       releaseVcsSign                := true,
-      addCompilerPlugin("org.typelevel" %% "kind-projector" % Ver.KindProjector)))
+      libraryDependencies          ++= Seq(Dep.betterMonadicFor, Dep.kindProjector).filter(_ => scalaVersion.value startsWith "2"),
+    )
+  )
 
   def utestSettings = ConfigureBoth(
     _.settings(
-      libraryDependencies += "com.lihaoyi" %%% "utest" % Ver.MTest % Test,
-      testFrameworks      += new TestFramework("utest.runner.Framework")))
+      libraryDependencies += Dep.utest.value % Test,
+      testFrameworks      += new TestFramework("utest.runner.Framework"),
+    )
+  )
 
   // ===================================================================================================================
 
@@ -76,12 +78,15 @@ object ClearConfig {
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
       libraryDependencies ++= Seq(
-        "org.scala-lang.modules"        %%% "scala-collection-compat" % Ver.ScalaCollCompat,
-        "org.scalaz"                    %%% "scalaz-core"             % Ver.Scalaz,
-        "com.github.japgolly.microlibs" %%% "stdlib-ext"              % Ver.Microlibs,
-        "com.github.japgolly.microlibs" %%% "test-util"               % Ver.Microlibs % Test,
-        "com.github.japgolly.microlibs" %%% "utils"                   % Ver.Microlibs))
+        Dep.microlibsStdlibExt.value,
+        Dep.microlibsUtils    .value,
+        Dep.microlibsTestUtil .value % Test,
+        Dep.scalaz            .value,
+      ),
+    )
     .jsSettings(
       libraryDependencies ++= Seq(
-        "org.scala-js" %%% "scalajs-java-time" % Ver.JavaTimeScalaJs % Test))
+        Dep.scalaJsJavaTime.value % Test,
+      ),
+    )
 }
