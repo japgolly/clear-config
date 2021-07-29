@@ -4,6 +4,9 @@ import cats.instances.list._
 import cats.syntax.all._
 import cats.{Applicative, ~>}
 import japgolly.microlibs.stdlib_ext.StdlibExt._
+import java.io.InputStream
+import java.util.Properties
+import scala.jdk.CollectionConverters._
 
 final class Store[F[_]](val all : F[Map[Key, String]],
                         lookup  : Key => F[Lookup],
@@ -79,6 +82,29 @@ trait StoreObject {
     lazy val m2 = m.mapKeysNow(Key.apply)
     apply(F.point(m2))
   }
-}
 
-object StoreObject extends StoreObject
+  private def propsToMap(p: Properties): Map[Key, String] =
+    p.keys().asScala.map { kx =>
+      val k = "" + kx
+      Key(k) -> p.getProperty(k)
+    }.toMap
+
+  final def ofJavaProps[F[_]](p: Properties)(implicit F: Applicative[F]): Store[F] = {
+    lazy val m = propsToMap(p)
+    apply(F.point(m))
+  }
+
+  final def ofJavaPropsFromInputStream[F[_]](is: InputStream, close: Boolean = true)(implicit F: Applicative[F]): Store[F] = {
+    lazy val m =
+      try {
+        val p = new Properties()
+        p.load(is)
+        propsToMap(p)
+      } finally
+        if (close)
+          is.close()
+    apply(F.point(m))
+  }
+
+  def environment[F[_]](implicit F: Applicative[F]): Store[F]
+}

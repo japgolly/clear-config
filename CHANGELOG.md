@@ -4,7 +4,13 @@
 * Upgrade Scala.JS from 0.6.33 to 1.6
 * Replace Scalaz with Cats
 * Drop Scala 2.12 support
-
+* The JS module now includes ability to read environment (if in Node) and system properties
+* Added to `ConfigSource` instances:
+  * `expandInlineProperties(key)` for when a single value is the contents of a properties file
+  * `treatKeyDotsAsUnderscores`
+* `ConfigSource.environment` now longer calls `treatKeyDotsAsUnderscores` automatically.
+  Use `ConfigSource.environment[F].treatKeyDotsAsUnderscores` if required.
+* Expose `ConfigKey`
 
 ### 1.4.0
 

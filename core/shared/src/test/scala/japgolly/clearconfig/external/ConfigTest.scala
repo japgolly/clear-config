@@ -269,5 +269,55 @@ object ConfigTest extends TestSuite {
       }
     }
 
+    "inlineProps" - {
+      "ok" - {
+        val src1 = ConfigSource.manual[Id]("a")(
+          "x.1" -> "hehe",
+          "INLINE" ->
+            s"""
+               |# hehe
+               | x.2      = 123
+               | x.3    = good stuff # nice
+               |""".stripMargin
+        )
+        val src = src1.expandInlineProperties("INLINE")
+
+        val cfgDef = (
+          ConfigDef.need[String]("x.1"),
+            ConfigDef.need[String]("x.2"),
+            ConfigDef.need[String]("x.3")
+          ).tupled.withReport
+
+        val (xs, report) = cfgDef.run(src).getOrDie()
+        assert(xs == (("hehe", "123", "good stuff")))
+        assert(!report.full.contains("INLINE"))
+        report.full
+      }
+
+      "ko" - {
+        val src1 = ConfigSource.manual[Id]("a")(
+          "x.1" -> "hehe",
+          "INLINE" ->
+            s"""
+               |# hehe
+               | x.1      = 123
+               |""".stripMargin
+        )
+        val src = src1.expandInlineProperties("INLINE")
+
+        val cfgDef = ConfigDef.need[String]("x.1")
+
+        val result = cfgDef.run(src).toEither
+        assert(result == Left("Error preparing source [SourceName(a)]: The following keys are defined at both the top-level and in INLINE: x.1."))
+      }
+    }
+
+    "environment" - {
+      val s = ConfigSource.environment[Id]
+      val (v, _) = ConfigDef.get[String]("PATH").withReport.run(s).getOrDie()
+      // println(r.obfuscateKeys(_.value.toUpperCase.contains("PASS")).full)
+      assert(v.isDefined)
+    }
+
   }
 }

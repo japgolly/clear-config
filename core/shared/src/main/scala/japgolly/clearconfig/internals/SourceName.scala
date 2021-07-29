@@ -9,6 +9,8 @@ trait SourceNameObject {
 
   final def apply(name: String) = new SourceName(name)
   final def default = SourceName("Default")
+  final def environment = SourceName("Env")
+  final def system = SourceName("System")
 
 }
 

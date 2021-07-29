@@ -10,10 +10,10 @@ object Helpers extends internals.Exports {
   val  Lookup = internals.Lookup
 
   override type ConfigStoreObject = internals.StoreObject
-  override val ConfigStore = internals.StoreObject
+  override val ConfigStore = internals.Platform.ConfigStore
 
   override type ConfigSourceObject = internals.SourceObject
-  override val ConfigSource: ConfigSourceObject = new internals.SourceObject {}
+  override val ConfigSource: ConfigSourceObject = internals.Platform.ConfigSource
 
   override type ConfigSourceNameObject = internals.SourceNameObject
   override val ConfigSourceName = internals.SourceName

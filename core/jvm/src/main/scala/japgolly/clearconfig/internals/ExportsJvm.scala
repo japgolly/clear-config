@@ -1,5 +1,7 @@
 package japgolly.clearconfig.internals
 
+object Platform extends ExportsJvm
+
 trait ExportsJvm extends Exports {
 
   override final type ConfigStoreObject = StoreObjectJvm
