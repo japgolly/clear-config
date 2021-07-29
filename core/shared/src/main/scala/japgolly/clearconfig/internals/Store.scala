@@ -105,6 +105,6 @@ trait StoreObject {
           is.close()
     apply(F.point(m))
   }
-}
 
-object StoreObject extends StoreObject
+  def environment[F[_]](implicit F: Applicative[F]): Store[F]
+}

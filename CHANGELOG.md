@@ -4,7 +4,7 @@
 * Upgrade Scala.JS from 0.6.33 to 1.6
 * Replace Scalaz with Cats
 * Drop Scala 2.12 support
-
+* The JS module now includes ability to read environment (if in Node) and system properties
 
 ### 1.4.0
 
