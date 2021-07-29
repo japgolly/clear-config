@@ -1,14 +1,14 @@
-package japgolly.clearconfig
+package japgolly.clearconfig.external
 
 import cats.Id
 import cats.instances.string._
 import cats.syntax.all._
+import japgolly.clearconfig.Helpers._
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 import japgolly.microlibs.testutil.TestUtil._
 import utest._
 
 object ConfigReportTest extends TestSuite {
-  import japgolly.clearconfig.Helpers._
 
   val S0 = ConfigSource.empty[Id]("S0")
 

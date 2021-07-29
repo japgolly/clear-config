@@ -1,13 +1,13 @@
-package japgolly.clearconfig
+package japgolly.clearconfig.external
 
 import cats.Id
 import cats.instances.all._
 import cats.syntax.all._
+import japgolly.clearconfig.Helpers._
 import japgolly.microlibs.testutil.TestUtil._
 import utest._
 
 object ConfigTest extends TestSuite {
-  import japgolly.clearconfig.Helpers._
 
   override def tests = Tests {
 
