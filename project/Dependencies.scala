@@ -7,7 +7,7 @@ object Dependencies {
   object Ver {
 
     // Externally observable
-    val microlibs             = "2.6"
+    val microlibs             = "3.0"
     val scala2                = "2.13.6"
     val scalaz                = "7.2.30"
 
