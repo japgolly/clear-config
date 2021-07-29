@@ -7,7 +7,6 @@ import java.io.{ByteArrayInputStream, File, FileInputStream}
 object SourceNameJvm extends SourceNameObjectJvm
 trait SourceNameObjectJvm extends SourceNameObject {
   final def classpath(filename: String) = SourceName(s"cp:$filename")
-  final def system = SourceName("System")
 }
 
 object SourceJvm extends SourceObjectJvm
@@ -15,12 +14,6 @@ trait SourceObjectJvm extends SourceObject {
 
   override protected def envStore[F[_]](implicit F: Applicative[F]): Store[F] =
     StoreJvm.ofMap(sys.env)
-
-  def system[F[_]](implicit F: Applicative[F]): Source[F] =
-    Source[F](SourceNameJvm.system, F.point {
-      def cfg() = StoreJvm.ofJavaProps[F](System.getProperties())
-      Util.eitherTry(cfg()).leftMap(_.getMessage)
-    })
 
   def propFileOnClasspath[F[_]](filename: String, optional: Boolean)(implicit F: Applicative[F]): Source[F] = {
     val f = filename.replaceFirst("^/*", "/")

@@ -1,5 +1,6 @@
 package japgolly.clearconfig.internals
 
+import cats.syntax.either._
 import cats.{Applicative, ~>}
 
 final case class Source[F[_]](name: SourceName, prepare: F[Either[String, Store[F]]])(implicit F: Applicative[F]) {
@@ -64,4 +65,10 @@ trait SourceObject {
   }
 
   protected def envStore[F[_]](implicit F: Applicative[F]): Store[F]
+
+  final def system[F[_]](implicit F: Applicative[F]): Source[F] =
+    Source[F](SourceName.system, F.point {
+      def cfg() = StoreObject.ofJavaProps[F](System.getProperties())
+      Util.eitherTry(cfg()).leftMap(_.getMessage)
+    })
 }
