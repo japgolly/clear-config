@@ -1,8 +1,8 @@
 package japgolly.clearconfig.internals
 
+import cats.syntax.all._
+import cats.{Applicative, Monad}
 import java.io.{ByteArrayInputStream, File, FileInputStream}
-import scalaz.syntax.monad._
-import scalaz.{-\/, Applicative, Monad, \/, \/-}
 
 object SourceNameJvm extends SourceNameObjectJvm
 trait SourceNameObjectJvm extends SourceNameObject {
@@ -28,7 +28,7 @@ trait SourceObjectJvm extends SourceObject {
   def system[F[_]](implicit F: Applicative[F]): Source[F] =
     Source[F](SourceNameJvm.system, F.point {
       def cfg() = StoreJvm.ofJavaProps[F](System.getProperties())
-      \/.fromTryCatchNonFatal(cfg()).leftMap(_.getMessage)
+      Util.eitherTry(cfg()).leftMap(_.getMessage)
     })
 
   def propFileOnClasspath[F[_]](filename: String, optional: Boolean)(implicit F: Applicative[F]): Source[F] = {
@@ -37,13 +37,13 @@ trait SourceObjectJvm extends SourceObject {
       def load() = {
         val i = getClass.getResourceAsStream(f)
         if (i ne null)
-          \/-(StoreJvm.ofJavaPropsFromInputStream[F](i, close = true))
+          Right(StoreJvm.ofJavaPropsFromInputStream[F](i, close = true))
         else if (optional)
-          \/-(StoreJvm.empty[F])
+          Right(StoreJvm.empty[F])
         else
-          -\/("File not found.")
+          Left("File not found.")
       }
-      \/.fromTryCatchNonFatal(load()).leftMap(_.getMessage).flatMap(identity)
+      Util.eitherTry(load()).leftMap(_.getMessage).flatMap(identity)
     })
   }
 
@@ -56,14 +56,14 @@ trait SourceObjectJvm extends SourceObject {
         if (file.exists()) {
           if (file.canRead) {
             val is = new FileInputStream(file)
-            \/-(StoreJvm.ofJavaPropsFromInputStream[F](is, close = true))
+            Right(StoreJvm.ofJavaPropsFromInputStream[F](is, close = true))
           } else
-            -\/("Unable to read file.")
+            Left("Unable to read file.")
         } else if (optional)
-          \/-(StoreJvm.empty[F])
+          Right(StoreJvm.empty[F])
         else
-          -\/("File not found.")
-      \/.fromTryCatchNonFatal(load()).leftMap(_.getMessage).flatMap(identity)
+          Left("File not found.")
+      Util.eitherTry(load()).leftMap(_.getMessage).flatMap(identity)
     })
   }
 
@@ -89,10 +89,10 @@ trait SourceObjectJvm extends SourceObject {
   def expandInlineProperties[F[_]](source: Source[F], key: String)(implicit F: Monad[F]): Source[F] = {
     val k = Key(key)
 
-    val prepare2: F[String \/ Store[F]] =
+    val prepare2: F[Either[String, Store[F]]] =
       source.prepare.flatMap {
 
-        case \/-(store) =>
+        case Right(store) =>
           store.all.flatMap { map =>
             map.get(k) match {
 
@@ -106,17 +106,17 @@ trait SourceObjectJvm extends SourceObject {
                   if (common.nonEmpty) {
                     val hdr = s"The following keys are defined at both the top-level and in ${k.value}: "
                     val keys = common.iterator.map(_.value).toList.sorted
-                    -\/(keys.mkString(hdr, ", ", "."))
+                    Left(keys.mkString(hdr, ", ", "."))
                   } else
-                    \/-(StoreObject[F](F.pure(map ++ map2 - k)))
+                    Right(StoreObject[F](F.pure(map ++ map2 - k)))
                 }
 
               case None =>
-                F.pure(\/-(store))
+                F.pure(Right(store))
             }
           }
 
-        case e@ -\/(_) =>
+        case e@ Left(_) =>
           F.pure(e)
       }
 

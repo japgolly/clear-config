@@ -11,4 +11,10 @@ private[internals] object Util {
   def fmtSourceNameList(sourcesHighToLowPri: Vector[SourceName]): String =
     fmtList("source", "sources (highest to lowest priority)", sourcesHighToLowPri.map(_.value))
 
+  def eitherTry[A](a: => A): Either[Throwable, A] =
+    try
+      Right(a)
+    catch {
+      case t: Throwable => Left(t)
+    }
 }

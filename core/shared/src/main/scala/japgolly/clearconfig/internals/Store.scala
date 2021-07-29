@@ -1,9 +1,9 @@
 package japgolly.clearconfig.internals
 
+import cats.instances.list._
+import cats.syntax.all._
+import cats.{Applicative, ~>}
 import japgolly.microlibs.stdlib_ext.StdlibExt._
-import scalaz.std.list._
-import scalaz.syntax.traverse._
-import scalaz.{Applicative, ~>}
 
 final class Store[F[_]](val all : F[Map[Key, String]],
                         lookup  : Key => F[Lookup],

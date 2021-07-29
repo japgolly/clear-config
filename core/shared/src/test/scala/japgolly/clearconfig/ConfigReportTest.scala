@@ -1,12 +1,12 @@
 package japgolly.clearconfig
 
+import cats.Id
+import cats.instances.string._
+import cats.syntax.all._
+import japgolly.clearconfig.Helpers._
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 import japgolly.microlibs.testutil.TestUtil._
-import scalaz.Scalaz.Id
-import scalaz.std.string._
-import scalaz.syntax.applicative._
 import utest._
-import Helpers._
 
 object ConfigReportTest extends TestSuite {
 
@@ -16,10 +16,10 @@ object ConfigReportTest extends TestSuite {
 
     "getNeed" - {
       val si: ConfigDef[Unit] =
-        (ConfigDef.need[String]("s")
-          |@| ConfigDef.need[Int]("i")
-          |@| ConfigDef.get[Int]("no")
-        )((_,_,_) => ())
+        (ConfigDef.need[String]("s"),
+          ConfigDef.need[Int]("i"),
+          ConfigDef.get[Int]("no")
+        ).tupled.void
       val expectUsed =
         s"""
            |Used keys (3):
@@ -90,7 +90,11 @@ object ConfigReportTest extends TestSuite {
     "getOrUse" - {
 
       "specified" - {
-        val si = ConfigDef.need[String]("s2") tuple ConfigDef.get[String]("nope") tuple ConfigDef.getOrUse[Int]("i2", 666)
+        val si = (
+          ConfigDef.need[String]("s2"),
+          ConfigDef.get[String]("nope"),
+          ConfigDef.getOrUse[Int]("i2", 666)
+        ).tupled
         val k = si.withReport.run(src2).get_!._2
         assertMultiline(k.full,
           s"""
@@ -118,7 +122,11 @@ object ConfigReportTest extends TestSuite {
       }
 
       "unspecified" - {
-        val si = ConfigDef.need[String]("s") tuple ConfigDef.get[String]("nope") tuple ConfigDef.getOrUse[Int]("i2", 666)
+        val si = (
+          ConfigDef.need[String]("s"),
+          ConfigDef.get[String]("nope"),
+          ConfigDef.getOrUse[Int]("i2", 666)
+        ).tupled
         val k = si.withReport.run(src1).get_!._2
         assertMultiline(k.full,
           s"""
@@ -170,7 +178,7 @@ object ConfigReportTest extends TestSuite {
 
     "blankValues" - {
       implicit val configValuePreprocessor = ConfigValuePreprocessor.id
-      val c = ConfigDef.need[String]("a").tuple(ConfigDef.need[String]("b")).withReport.map(_._2)
+      val c = (ConfigDef.need[String]("a"), ConfigDef.need[String]("b")).tupled.withReport.map(_._2)
       val s = ConfigSource.manual[Id]("S")("a" -> "", "b" -> " \t ")
       val r = c.run(s).get_!
       assertMultiline(
@@ -191,7 +199,7 @@ object ConfigReportTest extends TestSuite {
           "both.1" -> "YAY", "both_1" -> "NOPE",
           "db_port" -> "1234")
           .mapKeyQueries(k => List(k, k.replace('.', '_')))
-        val c = ConfigDef.need[Int]("db.port") tuple ConfigDef.need[String]("both.1")
+        val c = (ConfigDef.need[Int]("db.port"), ConfigDef.need[String]("both.1")).tupled
         val r = c.withReport.run(s).get_!._2
         assertMultiline(r.full,
           s"""
@@ -223,7 +231,7 @@ object ConfigReportTest extends TestSuite {
         val s2 = ConfigSource.manual[Id]("S2")("db_port" -> "9875").mapKeyQueries(k => List(k, k.replace('.', '_')))
         val s3 = ConfigSource.manual[Id]("S3")("db_port" -> "3333")
         val s = s1 > s2 > s3
-        val c = ConfigDef.need[Int]("db.port") tuple ConfigDef.need[String]("both.1")
+        val c = (ConfigDef.need[Int]("db.port"), ConfigDef.need[String]("both.1")).tupled
         val r = c.withReport.run(s).get_!._2
         assertMultiline(r.full,
           s"""
@@ -291,7 +299,7 @@ object ConfigReportTest extends TestSuite {
       val b = ConfigDef.need[String]("b").secret
       val c = ConfigDef.need[String]("c")
       val s = ConfigSource.manual[Id]("S")("a" -> "1", "b" -> "2", "c" -> "3")
-      val r = (a tuple b tuple c).withReport.run(s).get_!._2
+      val r = (a, b, c).tupled.withReport.run(s).get_!._2
       assertMultiline(r.full.removeAnsiEscapeCodes,
         s"""
            !1 source:

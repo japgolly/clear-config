@@ -1,9 +1,9 @@
 package japgolly.clearconfig.internals
 
+import cats.Applicative
 import java.io.InputStream
 import java.util.Properties
 import scala.jdk.CollectionConverters._
-import scalaz.Applicative
 
 object StoreJvm extends StoreObjectJvm
 trait StoreObjectJvm extends StoreObject {
