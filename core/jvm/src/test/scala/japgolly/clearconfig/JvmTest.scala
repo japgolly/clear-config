@@ -8,7 +8,7 @@ import java.nio.file.Files
 import java.util.UUID
 import utest._
 
-object ConfigJvmTest extends TestSuite {
+object JvmTest extends TestSuite {
 
   override def tests = Tests {
 

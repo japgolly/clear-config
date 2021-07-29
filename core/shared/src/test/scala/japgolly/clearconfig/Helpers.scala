@@ -1,6 +1,6 @@
 package japgolly.clearconfig
 
-import cats.{Eq, Id}
+import cats.{Applicative, Eq, Id}
 import japgolly.microlibs.testutil.TestUtil._
 
 object Helpers extends internals.Exports {
@@ -13,7 +13,10 @@ object Helpers extends internals.Exports {
   override val ConfigStore = internals.StoreObject
 
   override type ConfigSourceObject = internals.SourceObject
-  override val ConfigSource: ConfigSourceObject = new internals.SourceObject {}
+  override val ConfigSource: ConfigSourceObject = new internals.SourceObject {
+    override protected def envStore[F[_]](implicit F: Applicative[F]): internals.Store[F] =
+      internals.StoreObject.empty[F]
+  }
 
   override type ConfigSourceNameObject = internals.SourceNameObject
   override val ConfigSourceName = internals.SourceName

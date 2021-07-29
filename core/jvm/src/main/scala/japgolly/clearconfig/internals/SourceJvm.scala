@@ -7,23 +7,14 @@ import java.io.{ByteArrayInputStream, File, FileInputStream}
 object SourceNameJvm extends SourceNameObjectJvm
 trait SourceNameObjectJvm extends SourceNameObject {
   final def classpath(filename: String) = SourceName(s"cp:$filename")
-  final def environment = SourceName("Env")
   final def system = SourceName("System")
 }
 
 object SourceJvm extends SourceObjectJvm
 trait SourceObjectJvm extends SourceObject {
 
-  def environment[F[_]](implicit F: Applicative[F]): Source[F] =
-    environment(true)
-
-  def environment[F[_]](replaceDotsWithUnderscores: Boolean)(implicit F: Applicative[F]): Source[F] = {
-    val s = point(SourceNameJvm.environment.value, StoreJvm.ofMap(sys.env))
-    if (replaceDotsWithUnderscores)
-      s.mapKeyQueries(k => k :: k.replace('.', '_') :: Nil)
-    else
-      s
-  }
+  override protected def envStore[F[_]](implicit F: Applicative[F]): Store[F] =
+    StoreJvm.ofMap(sys.env)
 
   def system[F[_]](implicit F: Applicative[F]): Source[F] =
     Source[F](SourceNameJvm.system, F.point {

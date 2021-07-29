@@ -52,4 +52,16 @@ trait SourceObject {
   final def manual[F[_]](name: String, kvs: Map[String, String])(implicit F: Applicative[F]): Source[F] =
     point(name, StoreObject.ofMap(kvs))
 
+  final def environment[F[_]](implicit F: Applicative[F]): Source[F] =
+    environment(true)
+
+  final def environment[F[_]](replaceDotsWithUnderscores: Boolean)(implicit F: Applicative[F]): Source[F] = {
+    val s = point(SourceName.environment.value, envStore[F])
+    if (replaceDotsWithUnderscores)
+      s.mapKeyQueries(k => k :: k.replace('.', '_') :: Nil)
+    else
+      s
+  }
+
+  protected def envStore[F[_]](implicit F: Applicative[F]): Store[F]
 }
