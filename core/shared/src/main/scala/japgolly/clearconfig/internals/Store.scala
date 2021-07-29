@@ -76,7 +76,7 @@ trait StoreObject {
     apply(F.pure(Map.empty))
 
   final def ofMap[F[_]](m: => Map[String, String])(implicit F: Applicative[F]): Store[F] = {
-    lazy val m2 = m.mapKeysNow(Key)
+    lazy val m2 = m.mapKeysNow(Key.apply)
     apply(F.point(m2))
   }
 }

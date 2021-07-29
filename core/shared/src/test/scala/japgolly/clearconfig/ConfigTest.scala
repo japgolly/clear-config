@@ -3,11 +3,11 @@ package japgolly.clearconfig
 import cats.Id
 import cats.instances.all._
 import cats.syntax.all._
-import japgolly.clearconfig.Helpers._
 import japgolly.microlibs.testutil.TestUtil._
 import utest._
 
 object ConfigTest extends TestSuite {
+  import japgolly.clearconfig.Helpers._
 
   override def tests = Tests {
 
@@ -143,10 +143,10 @@ object ConfigTest extends TestSuite {
         val one = ConfigDef.need[String]("1")
         val two = ConfigDef.need[String]("2")
 
-        * - assertEq((one, two.withPrefix("b.")).tupled.run(s).get_!, ("I", "B@"))
-        * - assertEq((one.withPrefix("b."), two).tupled.run(s).get_!, ("B!", "II"))
-        * - assertEq((one, two).tupled.withPrefix("b.").run(s).get_!, ("B!", "B@"))
-        * - assertEq((one, two.withPrefix("b.")).tupled.withPrefix("a.").run(s).get_!, ("A!", "AB-2"))
+        "1" - assertEq((one, two.withPrefix("b.")).tupled.run(s).get_!, ("I", "B@"))
+        "2" - assertEq((one.withPrefix("b."), two).tupled.run(s).get_!, ("B!", "II"))
+        "3" - assertEq((one, two).tupled.withPrefix("b.").run(s).get_!, ("B!", "B@"))
+        "4" - assertEq((one, two.withPrefix("b.")).tupled.withPrefix("a.").run(s).get_!, ("A!", "AB-2"))
 
         "missing" - assertEq(
           one.withPrefix("omg.").run(s),

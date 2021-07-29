@@ -81,8 +81,8 @@ object ConfigValueParserTest extends TestSuite {
         sealed trait X
         case object A extends X
         case object B extends X
-        implicit val eq = Eq.fromUniversalEquals[X]
-        implicit val v = ConfigValueParser.oneOf[X]("A" -> A, "B" -> B).preprocessValue(_.toUpperCase)
+        implicit val eq: Eq[X] = Eq.fromUniversalEquals
+        implicit val v: ConfigValueParser[X] = ConfigValueParser.oneOf[X]("A" -> A, "B" -> B).preprocessValue(_.toUpperCase)
         testOk[X]("a", A)
         testOk[X]("A", A)
         testOk[X]("b", B)

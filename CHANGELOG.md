@@ -1,7 +1,8 @@
 ### 1.5.0
 
-* Drop Scala 2.12 support
+* Scala 3 support
 * Replace Scalaz with Cats
+* Drop Scala 2.12 support
 
 
 ### 1.4.0

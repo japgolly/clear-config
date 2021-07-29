@@ -42,7 +42,7 @@ object ClearConfig {
   val commonSettings = ConfigureBoth(
     _.settings(
       scalaVersion                  := Ver.scala2,
-      crossScalaVersions            := Seq(Ver.scala2),
+      crossScalaVersions            := Seq(Ver.scala2, Ver.scala3),
       scalacOptions                ++= scalacCommonFlags,
       scalacOptions                ++= byScalaVersion {
                                          case (2, _) => scalac2Flags

@@ -7,12 +7,16 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    name: Scala v${{ matrix.scala }} / Java v${{ matrix.java }}
     strategy:
       matrix:
         include:
-          - java: 8
+          - java: 14
             scala: 2.13.6
-    name: Scala v${{ matrix.scala }} / Java v${{ matrix.java }}
+          - java: 8
+            scala: 3.0.1
+
     steps:
 
       - name: Git checkout

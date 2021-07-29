@@ -89,7 +89,7 @@ object ConfigDef {
     keys.foldLeft(unit)(_ <* get[String](_)(ValueParser.id))
 
   def consumerFn[B] = new ConsumerFn[B]
-  final class ConsumerFn[B] extends {
+  final class ConsumerFn[B] {
     def get[A](k: String, f: B => A => Unit)(implicit r: ValueParser[A]): ConfigDef[B => Unit] =
       ConfigDef.get(k)(r).map(oa => b => oa.fold(())(f(b)))
 
