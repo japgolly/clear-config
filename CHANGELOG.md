@@ -1,4 +1,4 @@
-### 1.5.0
+### 2.0.0
 
 * Scala 3 support
 * Upgrade Scala.JS from 0.6.33 to 1.6
