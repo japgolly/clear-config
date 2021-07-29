@@ -11,6 +11,9 @@
 * `ConfigSource.environment` now longer calls `treatKeyDotsAsUnderscores` automatically.
   Use `ConfigSource.environment[F].treatKeyDotsAsUnderscores` if required.
 * Expose `ConfigKey`
+* Add new implicit `ConfigValueParser` instances for:
+  * `java.util.regex.Pattern`
+  * `scala.util.matching.Regex`
 
 ### 1.4.0
 

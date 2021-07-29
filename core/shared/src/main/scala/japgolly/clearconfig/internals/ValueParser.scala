@@ -9,6 +9,7 @@ import java.time.temporal.ChronoUnit
 import java.util.regex.Pattern
 import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
+import scala.util.matching.Regex
 
 final class ValueParser[A](val parse: String => Either[String, A]) extends FailableFunctor[ValueParser, A] {
 
@@ -170,6 +171,12 @@ object ValueParser {
 
     implicit def configValueParserFile: ValueParser[File] =
       id.mapCatch(new File(_))
+
+    implicit def configValueParserRegex: ValueParser[Regex] =
+      id.mapCatch(_.r)
+
+    implicit def configValueParserPattern: ValueParser[Pattern] =
+      configValueParserRegex.map(_.pattern)
   }
 
 }
