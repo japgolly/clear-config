@@ -93,6 +93,8 @@ final case class Source[F[_]](name: SourceName, prepare: F[Either[String, Store[
     copy(prepare = prepare2)
   }
 
+  def treatKeyDotsAsUnderscores: Source[F] =
+    mapKeyQueries(k => k :: k.replace('.', '_') :: Nil)
 }
 
 trait SourceObject {
@@ -114,15 +116,7 @@ trait SourceObject {
     point(name, ConfigStore.ofMap(kvs))
 
   final def environment[F[_]](implicit F: Applicative[F]): Source[F] =
-    environment(true)
-
-  final def environment[F[_]](replaceDotsWithUnderscores: Boolean)(implicit F: Applicative[F]): Source[F] = {
-    val s = point(SourceName.environment.value, ConfigStore.environment[F])
-    if (replaceDotsWithUnderscores)
-      s.mapKeyQueries(k => k :: k.replace('.', '_') :: Nil)
-    else
-      s
-  }
+    point(SourceName.environment.value, ConfigStore.environment[F])
 
   final def system[F[_]](implicit F: Applicative[F]): Source[F] =
     Source[F](SourceName.system, F.point {
