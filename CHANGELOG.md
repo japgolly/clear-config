@@ -10,6 +10,7 @@
   * `treatKeyDotsAsUnderscores`
 * `ConfigSource.environment` now longer calls `treatKeyDotsAsUnderscores` automatically.
   Use `ConfigSource.environment[F].treatKeyDotsAsUnderscores` if required.
+* Expose `ConfigKey`
 
 ### 1.4.0
 

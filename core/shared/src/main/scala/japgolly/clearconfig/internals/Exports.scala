@@ -32,4 +32,7 @@ trait Exports extends Implicits {
   final type ConfigReport = japgolly.clearconfig.internals.Report
   final val  ConfigReport = japgolly.clearconfig.internals.Report
 
+  final type ConfigKey = japgolly.clearconfig.internals.Key
+  final val  ConfigKey = japgolly.clearconfig.internals.Key
+
 }
