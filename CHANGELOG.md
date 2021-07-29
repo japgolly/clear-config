@@ -1,3 +1,8 @@
+### 1.5.0
+
+* Drop Scala 2.12 support
+
+
 ### 1.4.0
 
 * Scala 2.13 support
