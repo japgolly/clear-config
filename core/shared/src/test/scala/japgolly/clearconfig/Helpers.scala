@@ -1,7 +1,7 @@
 package japgolly.clearconfig
 
+import cats.{Eq, Id}
 import japgolly.microlibs.testutil.TestUtil._
-import scalaz.Scalaz.Id
 
 object Helpers extends internals.Exports {
   type Key = internals.Key
@@ -18,8 +18,8 @@ object Helpers extends internals.Exports {
   override type ConfigSourceNameObject = internals.SourceNameObject
   override val ConfigSourceName = internals.SourceName
 
-  implicit def equalResultX[A] = scalaz.Equal.equalA[ConfigResult[A]]
-  implicit def equalURL = scalaz.Equal.equalA[java.net.URL]
+  implicit def equalResultX[A]: Eq[ConfigResult[A]] = Eq.fromUniversalEquals
+  implicit def equalURL       : Eq[java.net.URL]    = Eq.fromUniversalEquals
 
   val src0 = ConfigSource.manual[Id]("S0")()
   val src1 = ConfigSource.manual[Id]("S1")("in" -> "100", "i" -> "3", "s" -> "hey", "dur3m" -> "3 min")

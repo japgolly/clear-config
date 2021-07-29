@@ -48,7 +48,7 @@ object ClearConfig {
                                          case (2, _) => scalac2Flags
                                          case (3, _) => scalac3Flags
                                        }.value,
-      Test / scalacOptions         --= Seq("-Ywarn-dead-code", "-Ywarn-unused"),
+      Test / scalacOptions         --= Seq("-Ywarn-dead-code"),
       updateOptions                 := updateOptions.value.withCachedResolution(true),
       releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       releaseTagComment             := s"v${(ThisBuild / version).value}",
@@ -78,10 +78,10 @@ object ClearConfig {
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
       libraryDependencies ++= Seq(
+        Dep.cats              .value,
         Dep.microlibsStdlibExt.value,
         Dep.microlibsUtils    .value,
         Dep.microlibsTestUtil .value % Test,
-        Dep.scalaz            .value,
       ),
     )
     .jsSettings(

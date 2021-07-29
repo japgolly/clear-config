@@ -1,12 +1,11 @@
 package japgolly.clearconfig
 
+import cats.Id
+import cats.instances.all._
+import cats.syntax.all._
+import japgolly.clearconfig.Helpers._
 import japgolly.microlibs.testutil.TestUtil._
-import scalaz.{-\/, \/-}
-import scalaz.Scalaz.Id
-import scalaz.std.AllInstances._
-import scalaz.syntax.applicative._
 import utest._
-import Helpers._
 
 object ConfigTest extends TestSuite {
 
@@ -26,7 +25,7 @@ object ConfigTest extends TestSuite {
 
     "missing2" -
       assertEq(
-        (ConfigDef.need[Int]("no1") tuple ConfigDef.need[Int]("no2")).run(srcs),
+        (ConfigDef.need[Int]("no1"), ConfigDef.need[Int]("no2")).tupled.run(srcs),
         ConfigResult.QueryFailure(Map(Key("no1") -> None, Key("no2") -> None), Set.empty, srcNames))
 
     "valueFail1" -
@@ -40,7 +39,7 @@ object ConfigTest extends TestSuite {
         ConfigResult.QueryFailure(Map(Key("s2") -> Some((src2.name, Lookup.Error("Int expected.", Some("ah"))))), Set.empty, srcNames))
 
     "errorMsg" - {
-      "notFound" - assertEq(ConfigDef.need[Int]("QQ").run(srcs).toDisjunction, -\/(
+      "notFound" - assertEq(ConfigDef.need[Int]("QQ").run(srcs).toEither, Left(
         """
           |1 error:
           |  - No value for key [QQ]
@@ -51,8 +50,13 @@ object ConfigTest extends TestSuite {
         """.stripMargin.trim))
 
       "notFound2" - {
-        val c = ConfigDef.need[Int]("QQ") tuple ConfigDef.get[Int]("X") tuple ConfigDef.need[Int]("i") tuple ConfigDef.need[Int]("M")
-        assertEq(c.run(srcs).toDisjunction, -\/(
+        val c = (
+          ConfigDef.need[Int]("QQ"),
+          ConfigDef.get[Int]("X"),
+          ConfigDef.need[Int]("i"),
+          ConfigDef.need[Int]("M")
+        ).tupled
+        assertEq(c.run(srcs).toEither, Left(
           """
             |2 errors:
             |  - No value for key [M]
@@ -65,8 +69,8 @@ object ConfigTest extends TestSuite {
       }
 
       "errors2" - {
-        val c = ConfigDef.need[Int]("s") tuple ConfigDef.get[Int]("X")
-        assertEq(c.run(srcs > srcE).toDisjunction, -\/(
+        val c = (ConfigDef.need[Int]("s"), ConfigDef.get[Int]("X")).tupled
+        assertEq(c.run(srcs > srcE).toEither, Left(
           """
             |2 errors:
             |  - Error reading key [X] from source [SE]: This source is fake!
@@ -81,10 +85,10 @@ object ConfigTest extends TestSuite {
 
       "unkeyedErrors" - {
         val c1 = ConfigDef.need[Int]("in").map(_ + 1000).ensure(_ > 1150, "Must be > 1150.")
-        val c2 = 7.point[ConfigDef].ensure(_ > 10, "Must be > 10.")
-        val c3 = (ConfigDef.need[Int]("in") |@| ConfigDef.need[Int]("i2"))(_ + _).ensure(_ > 150, "Must be > 150.")
-        val c = c1 tuple c2 tuple c3
-        assertEq(c.run(srcs > srcE).toDisjunction, -\/(
+        val c2 = 7.pure[ConfigDef].ensure(_ > 10, "Must be > 10.")
+        val c3 = (ConfigDef.need[Int]("in"), ConfigDef.need[Int]("i2")).mapN(_ + _).ensure(_ > 150, "Must be > 150.")
+        val c = (c1, c2, c3).tupled
+        assertEq(c.run(srcs > srcE).toEither, Left(
           """
             |3 errors:
             |  - Error using <function>, key [i2], key [in]: Must be > 150.
@@ -117,17 +121,17 @@ object ConfigTest extends TestSuite {
           ConfigResult.Success(1100))
         "ko" - assertEq(
           c.ensure_>(1150).run(srcs),
-          ConfigResult.QueryFailure(Map.empty, Set("Must be > 1150." -> Set(\/-(Key("in")), -\/("<function>"))), srcNames))
+          ConfigResult.QueryFailure(Map.empty, Set("Must be > 1150." -> Set(Right(Key("in")), Left("<function>"))), srcNames))
       }
 
       "read2" - {
-        val c = (ConfigDef.need[Int]("in") |@| ConfigDef.need[Int]("i2"))(_ + _)
+        val c = (ConfigDef.need[Int]("in"), ConfigDef.need[Int]("i2")).mapN(_ + _)
         "ok" - assertEq(
           c.ensure_<(150).run(srcs),
           ConfigResult.Success(122))
         "ko" - assertEq(
           c.ensure_>(150).run(srcs),
-          ConfigResult.QueryFailure(Map.empty, Set("Must be > 150." -> Set(\/-(Key("in")), \/-(Key("i2")), -\/("<function>"))), srcNames))
+          ConfigResult.QueryFailure(Map.empty, Set("Must be > 150." -> Set(Right(Key("in")), Right(Key("i2")), Left("<function>"))), srcNames))
       }
     }
 
@@ -139,10 +143,10 @@ object ConfigTest extends TestSuite {
         val one = ConfigDef.need[String]("1")
         val two = ConfigDef.need[String]("2")
 
-        * - assertEq((one tuple two.withPrefix("b.")).run(s).get_!, ("I", "B@"))
-        * - assertEq((one.withPrefix("b.") tuple two).run(s).get_!, ("B!", "II"))
-        * - assertEq((one tuple two).withPrefix("b.").run(s).get_!, ("B!", "B@"))
-        * - assertEq((one tuple two.withPrefix("b.")).withPrefix("a.").run(s).get_!, ("A!", "AB-2"))
+        * - assertEq((one, two.withPrefix("b.")).tupled.run(s).get_!, ("I", "B@"))
+        * - assertEq((one.withPrefix("b."), two).tupled.run(s).get_!, ("B!", "II"))
+        * - assertEq((one, two).tupled.withPrefix("b.").run(s).get_!, ("B!", "B@"))
+        * - assertEq((one, two.withPrefix("b.")).tupled.withPrefix("a.").run(s).get_!, ("A!", "AB-2"))
 
         "missing" - assertEq(
           one.withPrefix("omg.").run(s),
@@ -258,7 +262,7 @@ object ConfigTest extends TestSuite {
       }
 
       "multi" - {
-        val co = (c1 |@| c2 |@| c3 |@| c4).tupled.option
+        val co = (c1, c2, c3, c4).tupled.option
         "none" - assertEq(co.run(s0), ConfigResult.Success(None))
         "all" - assertEq(co.run(s2), ConfigResult.Success(Some((123, "abc", 666, None))))
         "some" - assertEq(co.run(s1), ConfigResult.QueryFailure(Map(Key("c.2") -> None), Set.empty, Vector(s1.name)))

@@ -7,9 +7,9 @@ object Dependencies {
   object Ver {
 
     // Externally observable
-    val microlibs             = "2.6"
+    val cats                  = "2.6.1"
+    val microlibs             = "3.0"
     val scala2                = "2.13.6"
-    val scalaz                = "7.2.30"
 
     // Internal
     val betterMonadicFor      = "0.3.1"
@@ -19,11 +19,11 @@ object Dependencies {
   }
 
   object Dep {
+    val cats                 = Def.setting("org.typelevel"                 %%% "cats-core"         % Ver.cats)
     val microlibsStdlibExt   = Def.setting("com.github.japgolly.microlibs" %%% "stdlib-ext"        % Ver.microlibs)
     val microlibsTestUtil    = Def.setting("com.github.japgolly.microlibs" %%% "test-util"         % Ver.microlibs)
     val microlibsUtils       = Def.setting("com.github.japgolly.microlibs" %%% "utils"             % Ver.microlibs)
     val scalaJsJavaTime      = Def.setting("org.scala-js"                  %%% "scalajs-java-time" % Ver.scalaJsJavaTime cross CrossVersion.for3Use2_13)
-    val scalaz               = Def.setting("org.scalaz"                    %%% "scalaz-core"       % Ver.scalaz)
     val utest                = Def.setting("com.lihaoyi"                   %%% "utest"             % Ver.utest)
 
     // Compiler plugins

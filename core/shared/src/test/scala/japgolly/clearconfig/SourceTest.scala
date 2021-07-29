@@ -1,14 +1,15 @@
 package japgolly.clearconfig
 
-import scalaz.Scalaz.Id
+import cats.Id
+import scala.annotation.nowarn
 import utest._
-import Helpers._
 
 object SourceTest extends TestSuite {
 
   def s1: ConfigSource[Id] = ConfigSource.empty("S1")
   def ss: ConfigSources[Id] = s1
 
+  @nowarn("cat=unused")
   def ensureCompilation(s: => ConfigSources[Id]) = ()
 
   override def tests = Tests {
