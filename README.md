@@ -206,10 +206,10 @@ then use (nest) it in some higher-level config.
 For example, this Scala code...
 
 ```scala
+import cats.implicits._
 import japgolly.clearconfig._
 import java.net.{URI, URL}
 import redis.clients.jedis.JedisPoolConfig
-import cats.implicits._
 
 case class AppConfig(postgres: PostgresConfig, redis: RedisConfig, logLevel: LogLevel)
 

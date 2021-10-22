@@ -6,7 +6,6 @@ import cats.instances.all._
 import cats.syntax.all._
 import japgolly.microlibs.stdlib_ext.StdlibExt._
 import scala.annotation.tailrec
-import scala.collection.compat._
 
 private[internals] object Evaluation {
 
