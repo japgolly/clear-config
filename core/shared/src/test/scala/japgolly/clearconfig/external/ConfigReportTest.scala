@@ -306,13 +306,13 @@ object ConfigReportTest extends TestSuite {
            !  - S
            !
            !Used keys (3):
-           !+-----+----------------+
-           !| Key | S              |
-           !+-----+----------------+
-           !| a   | 1              |
-           !| b   | <# 16CC649D #> |
-           !| c   | 3              |
-           !+-----+----------------+
+           !+-----+-----------------------+
+           !| Key | S                     |
+           !+-----+-----------------------+
+           !| a   | 1                     |
+           !| b   | Obfuscated (16CC649D) |
+           !| c   | 3                     |
+           !+-----+-----------------------+
            !
            !Unused keys (0):
            !No data to report.
@@ -372,19 +372,19 @@ object ConfigReportTest extends TestSuite {
       val r = c.withReport.run(s).get_!._2
       "on" - assertMultiline(r.withColour.used(false),
         s"""
-          |+-----+----------------+
-          || Key | S              |
-          |+-----+----------------+
-          || i   | ${Console.YELLOW}<# 9C554F15 #>${Console.RESET} |
-          |+-----+----------------+
+          |+-----+-----------------------+
+          || Key | S                     |
+          |+-----+-----------------------+
+          || i   | ${Console.YELLOW}Obfuscated (9C554F15)${Console.RESET} |
+          |+-----+-----------------------+
         """.stripMargin.trim)
       "off" - assertMultiline(r.withoutColour.used(false),
         """
-          |+-----+----------------+
-          || Key | S              |
-          |+-----+----------------+
-          || i   | <# 9C554F15 #> |
-          |+-----+----------------+
+          |+-----+-----------------------+
+          || Key | S                     |
+          |+-----+-----------------------+
+          || i   | Obfuscated (9C554F15) |
+          |+-----+-----------------------+
         """.stripMargin.trim)
     }
 

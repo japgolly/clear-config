@@ -3,6 +3,7 @@
 * Set `versionScheme` to `"early-semver"`
 * Upgrade `microlibs` to 4.0.0
 * Update Scala.js to 1.7
+* Better clarify in reports where values are obfuscated. Instead of `<# hash #>`, obfuscated values are now displayed as `Obfuscated (hash)`
 
 ### 2.0.0
 

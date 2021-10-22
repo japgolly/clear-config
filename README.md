@@ -137,7 +137,7 @@ Used keys (5):
 +-------------------+------+-------------------------+---------+
 | Key               | Env  | cp:/database.properties | Default |
 +-------------------+------+-------------------------+---------+
-| POSTGRES_PASSWORD |      | <# 1C02B9F6 #>          |         |
+| POSTGRES_PASSWORD |      | Obfuscated (1C02B9F6)   |         |
 | POSTGRES_PORT     | 4000 |                         | 8080    |
 | POSTGRES_SCHEMA   |      |                         |         |
 | POSTGRES_URL      |      | http://localhost/blah   |         |

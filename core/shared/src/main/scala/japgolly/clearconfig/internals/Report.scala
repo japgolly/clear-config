@@ -115,7 +115,7 @@ object Report {
       ValueDisplay((_, _, _, v) => if (v.length <= maxLen) v else v.take(maxLen - 1) + "…")
 
     def obfuscate: ValueDisplay =
-      ValueDisplay((c, _, _, v) => "%s<# %08X #>%s".format(c.secret, MurmurHash3 stringHash v, c.reset))
+      ValueDisplay((c, _, _, v) => "%sObfuscated (%08X)%s".format(c.secret, MurmurHash3 stringHash v, c.reset))
 
     def obfuscateSources(f: SourceName => Boolean): ValueDisplay =
       obfuscate.when((s, _, _) => f(s))
