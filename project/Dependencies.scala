@@ -9,7 +9,7 @@ object Dependencies {
     // Externally observable
     val cats                  = "2.6.1"
     val microlibs             = "4.0.0"
-    val scala2                = "2.13.6"
+    val scala2                = "2.13.8"
     val scala3                = "3.0.1"
 
     // Internal
