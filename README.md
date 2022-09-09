@@ -206,7 +206,7 @@ then use (nest) it in some higher-level config.
 For example, this Scala code...
 
 ```scala
-import cats.implicits._
+import cats.syntax.apply._
 import japgolly.clearconfig._
 import java.net.{URI, URL}
 import redis.clients.jedis.JedisPoolConfig
@@ -226,10 +226,10 @@ case class PostgresConfig(url: URL, credential: Credential, schema: Option[Strin
 
 object PostgresConfig {
   def config: ConfigDef[PostgresConfig] =
-    ( ConfigDef.need[URL]("url") |@|
-      Credential.config |@|
-      ConfigDef.get[String]("schema")
-    ) (apply)
+    ( ConfigDef.need[URL]("url"),
+      Credential.config,
+      ConfigDef.get[String]("schema"),
+    ).mapN(apply)
       .withPrefix("postgres.")
 }
 
@@ -237,9 +237,9 @@ case class Credential(username: String, password: String)
 
 object Credential {
   def config: ConfigDef[Credential] =
-    ( ConfigDef.need[String]("username") |@|
-      ConfigDef.need[String]("password")
-    ) (apply)
+    ( ConfigDef.need[String]("username"),
+      ConfigDef.need[String]("password"),
+    ).mapN(apply)
 }
 
 case class RedisConfig(uri: URI, credential: Credential, configurePool: JedisPoolConfig => Unit)
@@ -270,10 +270,10 @@ object RedisConfig {
     )
 
   def config: ConfigDef[RedisConfig] =
-    ( ConfigDef.need[URI]("uri") |@|
-      Credential.config |@|
-      poolConfig.withPrefix("pool.")
-    )(apply)
+    ( ConfigDef.need[URI]("uri"),
+      Credential.config,
+      poolConfig.withPrefix("pool."),
+    ).mapN(apply)
       .withPrefix("redis.")
 }
 
