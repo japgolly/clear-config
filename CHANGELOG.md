@@ -1,5 +1,6 @@
 ### 3.1.0
 
+* Add implicit `ConfigValueParser[InetAddress]`
 * Upgrade dependencies
 
 ### 3.0.0

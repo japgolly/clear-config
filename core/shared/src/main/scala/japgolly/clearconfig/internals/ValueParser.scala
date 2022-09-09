@@ -10,6 +10,7 @@ import java.util.regex.Pattern
 import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.util.matching.Regex
+import java.net.InetAddress
 
 final class ValueParser[A](val parse: String => Either[String, A]) extends FailableFunctor[ValueParser, A] {
 
@@ -177,6 +178,9 @@ object ValueParser {
 
     implicit def configValueParserPattern: ValueParser[Pattern] =
       configValueParserRegex.map(_.pattern)
+
+    implicit def configValueParserInetAddress: ValueParser[InetAddress] =
+      id.mapCatch(InetAddress.getByName)
   }
 
 }
