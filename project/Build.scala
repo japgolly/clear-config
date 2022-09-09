@@ -5,7 +5,6 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
 import sbtcrossproject.CrossPlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
-import sbtrelease.ReleasePlugin.autoImport._
 import Dependencies._
 import Lib._
 
@@ -41,19 +40,16 @@ object ClearConfig {
 
   val commonSettings = ConfigureBoth(
     _.settings(
-      scalaVersion                  := Ver.scala2,
-      crossScalaVersions            := Seq(Ver.scala2, Ver.scala3),
-      scalacOptions                ++= scalacCommonFlags,
-      scalacOptions                ++= byScalaVersion {
-                                         case (2, _) => scalac2Flags
-                                         case (3, _) => scalac3Flags
-                                       }.value,
-      Test / scalacOptions         --= Seq("-Ywarn-dead-code"),
-      updateOptions                 := updateOptions.value.withCachedResolution(true),
-      releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-      releaseTagComment             := s"v${(ThisBuild / version).value}",
-      releaseVcsSign                := true,
-      libraryDependencies          ++= Seq(Dep.betterMonadicFor, Dep.kindProjector).filter(_ => scalaVersion.value startsWith "2"),
+      scalaVersion          := Ver.scala2,
+      crossScalaVersions    := Seq(Ver.scala2, Ver.scala3),
+      scalacOptions        ++= scalacCommonFlags,
+      scalacOptions        ++= byScalaVersion {
+                                 case (2, _) => scalac2Flags
+                                 case (3, _) => scalac3Flags
+                               }.value,
+      Test / scalacOptions --= Seq("-Ywarn-dead-code"),
+      updateOptions         := updateOptions.value.withCachedResolution(true),
+      libraryDependencies  ++= Seq(Dep.betterMonadicFor, Dep.kindProjector).filter(_ => scalaVersion.value startsWith "2"),
     )
   )
 

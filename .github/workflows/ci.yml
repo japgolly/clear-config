@@ -3,12 +3,16 @@ name: CI
 on:
   pull_request:
   push:
+    branches:
+      - '**'
+    tags-ignore:
+      - v*.*.*
 
 jobs:
+
   ci:
     runs-on: ubuntu-latest
 
-    name: Scala v${{ matrix.scala }} / Java v${{ matrix.java }}
     strategy:
       matrix:
         include:
@@ -17,10 +21,11 @@ jobs:
           - java: 8
             scala: 3
 
+    name: Scala v${{ matrix.scala }} / Java v${{ matrix.java }}
     steps:
 
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Scala
         uses: japgolly/setup-everything-scala@v3.1
