@@ -85,8 +85,22 @@ object ConfigDef {
       case None              => StepResult.Success(None, Set.empty)
     })
 
+  def getOrParse[A](key: String, default: String)(implicit p: ValueParser[A]): Either[String, ConfigDef[A]] =
+    p.parse(default).map(getOrUse[A](key, _, default))
+
+  def getOrParseOrThrow[A: ValueParser](key: String, default: String): ConfigDef[A] =
+    getOrParse[A](key, default) match {
+      case Right(d) => d
+      case Left(err) =>
+        val msg = s"Invalid default '$default' for '$key' config. $err"
+        throw new IllegalArgumentException(msg)
+    }
+
   def getOrUse[A: ValueParser](key: String, default: A): ConfigDef[A] =
-    Instance.baseGetA[A, A](key, ApiMethod.GetOrUse("" + default), (_, o) => o match {
+    getOrUse[A](key, default, "" + default)
+
+  private def getOrUse[A: ValueParser](key: String, default: A, displayStr: String): ConfigDef[A] =
+    Instance.baseGetA[A, A](key, ApiMethod.GetOrUse(displayStr), (_, o) => o match {
       case Some((origin, a)) => StepResult.Success(a, Set(origin))
       case None              => StepResult.Success(default, Set.empty)
     })

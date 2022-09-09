@@ -1,5 +1,6 @@
 ### 3.1.0
 
+* Add `ConfigDef.getOrParse{,OrThrow}`. They're the same as `getOrUse` except the default value is parsed instead of provided.
 * In `ConfigDef` instances...
   * Deprecate `.option` and add `.whenAtLeastOneKeySpecified` as a replacement
   * Add `.whenFullySpecified`
