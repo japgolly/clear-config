@@ -1,6 +1,7 @@
 ### 3.1.0
 
 * Add implicit `ConfigValueParser[InetAddress]`
+* Add implicit `ConfigValueParser[UUID]`
 * Upgrade dependencies
 
 ### 3.0.0

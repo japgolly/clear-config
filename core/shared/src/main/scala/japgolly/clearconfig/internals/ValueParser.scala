@@ -11,6 +11,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.util.matching.Regex
 import java.net.InetAddress
+import java.util.UUID
 
 final class ValueParser[A](val parse: String => Either[String, A]) extends FailableFunctor[ValueParser, A] {
 
@@ -181,6 +182,9 @@ object ValueParser {
 
     implicit def configValueParserInetAddress: ValueParser[InetAddress] =
       id.mapCatch(InetAddress.getByName)
+
+    implicit def configValueParserUUID: ValueParser[UUID] =
+      id.mapCatch(UUID.fromString)
   }
 
 }
