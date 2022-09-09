@@ -1,5 +1,8 @@
 ### 3.1.0
 
+* In `ConfigDef` instances...
+  * Deprecate `.option` and add `.whenAtLeastOneKeySpecified` as a replacement
+  * Add `.whenFullySpecified`
 * Add implicit `ConfigValueParser[InetAddress]`
 * Add implicit `ConfigValueParser[UUID]`
 * Upgrade dependencies

@@ -20,7 +20,22 @@ trait ConfigDef[A] extends FailableFunctor[ConfigDef, A] {
     *
     * If some keys are available and some required others are not, then it is a failure.
     */
-  def option: ConfigDef[Option[A]]
+  @deprecated("Use .whenAtLeastOneKeySpecified", "3.1.0")
+  final def option: ConfigDef[Option[A]] =
+    whenAtLeastOneKeySpecified
+
+  /** Requires at least one key to be externally specified, else `None` is returned.
+    *
+    * If some keys are available and some required others are not, then it is a failure.
+    */
+  def whenAtLeastOneKeySpecified: ConfigDef[Option[A]]
+
+  /** If enough config is specified to construct an instance, it is provided wrapped in `Some(_)`,
+    * else `None` is returned.
+    *
+    * Unlike [[option]] / [[whenAtLeastOneKeySpecified]], this never fails.
+    */
+  def whenFullySpecified: ConfigDef[Option[A]]
 
   /** When a Report is generated, the config values used by this will be obfuscated. */
   def secret: ConfigDef[A]
@@ -214,7 +229,7 @@ object ConfigDef {
           }
       }
 
-    override final def option: ConfigDef[Option[A]] =
+    override final def whenAtLeastOneKeySpecified: ConfigDef[Option[A]] =
       new Instance[Option[A]] {
         def step[F[_]](implicit F: Monad[F]) = {
           val get = Step.get[F]
@@ -247,13 +262,28 @@ object ConfigDef {
                   else
                     f)
             }
-          }
+          } // end transform
 
           for {
             s1 <- get
             r1 <- self.step(F)
             s2 <- get
             r2 <- Step.retF(transform(s1, s2, r1))
+          } yield r2
+        }
+      }
+
+    override final def whenFullySpecified: ConfigDef[Option[A]] =
+      new Instance[Option[A]] {
+        def step[F[_]](implicit F: Monad[F]) = {
+          val transform: StepResult[A] => StepResult[Option[A]] = {
+            case StepResult.Success(a, o) => StepResult.Success(Some(a), o)
+            case StepResult.Failure(_, _) => StepResult.Success(None, Set.empty)
+          }
+
+          for {
+            r1 <- self.step(F)
+            r2 <- Step.retF(F pure transform(r1))
           } yield r2
         }
       }
