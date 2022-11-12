@@ -10,7 +10,7 @@ object Dependencies {
     val cats                  = "2.8.0"
     val microlibs             = "4.2.1"
     val scala2                = "2.13.8"
-    val scala3                = "3.1.3"
+    val scala3                = "3.2.1"
 
     // Internal
     val betterMonadicFor      = "0.3.1"
