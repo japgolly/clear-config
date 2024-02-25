@@ -14,7 +14,7 @@ object Dependencies {
 
     // Internal
     val betterMonadicFor      = "0.3.1"
-    val kindProjector         = "0.13.2"
+    val kindProjector         = "0.13.3"
     val scalaJsJavaTime       = "1.0.0"
     val utest                 = "0.8.1"
   }
