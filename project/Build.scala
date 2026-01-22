@@ -1,6 +1,5 @@
 import sbt._
 import sbt.Keys._
-import com.jsuereth.sbtpgp.PgpKeys
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
 import sbtcrossproject.CrossPlugin.autoImport._

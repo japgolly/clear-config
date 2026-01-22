@@ -1,12 +1,10 @@
 import sbt._
 import sbt.Keys._
-import com.jsuereth.sbtpgp.PgpKeys._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
 import sbtcrossproject.CrossProject
 import sbtcrossproject.CrossPlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
-import xerial.sbt.Sonatype.autoImport._
 
 object Lib {
   type CPE = CrossProject => CrossProject
