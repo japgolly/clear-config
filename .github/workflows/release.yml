@@ -16,6 +16,8 @@ jobs:
 
       - name: Setup Scala
         uses: japgolly/setup-everything-scala@v3.1
+        with:
+          java-version: adopt@1.11
 
       - name: Release
         run: sbt ci-release
