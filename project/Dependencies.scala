@@ -7,16 +7,16 @@ object Dependencies {
   object Ver {
 
     // Externally observable
-    val cats                  = "2.8.0"
+    val cats                  = "2.13.0"
     val microlibs             = "4.2.1"
-    val scala2                = "2.13.8"
-    val scala3                = "3.1.3"
+    val scala2                = "2.13.18"
+    val scala3                = "3.3.7"
 
     // Internal
     val betterMonadicFor      = "0.3.1"
-    val kindProjector         = "0.13.2"
+    val kindProjector         = "0.13.4"
     val scalaJsJavaTime       = "1.0.0"
-    val utest                 = "0.8.1"
+    val utest                 = "0.8.9"
   }
 
   object Dep {

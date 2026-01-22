@@ -1,7 +1,6 @@
 package japgolly.clearconfig
 
 import cats.Id
-import scala.annotation.nowarn
 import utest._
 
 object SourceTest extends TestSuite {
@@ -9,7 +8,6 @@ object SourceTest extends TestSuite {
   def s1: ConfigSource[Id] = ConfigSource.empty("S1")
   def ss: ConfigSources[Id] = s1
 
-  @nowarn("cat=unused")
   def ensureCompilation(s: => ConfigSources[Id]) = ()
 
   override def tests = Tests {

@@ -10,7 +10,7 @@ trait StoreObjectJs extends StoreObject {
 
     // Try for Node's process.env
     try {
-      js.Dynamic.global.process.env match {
+      (js.Dynamic.global.process.env: js.Any) match {
         case o: js.Object => return StoreJs.ofJsObject(o)
         case _ =>
       }
