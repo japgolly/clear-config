@@ -3,15 +3,14 @@ package japgolly.clearconfig.internals
 import cats.{Alternative, Monad}
 import japgolly.microlibs.stdlib_ext._
 import java.io.File
-import java.net.{URI, URL}
+import java.net.{InetAddress, URI, URL}
 import java.time._
 import java.time.temporal.ChronoUnit
+import java.util.UUID
 import java.util.regex.Pattern
 import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.util.matching.Regex
-import java.net.InetAddress
-import java.util.UUID
 
 final class ValueParser[A](val parse: String => Either[String, A]) extends FailableFunctor[ValueParser, A] {
 
