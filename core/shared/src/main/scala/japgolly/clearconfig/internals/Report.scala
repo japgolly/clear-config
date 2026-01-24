@@ -251,12 +251,15 @@ final case class Report(sourcesHighToLowPri: Vector[SourceName],
   def unused(withHeader: Boolean): String = subReport(withHeader, unusedHeader, unusedReport)
 
   def full: String =
+    show(unused = true)
+
+  def show(unused: Boolean): String =
     s"""
        !${if (showSourceList) sources else ""}
        !
        !${used(true)}
        !
-       !${unused(true)}
+       !${if (unused) this.unused(true) else ""}
      """.stripMargin('!').trim
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
