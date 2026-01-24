@@ -1,3 +1,8 @@
+### 3.2.0
+
+* [#133](https://github.com/japgolly/clear-config/issues/133) Add `ConfigDef.logbackXmlOnClasspath` (available on JVM only) that scans logback xml files for environment variables so that they can appear in a config report.
+* [#127](https://github.com/japgolly/clear-config/issues/127) Add `show(unused: Boolean): String` to config reports.
+
 ### 3.1.0
 
 * Add `ConfigDef.getOrParse{,OrThrow}`. They're the same as `getOrUse` except the default value is parsed instead of provided.
