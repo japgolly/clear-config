@@ -68,7 +68,7 @@ trait ConfigDef[A] extends FailableFunctor[ConfigDef, A] {
     withKeyMod(prefix + _)
 }
 
-object ConfigDef {
+object ConfigDef extends ConfigDefCompanion {
 
   def unit: ConfigDef[Unit] =
     const(())

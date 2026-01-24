@@ -196,6 +196,8 @@ From the above report we can immediately observe the following:
 * There is special DSL to create `A => Unit` functions to configure a mutable object (which you typically use when working with a Java library)
   `ConfigDef.consumerFn[A](...)`. There is an example below:
 
+* `ConfigDef.logbackXmlOnClasspath` can be used to parse logback xml for its use of environment variables
+
 * More... (explore the source)
 
 # Larger Example
