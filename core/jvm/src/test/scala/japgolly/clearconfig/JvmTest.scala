@@ -57,5 +57,32 @@ object JvmTest extends TestSuite {
 
     }
 
+    "logbackXmlOnClasspath" - {
+      val fakeEnv = ConfigSource.manual[Id]("Env")(
+        "LOG_LEVEL_SHIPREQ" -> "DEBUG",
+      )
+      val result = ConfigDef.logbackXmlOnClasspath.withReport.run(fakeEnv)
+      val report = result.getOrDie()._2
+      val actual = report.full
+      val expect = """|2 sources (highest to lowest priority):
+                      |  - Env
+                      |  - Default
+                      |
+                      |Used keys (4):
+                      |+-------------------+-------+---------+
+                      || Key               | Env   | Default |
+                      |+-------------------+-------+---------+
+                      || LOG_APPENDER      |       | JSON    |
+                      || LOG_LEVEL_MAIN    |       | INFO    |
+                      || LOG_LEVEL_ROOT    |       | INFO    |
+                      || LOG_LEVEL_SHIPREQ | DEBUG |         |
+                      |+-------------------+-------+---------+
+                      |
+                      |Unused keys (0):
+                      |No data to report.
+                      |""".stripMargin
+      assertMultiline(actual.trim, expect.trim)
+    }
+
   }
 }

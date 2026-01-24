@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration
+  xmlns="http://ch.qos.logback/xml/ns/logback"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://ch.qos.logback/xml/ns/logback http://ch.qos.logback/xml/ns/logback/logback.xsd">
+
+  <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <pattern>%d{HH:mm:ss.SSS} %-5level [%-34logger{34}] {%-10X{who}} %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <includeMdc>true</includeMdc>
+    </encoder>
+  </appender>
+
+  <appender name="METRICS" class="io.prometheus.client.logback.InstrumentedAppender" />
+
+  <logger name="org.apache.commons" level="WARN" />
+  <logger name="net.liftweb.util.Props" level="OFF" />
+
+  <logger name="shipreq" level="${LOG_LEVEL_SHIPREQ}" />
+
+  <root level="${LOG_LEVEL_ROOT:-${LOG_LEVEL_MAIN:-INFO}}">
+    <appender-ref ref="${LOG_APPENDER:-JSON}" />
+    <appender-ref ref="METRICS" />
+  </root>
+</configuration>
