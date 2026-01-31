@@ -364,6 +364,63 @@ object ConfigReportTest extends TestSuite {
            !Unused keys (0):
            !No data to report.
          """.stripMargin('!').trim)
+
+       "filterKeysAndSourceNot" - {
+        val r2 = r.mapUnused(_.filterKeysAndSourceNot(_.startsWith("s") && _ == s1.name))
+        assertMultiline(r2.unused,
+          s"""
+             !Unused keys (3):
+             !+-----+----+----+
+             !| Key | S1 | S2 |
+             !+-----+----+----+
+             !| a   | a1 |    |
+             !| b   |    | b2 |
+             !| s   |    | s2 |
+             !+-----+----+----+
+           """.stripMargin('!').trim)
+       }
+
+       "filterKeysNotWithSources" - {
+        val r2 = r.mapUnused(_.filterKeysNot(_.startsWith("s"), s1.name))
+        assertMultiline(r2.unused,
+          s"""
+             !Unused keys (3):
+             !+-----+----+----+
+             !| Key | S1 | S2 |
+             !+-----+----+----+
+             !| a   | a1 |    |
+             !| b   |    | b2 |
+             !| s   |    | s2 |
+             !+-----+----+----+
+           """.stripMargin('!').trim)
+       }
+
+       "filterKeysWithSources1" - {
+        val r2 = r.mapUnused(_.filterKeys(_.startsWith("s"), s1.name))
+        assertMultiline(r2.unused,
+          s"""
+             !Unused keys (2):
+             !+-----+----+----+
+             !| Key | S1 | S2 |
+             !+-----+----+----+
+             !| b   |    | b2 |
+             !| s   | s1 | s2 |
+             !+-----+----+----+
+           """.stripMargin('!').trim)
+       }
+
+       "filterKeysWithSources2" - {
+        val r2 = r.mapUnused(_.filterKeys(_.startsWith("s"), s1.name, s2.name))
+        assertMultiline(r2.unused,
+          s"""
+             !Unused keys (1):
+             !+-----+----+----+
+             !| Key | S1 | S2 |
+             !+-----+----+----+
+             !| s   | s1 | s2 |
+             !+-----+----+----+
+           """.stripMargin('!').trim)
+       }
     }
 
     "colour" - {
