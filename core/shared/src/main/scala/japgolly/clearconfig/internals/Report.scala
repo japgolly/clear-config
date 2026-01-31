@@ -45,16 +45,28 @@ object Report {
   trait HasTable[A <: HasTable[A]] {
     def map(f: Table => Table): A
 
-    final def filterKeys(f: String => Boolean): A =
-      map(_.modByKey(_.iterator.filter(kv => f(kv._1.value)).toMap))
+    final def filterKeysAndSource(f: (String, SourceName) => Boolean): A =
+      map(_.modByKey(_.iterator.map { case (k, m) => (k, m.filter { case (s, _) => f(k.value, s) }) }.toMap))
 
-    final def filterKeysNot(f: String => Boolean): A =
-      filterKeys(!f(_))
+    final def filterKeysAndSourceNot(f: (String, SourceName) => Boolean): A =
+      filterKeysAndSource(!f(_, _))
 
-    final def withoutKeys(keys: String*): A = {
-      val keySet = keys.toSet
-      filterKeys(!keySet.contains(_))
-    }
+    final def filterKeys(f: String => Boolean, sources: SourceName*): A =
+      if (sources.isEmpty)
+        map(_.modByKey(_.iterator.filter(kv => f(kv._1.value)).toMap))
+      else {
+        val sourceSet = sources.toSet
+        filterKeysAndSource((k, s) => if (sourceSet.contains(s)) f(k) else true).withoutEmptyKeyRows
+      }
+
+    final def filterKeysNot(f: String => Boolean, sources: SourceName*): A =
+      filterKeys(!f(_), sources: _*)
+
+    final def withoutKeys(keys: String*): A =
+      withoutKeys(keys.toSet)
+
+    final def withoutKeys(keys: Set[String], sources: SourceName*): A =
+      filterKeys(!keys.contains(_), sources: _*)
 
     final def filterSources(f: SourceName => Boolean): A =
       map(_.modBySource(_.iterator.filter(kv => f(kv._1)).toMap))

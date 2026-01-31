@@ -1,3 +1,12 @@
+### 3.3.0
+
+* When calling `report.map{Used,Unused}`:
+  * Added `filterKeysAndSource(f: (String, SourceName) => Boolean)`
+  * Added `filterKeysAndSourceNot(f: (String, SourceName) => Boolean)`
+  * Added `sources: SourceName*` to `filterKeys` to only filter keys for a given set of sources
+  * Added `sources: SourceName*` to `filterKeysNot` to only filter-not keys for a given set of sources
+  * Added `withoutKeys(keys: Set[String], sources: SourceName*)` to remove keys for a given set of sources, or all if none specified
+
 ### 3.2.0
 
 * [#133](https://github.com/japgolly/clear-config/issues/133) Add `ConfigDef.logbackXmlOnClasspath` (available on JVM only) that scans logback xml files for environment variables so that they can appear in a config report.
