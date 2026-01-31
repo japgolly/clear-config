@@ -116,8 +116,9 @@ val (dbCfg, report) =
 
 println(report
 
-  // Remove env & system columns from the unused section of the report
-  .mapUnused(_.withoutSources(ConfigSourceName.environment, ConfigSourceName.system))
+  // Only show unused env vars and properties that start with POSTGRES
+  // (All unused keys in database.props will remain unfiltered in the report)
+  .mapUnused(_.filterKeys(_.startsWith("POSTGRES"), ConfigSourceName.environment, ConfigSourceName.system))
 
   // Show the full report
   .full
