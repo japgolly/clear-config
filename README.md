@@ -11,21 +11,18 @@ libraryDependencies += "com.github.japgolly.clearconfig" %%% "core" % "<ver>"
 # What's special about this?
 
 There are plenty of config libraries out there, right?
-This library is pure FP, type-safe, super-simple to use, highly composable and powerful, yada yada yada...
+This library is pure FP, type-safe, simple to use, highly composable, powerful, yada yada yada...
 All true but it's biggest and most unique feature is actually:
 
 **CLARITY.**
 
-Haven't we all had enough of crap like:
+Haven't we all had enough of situations like:
 
 * changing an environment variable setting, pushing all the way though to an environment, testing and
   then discovering that your expected change didn't occur. Was the new setting picked up?
   What setting did it use? Where did it come from?
 
-* after hours of frustration: "That setting isn't even used any more?!
-  Why the hell is it still all over our deployment config?!
-  Why didn't person X magically know to remove this specific piece of text in this big blob of text in this completely
-  separate deployment repo at the same time they made their code change?"
+* after hours of frustration: *"That setting isn't even used any more?! But it's still in-place in all of our deployment config."*
 
 This library endeavours to provide **clarity**.
 When you get an instance of your config, you also get a report that describes:
@@ -156,9 +153,9 @@ Unused keys (1):
 From the above report we can immediately observe the following:
 
 * Which sources override other sources; the report columns (left-to-right) respect this
-* We'll be running at port 4000 and the reason for that is there's an override set by the environment
+* We'll be running at port 4000 instead of the default because there's an override set by the environment
 * There's a typo in our `database.properties`; `POSTGRES_SCHMA` should be `POSTGRES_SCHEMA`
-* The password value has been hashed for the report. This still allows you to compare the hash between envs or time to determine change without compromising the value.
+* The password value has been hashed for the report. This still allows you to compare the hash between envs or time to determine change without compromising the value
 
 
 # Usage
@@ -166,9 +163,17 @@ From the above report we can immediately observe the following:
 * Simplest and most common methods:
 
   ```scala
-  ConfigDef.get     [A](key: String)             // provides an Option[A] - optional config
-  ConfigDef.getOrUse[A](key: String, default: A) // provides an A - optional config with default
-  ConfigDef.need    [A](key: String)             // provides an A - mandatory config; error if not provided
+  // gets value of Option[A] if key is specified, else returns None
+  ConfigDef.get[A](key: String)
+
+  // gets value of A if key is specified, else parses a default string into an A
+  ConfigDef.getOrParse[A](key: String, default: String)
+
+  // gets value of A if key is specified, else uses a default A
+  ConfigDef.getOrUse[A](key: String, default: A)
+
+  // gets value of A if key is specified, else generates an error
+  ConfigDef.need[A](key: String)
   ```
 
 * To define your own type of config value, create an implicit `ConfigValueParser`. Example:
@@ -195,9 +200,10 @@ From the above report we can immediately observe the following:
   one key, in which case they'll all be modified.
 
 * There is special DSL to create `A => Unit` functions to configure a mutable object (which you typically use when working with a Java library)
-  `ConfigDef.consumerFn[A](...)`. There is an example below:
+  `ConfigDef.consumerFn[A](...)`. There is an example below.
 
 * `ConfigDef.logbackXmlOnClasspath` can be used to parse logback xml for its use of environment variables
+  so that they appear in config reports
 
 * More... (explore the source)
 
