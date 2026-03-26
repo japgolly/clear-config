@@ -34,7 +34,7 @@ When you get an instance of your config, you also get a report that describes:
 * what the total, resulting config is
 * which config is still hanging around but is actually stale and no longer in use
 
-*(sample report below)*
+*(sample reports below)*
 
 
 # Walkthrough
@@ -332,6 +332,11 @@ myapp.redis.pool.time_between_eviction_runs_millis
 
 myapp.log_level
 ```
+
+# Java version
+
+There is a Java version of this library here:
+https://github.com/japgolly/clear-config-java
 
 
 ##### Support:
