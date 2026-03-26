@@ -1,5 +1,5 @@
 # ClearConfig
-[![Build Status](https://travis-ci.org/japgolly/clear-config.svg?branch=master)](https://travis-ci.org/japgolly/clear-config) [![Latest version](https://index.scala-lang.org/japgolly/clearconfig/core/latest.svg?color=orange)](https://index.scala-lang.org/japgolly/clearconfig/core)
+[![Latest version](https://index.scala-lang.org/japgolly/clear-config/core/latest.svg?color=orange)](https://index.scala-lang.org/japgolly/clear-config/core)
 
 A type-safe, FP, Scala config library.
 
